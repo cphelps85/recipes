@@ -3219,11 +3219,10 @@ function getMondayOf(date) {
 function dateKey(date) {
   return date.toISOString().slice(0,10);
 }
+let allPlansCache = {};
+
 function allPlans() {
-  return JSON.parse(localStorage.getItem('chrissy_all_plans') || '{}');
-}
-function savePlans(plans) {
-  localStorage.setItem('chrissy_all_plans', JSON.stringify(plans));
+  return allPlansCache;
 }
 
 let currentPlanWeek = getMondayOf(new Date()); // Date object for current Monday
@@ -3236,13 +3235,13 @@ function getMealPlan(weekKey) {
   return allPlans()[weekKey] || {};
 }
 function setMealPlan(weekKey, plan) {
-  const plans = allPlans();
   if (Object.keys(plan).length === 0) {
-    delete plans[weekKey];
+    delete allPlansCache[weekKey];
+    remove(ref(db, 'mealPlans/' + weekKey));
   } else {
-    plans[weekKey] = plan;
+    allPlansCache[weekKey] = plan;
+    set(ref(db, 'mealPlans/' + weekKey), plan);
   }
-  savePlans(plans);
 }
 
 function plannerPrevWeek() {
@@ -3628,6 +3627,30 @@ onValue(recipesRef, (snapshot) => {
 });
 const listRef = ref(db, 'groceryList');
 const itemLibRef = ref(db, 'itemLibrary');
+const mealPlansRef = ref(db, 'mealPlans');
+
+// ─── MEAL PLANS FIREBASE ─────────────────────────────────────────
+onValue(mealPlansRef, (snapshot) => {
+  allPlansCache = snapshot.val() || {};
+  const plannerSection = document.getElementById('section-planner');
+  if (plannerSection && plannerSection.classList.contains('active')) {
+    renderPlanner();
+  }
+});
+
+function migrateMealPlansFromLocalStorage() {
+  const raw = localStorage.getItem('chrissy_all_plans');
+  if (!raw) return;
+  try {
+    const plans = JSON.parse(raw);
+    if (Object.keys(plans).length === 0) { localStorage.removeItem('chrissy_all_plans'); return; }
+    Object.entries(plans).forEach(([weekKey, plan]) => {
+      set(ref(db, 'mealPlans/' + weekKey), plan);
+    });
+    localStorage.removeItem('chrissy_all_plans');
+  } catch(e) { /* ignore */ }
+}
+migrateMealPlansFromLocalStorage();
 
 // ─── ITEM LIBRARY FIREBASE ───────────────────────────────────────
 onValue(itemLibRef, (snapshot) => {
