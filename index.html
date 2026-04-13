@@ -678,6 +678,23 @@
   .recipe-filter-btn:hover { background: var(--accent-light); border-color: var(--accent-light); color: var(--brown); }
   .recipe-filter-btn.active { background: var(--accent); color: white; border-color: var(--accent); }
 
+  /* TAG PILL TOGGLES (in edit/upload forms) */
+  .tag-pill-container { display: flex; flex-direction: column; gap: 0.4rem; padding: 0.3rem 0; }
+  .tag-pill-group { display: flex; flex-wrap: wrap; gap: 0.35rem; align-items: center; }
+  .tag-pill-group-label {
+    font-size: 0.68rem; font-weight: 600; color: var(--text-muted);
+    text-transform: uppercase; letter-spacing: 0.06em;
+    min-width: 52px; white-space: nowrap;
+  }
+  .tag-pill-toggle {
+    background: var(--warm-white); border: 1.5px solid var(--border);
+    border-radius: 50px; padding: 0.22rem 0.65rem;
+    font-family: 'DM Sans', sans-serif; font-size: 0.74rem; font-weight: 500;
+    color: var(--brown-mid); cursor: pointer; transition: all 0.15s; white-space: nowrap;
+  }
+  .tag-pill-toggle:hover { background: var(--accent-light); border-color: var(--accent-light); color: var(--brown); }
+  .tag-pill-toggle.active { background: var(--accent); color: white; border-color: var(--accent); }
+
   /* RECIPE CARD ENHANCEMENTS */
   .card-actions {
     display: flex;
@@ -1579,7 +1596,17 @@
       <span class="filter-row-label">Health</span>
       <button class="recipe-filter-btn active" onclick="setRecipeFilter('health','all',this)">All</button>
       <button class="recipe-filter-btn" onclick="setRecipeFilter('health','lowsodium',this)">💚 Low Sodium</button>
-      <button class="recipe-filter-btn" onclick="setRecipeFilter('health','kidapproved',this)">⭐ Kid Approved</button>
+      <button class="recipe-filter-btn" onclick="setRecipeFilter('health','kidapproved',this)">⭐ Kid Friendly</button>
+    </div>
+    <div class="filter-row">
+      <span class="filter-row-label">Tags</span>
+      <button class="recipe-filter-btn active" onclick="setRecipeFilter('tags','all',this)">All</button>
+      <button class="recipe-filter-btn" onclick="setRecipeFilter('tags','highfiber',this)">🌾 High Fiber</button>
+      <button class="recipe-filter-btn" onclick="setRecipeFilter('tags','healthy',this)">🥗 Healthy</button>
+      <button class="recipe-filter-btn" onclick="setRecipeFilter('tags','comfortfood',this)">🍜 Comfort Food</button>
+      <button class="recipe-filter-btn" onclick="setRecipeFilter('tags','makeahead',this)">📦 Make Ahead</button>
+      <button class="recipe-filter-btn" onclick="setRecipeFilter('tags','budgetfriendly',this)">💰 Budget Friendly</button>
+      <button class="recipe-filter-btn" onclick="setRecipeFilter('tags','spicy',this)">🌶️ Spicy</button>
     </div>
   </div>
   <div class="recipe-grid" id="grid-all"></div>
@@ -1832,8 +1859,8 @@
           <input type="number" id="prev-servings" min="1" max="50" value="4">
         </div>
         <div class="preview-field" style="flex:2;min-width:200px">
-          <label>Tags (comma separated)</label>
-          <input type="text" id="prev-tags" placeholder="beef, quick, lowsodium">
+          <label>Tags</label>
+          <div id="prev-tags-pills" class="tag-pill-container"></div>
         </div>
       </div>
       <div class="preview-field">
@@ -1956,8 +1983,8 @@
             <input type="number" id="edit-servings" min="1" max="50">
           </div>
           <div class="preview-field" style="flex:2;min-width:200px">
-            <label>Tags (comma separated)</label>
-            <input type="text" id="edit-tags" placeholder="beef, quick, lowsodium">
+            <label>Tags</label>
+            <div id="edit-tags-pills" class="tag-pill-container"></div>
           </div>
         </div>
         <div class="preview-field">
@@ -2647,7 +2674,7 @@ function editRecipe() {
   document.getElementById('edit-title').value = r.title || '';
   document.getElementById('edit-desc').value = r.desc || '';
   document.getElementById('edit-servings').value = r.servings || 4;
-  document.getElementById('edit-tags').value = (r.tags || []).join(', ');
+  renderTagPills('edit-tags-pills', r.tags || []);
   document.getElementById('edit-ingredients').value = (r.ingredients || []).map(i => {
     const parts = [i.name];
     if (i.amount) parts.push(i.amount + (i.unit ? ' ' + i.unit : ''));
@@ -2671,7 +2698,7 @@ function saveEditedRecipe() {
   const title = document.getElementById('edit-title').value.trim();
   if (!title) { alert('Please enter a recipe title.'); return; }
 
-  const tags = document.getElementById('edit-tags').value.split(',').map(t => t.trim().toLowerCase()).filter(Boolean);
+  const tags = getTagsFromPills('edit-tags-pills');
   const ingLines = document.getElementById('edit-ingredients').value.split('\n').filter(l => l.trim());
   const ingredients = ingLines.map(line => {
     const parts = line.split(',');
@@ -2767,13 +2794,60 @@ function closeModalDirect() {
   document.body.style.overflow = '';
 }
 
+const ALL_TAGS = [
+  { key: 'beef',          label: '🥩 Beef',            group: 'Protein' },
+  { key: 'chicken',       label: '🍗 Chicken',          group: 'Protein' },
+  { key: 'pork',          label: '🥩 Pork',             group: 'Protein' },
+  { key: 'veggie',        label: '🥦 Veggie',           group: 'Protein' },
+  { key: 'quick',         label: '⚡ Quick',            group: 'Time' },
+  { key: 'slowcooker',    label: '🍲 Slow Cooker',      group: 'Time' },
+  { key: 'lowsodium',     label: '💚 Low Sodium',       group: 'Diet' },
+  { key: 'highfiber',     label: '🌾 High Fiber',       group: 'Diet' },
+  { key: 'healthy',       label: '🥗 Healthy',          group: 'Diet' },
+  { key: 'kidapproved',   label: '⭐ Kid Friendly',     group: 'Diet' },
+  { key: 'comfortfood',   label: '🍜 Comfort Food',     group: 'Style' },
+  { key: 'makeahead',     label: '📦 Make Ahead',       group: 'Style' },
+  { key: 'budgetfriendly',label: '💰 Budget Friendly',  group: 'Style' },
+  { key: 'spicy',         label: '🌶️ Spicy',           group: 'Style' },
+  { key: 'special',       label: '✨ Special',          group: 'Style' },
+];
+
 function getTagsText(tags) {
-  const labels = { beef: 'Beef', chicken: 'Chicken', pork: 'Pork', veggie: 'Vegetarian', quick: 'Quick', lowsodium: 'Low Sodium', slowcooker: 'Slow Cooker', special: 'Special', kidapproved: 'Kid Approved' };
-  return tags.map(t => labels[t] || t).join(' · ');
+  const labelMap = {};
+  ALL_TAGS.forEach(t => { labelMap[t.key] = t.label; });
+  return (tags || []).map(t => labelMap[t] || t).join(' · ');
+}
+
+function renderTagPills(containerId, selectedTags) {
+  const container = document.getElementById(containerId);
+  if (!container) return;
+  const selected = new Set((selectedTags || []).map(t => t.toLowerCase()));
+  const groups = {};
+  ALL_TAGS.forEach(t => {
+    if (!groups[t.group]) groups[t.group] = [];
+    groups[t.group].push(t);
+  });
+  container.innerHTML = Object.entries(groups).map(([group, tags]) => `
+    <div class="tag-pill-group">
+      <span class="tag-pill-group-label">${group}</span>
+      ${tags.map(t => `<button type="button" class="tag-pill-toggle${selected.has(t.key) ? ' active' : ''}"
+        data-tag="${t.key}" onclick="toggleTagPill(this)">${t.label}</button>`).join('')}
+    </div>
+  `).join('');
+}
+
+function toggleTagPill(btn) {
+  btn.classList.toggle('active');
+}
+
+function getTagsFromPills(containerId) {
+  const container = document.getElementById(containerId);
+  if (!container) return [];
+  return Array.from(container.querySelectorAll('.tag-pill-toggle.active')).map(b => b.dataset.tag);
 }
 
 // ─── RECIPE FILTERS ──────────────────────────────────────────────
-const activeRecipeFilters = { protein: 'all', time: 'all', health: 'all' };
+const activeRecipeFilters = { protein: 'all', time: 'all', health: 'all', tags: 'all' };
 
 function setRecipeFilter(type, value, btn) {
   // If clicking the already-active non-all button, reset to all
@@ -2819,7 +2893,12 @@ function applyRecipeFilters() {
   if (activeRecipeFilters.health === 'lowsodium') {
     list = list.filter(r => r.tags.includes('lowsodium'));
   } else if (activeRecipeFilters.health === 'kidapproved') {
-    list = list.filter(r => r.tags.includes('kidapproved') || r.tags.includes('quick'));
+    list = list.filter(r => r.tags.includes('kidapproved'));
+  }
+
+  // Tags filter
+  if (activeRecipeFilters.tags !== 'all') {
+    list = list.filter(r => r.tags.includes(activeRecipeFilters.tags));
   }
 
   renderGrid('grid-all', list);
@@ -2859,6 +2938,7 @@ window.removeFromPlan = removeFromPlan;
 window.closeReviewModal = closeReviewModal;
 window.closeReviewDirect = closeReviewDirect;
 window.setRecipeFilter = setRecipeFilter;
+window.toggleTagPill = toggleTagPill;
 window.parseRecipeText = parseRecipeText;
 window.handleRecipeDrop = handleRecipeDrop;
 window.handleRecipeFile = handleRecipeFile;
@@ -3025,7 +3105,7 @@ function showRecipePreview(recipe) {
   document.getElementById('prev-title').value = recipe.title || '';
   document.getElementById('prev-desc').value = recipe.desc || '';
   document.getElementById('prev-servings').value = recipe.servings || 4;
-  document.getElementById('prev-tags').value = (recipe.tags || []).join(', ');
+  renderTagPills('prev-tags-pills', recipe.tags || []);
   document.getElementById('prev-ingredients').value = (recipe.ingredients || [])
     .map(i => `${i.name}${i.amount ? ', ' + i.amount : ''}${i.unit ? ' ' + i.unit : ''}`)
     .join('\n');
@@ -3041,8 +3121,7 @@ function saveNewRecipe() {
   const title = document.getElementById('prev-title').value.trim();
   if (!title) { alert('Please add a recipe title.'); return; }
 
-  const tagsRaw = document.getElementById('prev-tags').value;
-  const tags = tagsRaw.split(',').map(t => t.trim().toLowerCase()).filter(Boolean);
+  const tags = getTagsFromPills('prev-tags-pills');
 
   // Parse ingredients back from text area
   const ingLines = document.getElementById('prev-ingredients').value.split('\n').filter(l => l.trim());
