@@ -408,7 +408,62 @@
     .modal { box-shadow: none; border-radius: 0; }
   }
 
-  /* GROCERY LIST */
+  /* MEAL PLANNER */
+  .planner-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 0.8rem;
+    margin-bottom: 1.5rem;
+  }
+  .planner-day {
+    background: var(--warm-white);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 0.9rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    min-height: 110px;
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+  }
+  .planner-day:hover { border-color: var(--accent-light); transform: translateY(-2px); box-shadow: 0 4px 12px rgba(61,43,31,0.08); }
+  .planner-day.has-recipe { border-color: var(--accent-light); }
+  .planner-day.has-recipe::before { content: ''; position: absolute; top: 0; left: 0; width: 4px; height: 100%; background: var(--accent); border-radius: 12px 0 0 12px; }
+  .planner-day { position: relative; }
+  .day-name { font-size: 0.72rem; font-weight: 500; color: var(--accent); letter-spacing: 0.08em; text-transform: uppercase; }
+  .day-date { font-weight: 400; color: var(--text-muted); text-transform: none; letter-spacing: 0; }
+  .planner-day.is-today { border-color: var(--accent); background: #FFF8F4; }
+  .planner-day.is-today .day-name { color: var(--accent); }
+  .day-recipe { font-family: 'Playfair Display', serif; font-size: 0.88rem; color: var(--brown); line-height: 1.3; flex: 1; }
+  .day-empty { font-size: 0.8rem; color: var(--text-muted); flex: 1; display: flex; align-items: center; }
+  .day-remove { font-size: 0.7rem; color: var(--text-muted); background: none; border: none; cursor: pointer; padding: 0; text-align: left; transition: color 0.15s; }
+  .day-remove:hover { color: #8B2500; }
+
+  /* REVIEW LIST */
+  .review-item {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    padding: 0.6rem 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 0.9rem;
+  }
+  .review-item:last-child { border-bottom: none; }
+  .review-item input[type="checkbox"] { width: 20px; height: 20px; cursor: pointer; accent-color: var(--accent); flex-shrink: 0; }
+  .review-recipe-label { font-size: 0.72rem; color: var(--text-muted); margin-left: auto; white-space: nowrap; }
+
+  /* PICKER LIST */
+  .picker-item {
+    padding: 0.8rem 0;
+    border-bottom: 1px solid var(--border);
+    cursor: pointer;
+    transition: background 0.1s;
+  }
+  .picker-item:last-child { border-bottom: none; }
+  .picker-item:hover { background: var(--cream); border-radius: 8px; padding-left: 0.5rem; }
+  .picker-title { font-family: 'Playfair Display', serif; font-size: 0.95rem; color: var(--brown); }
+  .picker-meta { font-size: 0.75rem; color: var(--text-muted); margin-top: 0.2rem; }
   .grocery-header {
     display: flex;
     justify-content: space-between;
@@ -558,10 +613,527 @@
   }
   .delete-item:hover { color: #8B2500; }
 
+  /* RECIPE FILTER BAR */
+  .recipe-filters {
+    margin-bottom: 1.2rem;
+  }
+  .filter-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    margin-bottom: 0.5rem;
+    align-items: center;
+  }
+  .filter-row-label {
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    white-space: nowrap;
+    margin-right: 0.2rem;
+    min-width: 56px;
+  }
+  .recipe-filter-btn {
+    background: var(--warm-white);
+    border: 1.5px solid var(--border);
+    border-radius: 50px;
+    padding: 0.3rem 0.8rem;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.76rem;
+    font-weight: 500;
+    color: var(--brown-mid);
+    cursor: pointer;
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+  .recipe-filter-btn:hover { background: var(--accent-light); border-color: var(--accent-light); color: var(--brown); }
+  .recipe-filter-btn.active { background: var(--accent); color: white; border-color: var(--accent); }
+
+  /* RECIPE CARD ENHANCEMENTS */
+  .card-actions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 0.6rem;
+    padding-top: 0.6rem;
+    border-top: 1px solid var(--border);
+    gap: 0.4rem;
+  }
+  .card-checkbox-wrap {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    cursor: pointer;
+    user-select: none;
+  }
+  .card-checkbox-wrap input[type="checkbox"] {
+    width: 16px; height: 16px;
+    cursor: pointer;
+    accent-color: var(--accent);
+    flex-shrink: 0;
+  }
   @media (max-width: 480px) {
     main { padding: 1rem; }
     .modal-body { padding: 1rem; }
   }
+
+  /* ── ITEM LIBRARY ─────────────────────────────────────────────── */
+  .item-lib-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 0.8rem;
+    margin-bottom: 1.2rem;
+  }
+  .item-lib-controls {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    align-items: center;
+    margin-bottom: 1rem;
+  }
+  .item-lib-search {
+    flex: 1;
+    min-width: 180px;
+    border: 1.5px solid var(--border);
+    border-radius: 50px;
+    padding: 0.45rem 1rem;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.85rem;
+    background: var(--cream);
+    color: var(--brown);
+    outline: none;
+  }
+  .item-lib-search:focus { border-color: var(--accent); }
+  .item-lib-cat-filter {
+    border: 1.5px solid var(--border);
+    border-radius: 8px;
+    padding: 0.45rem 0.7rem;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.82rem;
+    background: var(--cream);
+    color: var(--brown);
+    outline: none;
+    cursor: pointer;
+  }
+  .item-lib-cat-filter:focus { border-color: var(--accent); }
+  .item-lib-count {
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    padding: 0.45rem 0;
+    white-space: nowrap;
+  }
+
+  /* Naming guide banner */
+  .naming-guide {
+    background: var(--green-light);
+    border: 1px solid var(--green);
+    border-radius: 10px;
+    padding: 0.9rem 1.1rem;
+    margin-bottom: 1.2rem;
+    position: relative;
+  }
+  .naming-guide-title {
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--green);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 0.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+  }
+  .naming-guide-rules {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 0.4rem 1.2rem;
+  }
+  .naming-guide-rule {
+    font-size: 0.78rem;
+    color: var(--brown-mid);
+    display: flex;
+    gap: 0.5rem;
+    align-items: baseline;
+  }
+  .naming-guide-rule .do { color: var(--green); font-weight: 600; }
+  .naming-guide-rule .dont { color: #8B2500; font-weight: 600; }
+  .naming-guide-close {
+    position: absolute;
+    top: 0.6rem; right: 0.7rem;
+    background: none;
+    border: none;
+    font-size: 1rem;
+    color: var(--text-muted);
+    cursor: pointer;
+    line-height: 1;
+  }
+
+  /* Item table */
+  .item-table-wrap {
+    background: var(--warm-white);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+  .item-table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  .item-table th {
+    background: var(--brown);
+    color: var(--cream);
+    font-size: 0.72rem;
+    font-weight: 500;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    padding: 0.6rem 0.9rem;
+    text-align: left;
+  }
+  .item-table td {
+    padding: 0.6rem 0.9rem;
+    font-size: 0.87rem;
+    color: var(--brown);
+    border-bottom: 1px solid var(--border);
+    vertical-align: middle;
+  }
+  .item-table tr:last-child td { border-bottom: none; }
+  .item-table tr:nth-child(even) td { background: var(--cream); }
+  .item-table tr:hover td { background: #FFF8F4; }
+  .item-brand {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    font-style: italic;
+  }
+  .item-actions {
+    display: flex;
+    gap: 0.4rem;
+    justify-content: flex-end;
+  }
+  .item-edit-btn, .item-delete-btn {
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 0.25rem 0.55rem;
+    font-size: 0.75rem;
+    cursor: pointer;
+    font-family: 'DM Sans', sans-serif;
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+  .item-edit-btn { color: var(--brown-mid); }
+  .item-edit-btn:hover { background: var(--accent); color: white; border-color: var(--accent); }
+  .item-delete-btn { color: #8B2500; border-color: #E8C4B8; }
+  .item-delete-btn:hover { background: #8B2500; color: white; border-color: #8B2500; }
+
+  /* Item edit modal */
+  .item-modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(61,43,31,0.5);
+    z-index: 300;
+    padding: 1rem;
+    overflow-y: auto;
+    align-items: flex-start;
+    justify-content: center;
+  }
+  .item-modal-overlay.open { display: flex; }
+  .item-modal {
+    background: var(--warm-white);
+    border-radius: 16px;
+    width: 100%;
+    max-width: 520px;
+    margin: auto;
+    overflow: hidden;
+    animation: slideUp 0.25s ease;
+  }
+  .item-modal-header {
+    background: var(--brown);
+    padding: 1.3rem 1.4rem 1.1rem;
+    position: relative;
+  }
+  .item-modal-header h3 {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.2rem;
+    color: var(--cream);
+  }
+  .item-modal-header p {
+    font-size: 0.8rem;
+    color: var(--accent-light);
+    margin-top: 0.2rem;
+  }
+  .item-modal-body { padding: 1.3rem 1.4rem; }
+  .item-field {
+    margin-bottom: 1rem;
+  }
+  .item-field label {
+    display: block;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 0.35rem;
+  }
+  .item-field input, .item-field select {
+    width: 100%;
+    border: 1.5px solid var(--border);
+    border-radius: 8px;
+    padding: 0.6rem 0.85rem;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.9rem;
+    background: var(--cream);
+    color: var(--brown);
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  .item-field input:focus, .item-field select:focus { border-color: var(--accent); }
+  .item-field .field-hint {
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    margin-top: 0.3rem;
+  }
+  .item-modal-footer {
+    display: flex;
+    gap: 0.6rem;
+    padding: 0 1.4rem 1.3rem;
+    justify-content: flex-end;
+  }
+  .item-save-btn {
+    background: var(--accent);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 0.6rem 1.4rem;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.88rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .item-save-btn:hover { background: var(--brown); }
+  .item-cancel-btn {
+    background: var(--warm-white);
+    color: var(--brown-mid);
+    border: 1.5px solid var(--border);
+    border-radius: 8px;
+    padding: 0.6rem 1.2rem;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.88rem;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .item-cancel-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+  /* Inline naming guide in modal */
+  .modal-naming-tip {
+    background: var(--green-light);
+    border-left: 3px solid var(--green);
+    border-radius: 0 6px 6px 0;
+    padding: 0.5rem 0.8rem;
+    font-size: 0.75rem;
+    color: var(--green);
+    margin-bottom: 0.3rem;
+    line-height: 1.5;
+  }
+  .modal-naming-tip strong { font-weight: 600; }
+
+  @media (max-width: 600px) {
+    .item-table th:nth-child(3),
+    .item-table td:nth-child(3) { display: none; }
+  }
+  .produce-controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-bottom: 1.2rem;
+    align-items: center;
+  }
+  .produce-filter-btn {
+    background: var(--warm-white);
+    border: 1.5px solid var(--border);
+    border-radius: 50px;
+    padding: 0.35rem 0.9rem;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.78rem;
+    font-weight: 500;
+    color: var(--brown-mid);
+    cursor: pointer;
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+  .produce-filter-btn:hover,
+  .produce-filter-btn.active {
+    background: var(--accent);
+    color: white;
+    border-color: var(--accent);
+  }
+  .produce-search {
+    flex: 1;
+    min-width: 160px;
+    border: 1.5px solid var(--border);
+    border-radius: 50px;
+    padding: 0.4rem 1rem;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.85rem;
+    background: var(--cream);
+    color: var(--brown);
+    outline: none;
+  }
+  .produce-search:focus { border-color: var(--accent); }
+
+  .produce-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1rem;
+  }
+
+  .produce-card {
+    background: var(--warm-white);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    overflow: hidden;
+    transition: box-shadow 0.2s, transform 0.2s;
+  }
+  .produce-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(61,43,31,0.1);
+  }
+
+  .produce-card-header {
+    padding: 1rem 1.1rem 0.7rem;
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
+    border-bottom: 1px solid var(--border);
+  }
+  .produce-emoji { font-size: 1.6rem; line-height: 1; }
+  .produce-name {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.05rem;
+    color: var(--brown);
+    flex: 1;
+  }
+  .produce-category-badge {
+    font-size: 0.65rem;
+    font-weight: 500;
+    padding: 0.2rem 0.55rem;
+    border-radius: 50px;
+    background: var(--green-light);
+    color: var(--green);
+    white-space: nowrap;
+  }
+  .produce-category-badge.fruit { background: #FFF0E8; color: #C4663A; }
+
+  /* Season bar */
+  .season-bar-wrap {
+    padding: 0.6rem 1.1rem 0.5rem;
+  }
+  .season-bar-months {
+    display: grid;
+    grid-template-columns: repeat(12, 1fr);
+    gap: 2px;
+    border-radius: 6px;
+    overflow: hidden;
+  }
+  .season-month {
+    height: 10px;
+    background: var(--border);
+    position: relative;
+  }
+  .season-month.peak { background: var(--accent); }
+  .season-month.available { background: var(--accent-light); }
+  .season-month.storage { background: #D4E4D0; }
+  .season-month-labels {
+    display: grid;
+    grid-template-columns: repeat(12, 1fr);
+    margin-top: 3px;
+  }
+  .season-month-label {
+    font-size: 0.55rem;
+    color: var(--text-muted);
+    text-align: center;
+    letter-spacing: -0.02em;
+  }
+  .season-legend {
+    display: flex;
+    gap: 0.8rem;
+    margin-top: 0.4rem;
+    flex-wrap: wrap;
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    font-size: 0.68rem;
+    color: var(--text-muted);
+  }
+  .legend-dot {
+    width: 10px; height: 10px;
+    border-radius: 2px;
+    flex-shrink: 0;
+  }
+
+  /* Produce tabs */
+  .produce-tabs {
+    display: flex;
+    border-bottom: 1px solid var(--border);
+  }
+  .produce-tab-btn {
+    flex: 1;
+    background: none;
+    border: none;
+    border-bottom: 2px solid transparent;
+    padding: 0.55rem 0.3rem;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.72rem;
+    font-weight: 500;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: all 0.15s;
+    letter-spacing: 0.02em;
+  }
+  .produce-tab-btn.active {
+    color: var(--accent);
+    border-bottom-color: var(--accent);
+  }
+  .produce-tab-content {
+    display: none;
+    padding: 0.85rem 1.1rem;
+    font-size: 0.82rem;
+    color: var(--brown-mid);
+    line-height: 1.65;
+    min-height: 90px;
+  }
+  .produce-tab-content.active { display: block; }
+  .produce-tab-content strong {
+    display: block;
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 0.3rem;
+    margin-top: 0.6rem;
+  }
+  .produce-tab-content strong:first-child { margin-top: 0; }
+  .produce-tip {
+    background: var(--cream);
+    border-left: 3px solid var(--accent-light);
+    border-radius: 0 6px 6px 0;
+    padding: 0.45rem 0.7rem;
+    font-size: 0.78rem;
+    margin-top: 0.5rem;
+    color: var(--brown-mid);
+  }
+  .rescue-ok { color: var(--green); font-weight: 500; }
+  .rescue-warn { color: #C4663A; font-weight: 500; }
+  .rescue-toss { color: #8B2500; font-weight: 500; }
 </style>
 </head>
 <body>
@@ -573,11 +1145,10 @@
 
 <nav id="nav">
   <button class="active" onclick="showWeek('all', this)">All Recipes</button>
-  <button onclick="showWeek('extras', this)">Extras</button>
-  <button onclick="showWeek('week1', this)">Week 1</button>
-  <button onclick="showWeek('week2', this)">Week 2</button>
-  <button onclick="showWeek('week3', this)">Week 3</button>
+  <button onclick="showWeek('planner', this)">📅 Meal Planner</button>
+  <button onclick="showWeek('produce', this)">🌿 Produce Guide</button>
   <button onclick="showWeek('grocery', this)">🛒 Grocery List</button>
+  <button onclick="showWeek('items', this)">📦 Item Library</button>
 </nav>
 
 <div class="search-bar">
@@ -588,41 +1159,97 @@
 
 <!-- ALL / SEARCH RESULTS -->
 <div class="week-section active" id="section-all">
+  <div class="recipe-filters" id="recipe-filters">
+    <div class="filter-row">
+      <span class="filter-row-label">Protein</span>
+      <button class="recipe-filter-btn active" onclick="setRecipeFilter('protein','all',this)">All</button>
+      <button class="recipe-filter-btn" onclick="setRecipeFilter('protein','beef',this)">🥩 Beef</button>
+      <button class="recipe-filter-btn" onclick="setRecipeFilter('protein','chicken',this)">🍗 Chicken</button>
+      <button class="recipe-filter-btn" onclick="setRecipeFilter('protein','pork',this)">🥩 Pork</button>
+      <button class="recipe-filter-btn" onclick="setRecipeFilter('protein','veggie',this)">🥦 Veggie</button>
+    </div>
+    <div class="filter-row">
+      <span class="filter-row-label">Time</span>
+      <button class="recipe-filter-btn active" onclick="setRecipeFilter('time','all',this)">All</button>
+      <button class="recipe-filter-btn" onclick="setRecipeFilter('time','quick',this)">⚡ Under 20 min</button>
+      <button class="recipe-filter-btn" onclick="setRecipeFilter('time','medium',this)">🕐 20–45 min</button>
+      <button class="recipe-filter-btn" onclick="setRecipeFilter('time','slow',this)">🍲 Slow / Bake</button>
+    </div>
+    <div class="filter-row">
+      <span class="filter-row-label">Health</span>
+      <button class="recipe-filter-btn active" onclick="setRecipeFilter('health','all',this)">All</button>
+      <button class="recipe-filter-btn" onclick="setRecipeFilter('health','lowsodium',this)">💚 Low Sodium</button>
+      <button class="recipe-filter-btn" onclick="setRecipeFilter('health','kidapproved',this)">⭐ Kid Approved</button>
+    </div>
+  </div>
   <div class="recipe-grid" id="grid-all"></div>
   <div class="empty-state" id="no-results" style="display:none">
-    <p>No recipes found. Try a different search!</p>
+    <p>No recipes found. Try a different search or filter!</p>
   </div>
 </div>
 
-<!-- EXTRAS -->
-<div class="week-section" id="section-extras">
-  <p class="week-label">Extras</p>
-  <p class="week-meta">Added on demand</p>
-  <div class="recipe-grid" id="grid-extras"></div>
+<!-- MEAL PLANNER -->
+<div class="week-section" id="section-planner">
+  <div class="grocery-header">
+    <div>
+      <p class="week-label">Meal Planner</p>
+      <p class="week-meta" id="planner-week-label">This week</p>
+    </div>
+    <div class="grocery-actions">
+      <button class="grocery-btn" onclick="plannerPrevWeek()">← Prev</button>
+      <button class="grocery-btn" id="planner-today-btn" onclick="plannerGoToday()">Today</button>
+      <button class="grocery-btn" onclick="plannerNextWeek()">Next →</button>
+      <button class="grocery-btn" onclick="clearPlan()">Clear Week</button>
+      <button class="grocery-btn" onclick="reviewGroceries()">Review Grocery List →</button>
+    </div>
+  </div>
+  <div class="planner-grid" id="planner-grid"></div>
 </div>
 
-<!-- WEEK 1 -->
-<div class="week-section" id="section-week1">
-  <p class="week-label">Week 1</p>
-  <p class="week-meta">Ground beef focus · Freezer staples</p>
-  <div class="recipe-grid" id="grid-week1"></div>
+<!-- RECIPE PICKER MODAL -->
+<div class="modal-overlay" id="picker-modal" onclick="closePickerModal(event)">
+  <div class="modal" id="picker-content">
+    <div class="modal-header">
+      <div class="modal-day" id="picker-day-label"></div>
+      <div class="modal-title">Pick a Recipe</div>
+      <button class="modal-close" onclick="closePickerDirect()">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="text" placeholder="Search recipes..." class="add-input" style="width:100%;margin-bottom:1rem;" oninput="filterPicker(this.value)">
+      <div id="picker-list"></div>
+    </div>
+  </div>
 </div>
 
-<!-- WEEK 2 -->
-<div class="week-section" id="section-week2">
-  <p class="week-label">Week 2</p>
-  <p class="week-meta">Kid-approved classics · Apr 6–10</p>
-  <div class="recipe-grid" id="grid-week2"></div>
+<!-- GROCERY REVIEW MODAL -->
+<div class="modal-overlay" id="review-modal" onclick="closeReviewModal(event)">
+  <div class="modal" id="review-content">
+    <div class="modal-header">
+      <div class="modal-day">Review</div>
+      <div class="modal-title">Ingredients to Add</div>
+      <div class="modal-desc">Uncheck anything you already have, then tap Add to Grocery List</div>
+      <button class="modal-close" onclick="closeReviewDirect()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div id="review-list"></div>
+      <button class="print-btn" onclick="addReviewedItems()" style="width:100%;margin-top:1rem;">Add Checked Items to Grocery List</button>
+    </div>
+  </div>
+</div>
+<!-- PRODUCE GUIDE -->
+<div class="week-section" id="section-produce">
+  <p class="week-label">🌿 Produce Guide</p>
+  <p class="week-meta">Vermont seasonality · Storage tips · Rescue guide</p>
+  <div class="produce-controls">
+    <input type="text" class="produce-search" placeholder="Search produce..." oninput="filterProduce(this.value)" id="produceSearch">
+    <button class="produce-filter-btn active" onclick="setProduceFilter('all', this)">All</button>
+    <button class="produce-filter-btn" onclick="setProduceFilter('fruit', this)">🍓 Fruits</button>
+    <button class="produce-filter-btn" onclick="setProduceFilter('vegetable', this)">🥦 Vegetables</button>
+    <button class="produce-filter-btn" onclick="setProduceFilter('inseason', this)">✅ In Season Now</button>
+  </div>
+  <div class="produce-grid" id="produce-grid"></div>
 </div>
 
-<!-- WEEK 3 -->
-<div class="week-section" id="section-week3">
-  <p class="week-label">Week 3</p>
-  <p class="week-meta">Easter week · Apr 5–11</p>
-  <div class="recipe-grid" id="grid-week3"></div>
-</div>
-
-<!-- GROCERY LIST -->
 <div class="week-section" id="section-grocery">
   <div class="grocery-header">
     <div>
@@ -660,9 +1287,125 @@
   <div id="grocery-list-container"></div>
 </div>
 
+<!-- ITEM LIBRARY -->
+<div class="week-section" id="section-items">
+  <div class="item-lib-header">
+    <div>
+      <p class="week-label">📦 Item Library</p>
+      <p class="week-meta" id="item-lib-meta">Your master list of grocery items</p>
+    </div>
+    <div class="grocery-actions">
+      <button class="grocery-btn" onclick="openItemEditor(null)">+ Add Item</button>
+      <button class="grocery-btn" onclick="toggleNamingGuide()" id="guide-toggle-btn">📖 Naming Guide</button>
+    </div>
+  </div>
+
+  <!-- Naming Guide (collapsible) -->
+  <div class="naming-guide" id="naming-guide" style="display:none">
+    <button class="naming-guide-close" onclick="toggleNamingGuide()">✕</button>
+    <div class="naming-guide-title">📖 Item Naming Guide — Noun first, descriptor second</div>
+    <p style="font-size:0.78rem;color:var(--brown-mid);margin-bottom:0.7rem;line-height:1.5">
+      Filing items by their main noun keeps your list grouped at the store. Use <strong>Noun, Descriptor</strong> format for the Sort Name so similar items stay together alphabetically.
+    </p>
+    <div class="naming-guide-rules">
+      <div class="naming-guide-rule"><span class="do">✓ Pepper, Bell - Red</span><span class="dont">✗ Red Bell Pepper</span></div>
+      <div class="naming-guide-rule"><span class="do">✓ Pepper, Bell - Green</span><span class="dont">✗ Green Pepper</span></div>
+      <div class="naming-guide-rule"><span class="do">✓ Carrot, Baby</span><span class="dont">✗ Baby Carrots</span></div>
+      <div class="naming-guide-rule"><span class="do">✓ Carrot, Shredded</span><span class="dont">✗ Shredded Carrots</span></div>
+      <div class="naming-guide-rule"><span class="do">✓ Tomato, Cherry</span><span class="dont">✗ Cherry Tomatoes</span></div>
+      <div class="naming-guide-rule"><span class="do">✓ Potato, Russet</span><span class="dont">✗ Russet Potato</span></div>
+      <div class="naming-guide-rule"><span class="do">✓ Mushroom, Sliced</span><span class="dont">✗ Sliced Mushrooms</span></div>
+      <div class="naming-guide-rule"><span class="do">✓ Cheese, Cheddar</span><span class="dont">✗ Cheddar Cheese</span></div>
+      <div class="naming-guide-rule"><span class="do">✓ Butter, Salted</span><span class="dont">✗ Salted Butter</span></div>
+      <div class="naming-guide-rule"><span class="do">✓ Juice, Apple</span><span class="dont">✗ Apple Juice</span></div>
+      <div class="naming-guide-rule"><span class="do">✓ Chicken, Breast</span><span class="dont">✗ Chicken Breast</span></div>
+      <div class="naming-guide-rule"><span class="do">✓ Sausage, Italian</span><span class="dont">✗ Italian Sausage</span></div>
+    </div>
+    <p style="font-size:0.72rem;color:var(--text-muted);margin-top:0.7rem">
+      The <strong>Display Name</strong> can be written naturally (e.g. "Red Bell Pepper") — that's what appears on your shopping list. The Sort Name is just for filing order.
+    </p>
+  </div>
+
+  <!-- Search + filter row -->
+  <div class="item-lib-controls">
+    <input type="text" class="item-lib-search" id="itemLibSearch" placeholder="Search items..." oninput="filterItemLib()">
+    <select class="item-lib-cat-filter" id="itemLibCatFilter" onchange="filterItemLib()">
+      <option value="">All Categories</option>
+    </select>
+    <span class="item-lib-count" id="item-lib-count"></span>
+  </div>
+
+  <!-- Table -->
+  <div class="item-table-wrap">
+    <table class="item-table">
+      <thead>
+        <tr>
+          <th>Sort Name</th>
+          <th>Display Name</th>
+          <th>Category</th>
+          <th>Store Section</th>
+          <th>Brand (optional)</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="item-lib-tbody"></tbody>
+    </table>
+  </div>
+</div>
+
 </main>
 
-<!-- MODAL -->
+<!-- ITEM EDIT MODAL -->
+<div class="item-modal-overlay" id="item-modal" onclick="closeItemModalOverlay(event)">
+  <div class="item-modal">
+    <div class="item-modal-header">
+      <button class="modal-close" onclick="closeItemModal()" style="position:absolute;top:1rem;right:1rem">✕</button>
+      <h3 id="item-modal-title">Add Item</h3>
+      <p id="item-modal-subtitle">Fill in the details below</p>
+    </div>
+    <div class="item-modal-body">
+      <div class="modal-naming-tip">
+        <strong>📖 Naming tip:</strong> Use <strong>Noun, Descriptor</strong> format for the Sort Name so items group together —
+        e.g. <strong>Pepper, Bell - Red</strong> not "Red Bell Pepper", <strong>Carrot, Baby</strong> not "Baby Carrots".
+        The Display Name can be written naturally.
+      </div>
+      <input type="hidden" id="item-edit-id">
+      <div class="item-field">
+        <label>Sort Name <span style="color:var(--accent)">*</span></label>
+        <input type="text" id="item-edit-sort" placeholder="e.g. Pepper, Bell - Red">
+        <div class="field-hint">Used for alphabetical filing. Noun first, descriptor second.</div>
+      </div>
+      <div class="item-field">
+        <label>Display Name <span style="color:var(--accent)">*</span></label>
+        <input type="text" id="item-edit-display" placeholder="e.g. Red Bell Pepper">
+        <div class="field-hint">What appears on your grocery list. Can be written naturally.</div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.8rem">
+        <div class="item-field">
+          <label>Category <span style="color:var(--accent)">*</span></label>
+          <select id="item-edit-category" onchange="syncStoreSection()">
+            <option value="">— select —</option>
+          </select>
+        </div>
+        <div class="item-field">
+          <label>Store Section</label>
+          <select id="item-edit-section">
+            <option value="">— select —</option>
+          </select>
+        </div>
+      </div>
+      <div class="item-field">
+        <label>Preferred Brand <span style="color:var(--text-muted);font-weight:400;text-transform:none;letter-spacing:0">(optional)</span></label>
+        <input type="text" id="item-edit-brand" placeholder="e.g. Cabot, Pillsbury, or leave blank">
+        <div class="field-hint">Fill in later if you're not sure — you can always edit.</div>
+      </div>
+    </div>
+    <div class="item-modal-footer">
+      <button class="item-cancel-btn" onclick="closeItemModal()">Cancel</button>
+      <button class="item-save-btn" onclick="saveItemEdit()">Save Item</button>
+    </div>
+  </div>
+</div>
 <div class="modal-overlay" id="modal" onclick="closeModal(event)">
   <div class="modal" id="modalContent">
     <div class="modal-header">
@@ -1210,20 +1953,21 @@ function renderGrid(containerId, list) {
   if (!el) return;
   el.innerHTML = list.map(r => `
     <div class="recipe-card" onclick="openRecipe(${r.id})">
-      <div class="card-day">${r.day}</div>
       <div class="card-title">${r.title}</div>
       <div class="card-desc">${r.desc}</div>
       <div class="card-tags">${getTagHTML(r.tags)}</div>
+      <div class="card-actions" onclick="event.stopPropagation()">
+        <label class="card-checkbox-wrap">
+          <input type="checkbox" onchange="toggleRecipeToGrocery(${r.id}, this.checked)">
+          Add to grocery list
+        </label>
+      </div>
     </div>
   `).join('');
 }
 
 function init() {
   renderGrid('grid-all', recipes);
-  renderGrid('grid-extras', recipes.filter(r => r.week === 'extras'));
-  renderGrid('grid-week1', recipes.filter(r => r.week === 'week1'));
-  renderGrid('grid-week2', recipes.filter(r => r.week === 'week2'));
-  renderGrid('grid-week3', recipes.filter(r => r.week === 'week3'));
 }
 
 function showWeek(week, btn) {
@@ -1234,6 +1978,9 @@ function showWeek(week, btn) {
   document.getElementById('searchInput').value = '';
   document.getElementById('no-results').style.display = 'none';
   if (week === 'grocery') renderGrocery();
+  if (week === 'planner') renderPlanner();
+  if (week === 'produce') renderProduce();
+  if (week === 'items') { if(window.populateItemDropdowns) window.populateItemDropdowns(); if(window.filterItemLib) window.filterItemLib(); }
 }
 
 function searchRecipes() {
@@ -1258,7 +2005,7 @@ function openRecipe(id) {
   currentRecipe = r;
   baseServings = r.servings;
   currentServings = r.servings;
-  document.getElementById('mDay').textContent = r.week === 'extras' ? 'Extras' : `Week ${r.week.replace('week','')} · ${r.day}`;
+  document.getElementById('mDay').textContent = getTagsText(r.tags);
   document.getElementById('mTitle').textContent = r.title;
   document.getElementById('mDesc').textContent = r.desc;
   document.getElementById('servingsNum').textContent = currentServings;
@@ -1305,7 +2052,67 @@ function closeModalDirect() {
   document.body.style.overflow = '';
 }
 
+function getTagsText(tags) {
+  const labels = { beef: 'Beef', chicken: 'Chicken', pork: 'Pork', veggie: 'Vegetarian', quick: 'Quick', lowsodium: 'Low Sodium', slowcooker: 'Slow Cooker', special: 'Special', kidapproved: 'Kid Approved' };
+  return tags.map(t => labels[t] || t).join(' · ');
+}
+
+// ─── RECIPE FILTERS ──────────────────────────────────────────────
+const activeRecipeFilters = { protein: 'all', time: 'all', health: 'all' };
+
+function setRecipeFilter(type, value, btn) {
+  // If clicking the already-active non-all button, reset to all
+  if (activeRecipeFilters[type] === value && value !== 'all') {
+    activeRecipeFilters[type] = 'all';
+    btn.closest('.filter-row').querySelectorAll('.recipe-filter-btn').forEach(b => b.classList.remove('active'));
+    btn.closest('.filter-row').querySelector('[onclick*="\'all\'"]').classList.add('active');
+  } else {
+    activeRecipeFilters[type] = value;
+    btn.closest('.filter-row').querySelectorAll('.recipe-filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+  }
+  applyRecipeFilters();
+}
+
+function applyRecipeFilters() {
+  const q = document.getElementById('searchInput').value.toLowerCase();
+  let list = recipes;
+
+  // Text search
+  if (q) list = list.filter(r =>
+    r.title.toLowerCase().includes(q) ||
+    r.desc.toLowerCase().includes(q) ||
+    r.tags.some(t => t.includes(q)) ||
+    r.ingredients.some(i => i.name.toLowerCase().includes(q))
+  );
+
+  // Protein filter
+  if (activeRecipeFilters.protein !== 'all') {
+    list = list.filter(r => r.tags.includes(activeRecipeFilters.protein));
+  }
+
+  // Time filter
+  if (activeRecipeFilters.time === 'quick') {
+    list = list.filter(r => r.tags.includes('quick'));
+  } else if (activeRecipeFilters.time === 'medium') {
+    list = list.filter(r => !r.tags.includes('quick') && !r.tags.includes('slowcooker'));
+  } else if (activeRecipeFilters.time === 'slow') {
+    list = list.filter(r => r.tags.includes('slowcooker'));
+  }
+
+  // Health filter
+  if (activeRecipeFilters.health === 'lowsodium') {
+    list = list.filter(r => r.tags.includes('lowsodium'));
+  } else if (activeRecipeFilters.health === 'kidapproved') {
+    list = list.filter(r => r.tags.includes('kidapproved') || r.tags.includes('quick'));
+  }
+
+  renderGrid('grid-all', list);
+  document.getElementById('no-results').style.display = list.length === 0 ? 'block' : 'none';
+}
+
 // Expose functions globally for onclick handlers
+window.toggleRecipeToGrocery = toggleRecipeToGrocery;
 window.showWeek = showWeek;
 window.searchRecipes = searchRecipes;
 window.openRecipe = openRecipe;
@@ -1318,11 +2125,287 @@ window.toggleItem = toggleItem;
 window.deleteItem = deleteItem;
 window.clearChecked = clearChecked;
 window.clearAll = clearAll;
+window.clearPlan = clearPlan;
+window.openPicker = openPicker;
+window.filterPicker = filterPicker;
+window.assignRecipe = assignRecipe;
+window.plannerPrevWeek = plannerPrevWeek;
+window.plannerNextWeek = plannerNextWeek;
+window.plannerGoToday = plannerGoToday;
+window.closePickerModal = closePickerModal;
+window.closePickerDirect = closePickerDirect;
+window.reviewGroceries = reviewGroceries;
+window.addReviewedItems = addReviewedItems;
+window.removeFromPlan = removeFromPlan;
+window.closeReviewModal = closeReviewModal;
+window.closeReviewDirect = closeReviewDirect;
+window.setRecipeFilter = setRecipeFilter;
 
 document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModalDirect(); });
 init();
 
-// ─── FIREBASE SETUP ───────────────────────────────────────────────
+function toggleRecipeToGrocery(recipeId, checked) {
+  if (!checked) return;
+  const recipe = recipes.find(r => r.id === recipeId);
+  if (!recipe) return;
+  let added = 0;
+  recipe.ingredients.forEach(ing => {
+    const isPantry = PANTRY_STAPLES.some(p => ing.name.toLowerCase().includes(p));
+    if (!isPantry) {
+      const exists = groceryList.some(i => i.name.toLowerCase().includes(ing.name.toLowerCase()));
+      if (!exists) {
+        const section = guessSectionFromIngredient(ing.name);
+        const newItem = { id: generateId(), name: `${ing.name}${ing.unit ? ' — ' + formatAmount(ing.amount,1,1) + ' ' + ing.unit : ''}`, section, tag: 'meal', checked: false };
+        saveItem(newItem);
+        added++;
+      }
+    }
+  });
+  if (added > 0) {
+    alert(`${added} ingredient${added > 1 ? 's' : ''} from "${recipe.title}" added to your grocery list!`);
+  } else {
+    alert('All ingredients are either pantry staples or already on your list!');
+  }
+}
+
+// ─── MEAL PLANNER ────────────────────────────────────────────────
+const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+const PANTRY_STAPLES = ['minced garlic', 'garlic', 'olive oil', 'black pepper', 'salt', 'cumin', 'paprika', 'chili powder', 'onion powder', 'oregano', 'basil', 'parsley', 'rosemary', 'thyme', 'ginger', 'nutmeg', 'cinnamon', 'worcestershire', 'vegetable oil', 'butter', 'cooking spray'];
+
+// Each week stored by its Sunday date string: 'YYYY-MM-DD'
+function getSundayOf(date) {
+  const d = new Date(date);
+  d.setDate(d.getDate() - d.getDay());
+  d.setHours(0,0,0,0);
+  return d;
+}
+function dateKey(date) {
+  return date.toISOString().slice(0,10);
+}
+function allPlans() {
+  return JSON.parse(localStorage.getItem('chrissy_all_plans') || '{}');
+}
+function savePlans(plans) {
+  localStorage.setItem('chrissy_all_plans', JSON.stringify(plans));
+}
+
+let currentPlanWeek = getSundayOf(new Date()); // Date object for current Sunday
+let pickerTargetDay = null;
+let reviewIngredients = [];
+
+function currentWeekKey() { return dateKey(currentPlanWeek); }
+
+function getMealPlan(weekKey) {
+  return allPlans()[weekKey] || {};
+}
+function setMealPlan(weekKey, plan) {
+  const plans = allPlans();
+  if (Object.keys(plan).length === 0) {
+    delete plans[weekKey];
+  } else {
+    plans[weekKey] = plan;
+  }
+  savePlans(plans);
+}
+
+function plannerPrevWeek() {
+  currentPlanWeek = new Date(currentPlanWeek);
+  currentPlanWeek.setDate(currentPlanWeek.getDate() - 7);
+  renderPlanner();
+}
+function plannerNextWeek() {
+  currentPlanWeek = new Date(currentPlanWeek);
+  currentPlanWeek.setDate(currentPlanWeek.getDate() + 7);
+  renderPlanner();
+}
+function plannerGoToday() {
+  currentPlanWeek = getSundayOf(new Date());
+  renderPlanner();
+}
+
+function weekLabel(sunday) {
+  const today = getSundayOf(new Date());
+  const diff = Math.round((sunday - today) / (7*24*3600*1000));
+  const opts = { month: 'short', day: 'numeric' };
+  const sat = new Date(sunday); sat.setDate(sat.getDate() + 6);
+  const range = `${sunday.toLocaleDateString('en-US', opts)} – ${sat.toLocaleDateString('en-US', opts)}`;
+  if (diff === 0) return `This week · ${range}`;
+  if (diff === -1) return `Last week · ${range}`;
+  if (diff === 1) return `Next week · ${range}`;
+  if (diff < 0) return `${Math.abs(diff)} weeks ago · ${range}`;
+  return `${diff} weeks from now · ${range}`;
+}
+
+function renderPlanner() {
+  const grid = document.getElementById('planner-grid');
+  const label = document.getElementById('planner-week-label');
+  const todayBtn = document.getElementById('planner-today-btn');
+  if (!grid) return;
+
+  const weekKey = currentWeekKey();
+  const mealPlan = getMealPlan(weekKey);
+  const today = getSundayOf(new Date());
+  const isCurrentWeek = dateKey(currentPlanWeek) === dateKey(today);
+
+  if (label) label.textContent = weekLabel(currentPlanWeek);
+  if (todayBtn) todayBtn.style.display = isCurrentWeek ? 'none' : '';
+
+  // Date objects for each day of this week
+  const weekDates = DAYS.map((_, i) => {
+    const d = new Date(currentPlanWeek);
+    d.setDate(d.getDate() + i);
+    return d;
+  });
+
+  const todayStr = dateKey(new Date());
+
+  grid.innerHTML = DAYS.map((day, i) => {
+    const recipeId = mealPlan[day];
+    const recipe = recipeId ? recipes.find(r => r.id === recipeId) : null;
+    const dayDate = weekDates[i];
+    const isToday = dateKey(dayDate) === todayStr;
+    const dateStr = dayDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    return `<div class="planner-day ${recipe ? 'has-recipe' : ''} ${isToday ? 'is-today' : ''}" onclick="openPicker('${day}')">
+      <div class="day-name">${day} <span class="day-date">${dateStr}</span></div>
+      ${recipe
+        ? `<div class="day-recipe">${recipe.title}</div>
+           <button class="day-remove" onclick="removeFromPlan(event,'${day}')">✕ Remove</button>`
+        : `<div class="day-empty">+ Add meal</div>`
+      }
+    </div>`;
+  }).join('');
+}
+
+function removeFromPlan(e, day) {
+  e.stopPropagation();
+  const weekKey = currentWeekKey();
+  const plan = getMealPlan(weekKey);
+  delete plan[day];
+  setMealPlan(weekKey, plan);
+  renderPlanner();
+}
+
+function clearPlan() {
+  const weekKey = currentWeekKey();
+  const plan = getMealPlan(weekKey);
+  if (Object.keys(plan).length === 0) return;
+  if (confirm('Clear this entire week\'s meal plan?')) {
+    setMealPlan(weekKey, {});
+    renderPlanner();
+  }
+}
+
+function openPicker(day) {
+  pickerTargetDay = day;
+  document.getElementById('picker-day-label').textContent = day;
+  filterPicker('');
+  document.getElementById('picker-modal').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function filterPicker(query) {
+  const q = query.toLowerCase();
+  const filtered = q ? recipes.filter(r => r.title.toLowerCase().includes(q)) : recipes;
+  document.getElementById('picker-list').innerHTML = filtered.map(r => `
+    <div class="picker-item" onclick="assignRecipe(${r.id})">
+      <div class="picker-title">${r.title}</div>
+      <div class="picker-meta">${r.servings} servings · ${r.tags.join(', ')}</div>
+    </div>
+  `).join('');
+}
+
+function assignRecipe(id) {
+  const weekKey = currentWeekKey();
+  const plan = getMealPlan(weekKey);
+  plan[pickerTargetDay] = id;
+  setMealPlan(weekKey, plan);
+  closePickerDirect();
+  renderPlanner();
+}
+
+function closePickerModal(e) {
+  if (e.target === document.getElementById('picker-modal')) closePickerDirect();
+}
+function closePickerDirect() {
+  document.getElementById('picker-modal').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+function reviewGroceries() {
+  const weekKey = currentWeekKey();
+  const mealPlan = getMealPlan(weekKey);
+  const planned = Object.values(mealPlan);
+  if (planned.length === 0) {
+    alert('Add some meals to your plan first!');
+    return;
+  }
+  const ingredientMap = {};
+  planned.forEach(id => {
+    const recipe = recipes.find(r => r.id === id);
+    if (!recipe) return;
+    recipe.ingredients.forEach(ing => {
+      const key = ing.name.toLowerCase();
+      const isPantry = PANTRY_STAPLES.some(p => key.includes(p));
+      if (!isPantry) {
+        if (ingredientMap[key]) {
+          ingredientMap[key].amount += ing.amount;
+        } else {
+          ingredientMap[key] = { ...ing, recipeName: recipe.title, checked: true };
+        }
+      }
+    });
+  });
+  reviewIngredients = Object.values(ingredientMap);
+  const listHTML = reviewIngredients.length === 0
+    ? '<p style="color:var(--text-muted)">All ingredients are pantry staples you already have!</p>'
+    : reviewIngredients.map((ing, i) => `
+      <div class="review-item">
+        <input type="checkbox" id="ri${i}" ${ing.checked ? 'checked' : ''} onchange="reviewIngredients[${i}].checked=this.checked">
+        <label for="ri${i}" style="flex:1;cursor:pointer;">${ing.name} — <strong>${formatAmount(ing.amount, 1, 1)} ${ing.unit}</strong></label>
+        <span class="review-recipe-label">${ing.recipeName}</span>
+      </div>
+    `).join('');
+  document.getElementById('review-list').innerHTML = listHTML;
+  document.getElementById('review-modal').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function addReviewedItems() {
+  const toAdd = reviewIngredients.filter(i => i.checked);
+  if (toAdd.length === 0) { alert('No items selected!'); return; }
+  toAdd.forEach(ing => {
+    const exists = groceryList.some(i => i.name.toLowerCase() === ing.name.toLowerCase());
+    if (!exists) {
+      const section = guessSectionFromIngredient(ing.name);
+      const newItem = { id: generateId(), name: `${ing.name}${ing.unit ? ' — ' + formatAmount(ing.amount,1,1) + ' ' + ing.unit : ''}`, section, tag: 'meal', checked: false };
+      saveItem(newItem);
+    }
+  });
+  closeReviewDirect();
+  alert(`${toAdd.length} item${toAdd.length > 1 ? 's' : ''} added to your grocery list!`);
+}
+
+function guessSectionFromIngredient(name) {
+  const n = name.toLowerCase();
+  if (['chicken', 'beef', 'pork', 'ham', 'turkey', 'sausage', 'hot dog'].some(m => n.includes(m))) return 'Meat & Seafood';
+  if (['milk', 'cheese', 'yogurt', 'butter', 'egg', 'cream', 'lactaid'].some(m => n.includes(m))) return 'Dairy & Refrigerated';
+  if (['lettuce', 'carrot', 'pepper', 'onion', 'tomato', 'potato', 'zucchini', 'broccoli', 'spinach', 'lemon', 'lime', 'banana', 'apple', 'cucumber'].some(m => n.includes(m))) return 'Produce';
+  if (['frozen', 'peas', 'corn', 'green bean', 'blueberr'].some(m => n.includes(m))) return 'Frozen';
+  if (['bread', 'pita', 'tortilla', 'bun', 'naan', 'roll'].some(m => n.includes(m))) return 'Bread & Bakery';
+  if (['soda', 'juice', 'coffee', 'tea', 'broth', 'water'].some(m => n.includes(m))) return 'Beverages';
+  return 'Pantry & Dry Goods';
+}
+
+function closeReviewModal(e) {
+  if (e.target === document.getElementById('review-modal')) closeReviewDirect();
+}
+function closeReviewDirect() {
+  document.getElementById('review-modal').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+// ─── END OF MODULE — produce guide and item library render in plain script below ───
+
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
 import { getDatabase, ref, set, onValue, remove, update } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 
@@ -1339,6 +2422,23 @@ const firebaseConfig = {
 const firebaseApp = initializeApp(firebaseConfig);
 const db = getDatabase(firebaseApp);
 const listRef = ref(db, 'groceryList');
+const itemLibRef = ref(db, 'itemLibrary');
+
+// ─── ITEM LIBRARY FIREBASE ───────────────────────────────────────
+onValue(itemLibRef, (snapshot) => {
+  const data = snapshot.val();
+  if (window._syncItemLib) window._syncItemLib(data);
+});
+
+function saveLibItem(item) {
+  set(ref(db, 'itemLibrary/' + item.id), item);
+}
+function _firebaseDeleteLibItem(id) {
+  remove(ref(db, 'itemLibrary/' + id));
+}
+
+window.saveLibItem = saveLibItem;
+window._firebaseDeleteLibItem = _firebaseDeleteLibItem;
 
 // ─── GROCERY DATA ───────────────────────────────────────────────
 const STAPLES = [
@@ -1533,6 +2633,611 @@ function renderGrocery() {
 
   container.innerHTML = html;
   updateCount();
+}
+</script>
+
+<!-- ─── PRODUCE GUIDE (plain script — must be outside module for onclick access) ─── -->
+<script>
+const PRODUCE = [
+  {
+    name: 'Strawberries', emoji: '🍓', category: 'fruit',
+    season: [0,0,0,0,1,2,3,2,0,0,0,0],
+    storage: {
+      location: 'Refrigerator (coldest spot, NOT the crisper)',
+      duration: 'Up to 2 weeks with vinegar rinse; 3–5 days without',
+      tips: 'Do not wash until right before eating. Store unwashed in a single layer on a paper towel in a vented container. A quick rinse in 1 part white vinegar + 3 parts water, then fully dried, kills mold spores and extends life dramatically.',
+      mistake: 'Washing them as soon as you get home — moisture is what kills them fastest.'
+    },
+    rescue: {
+      oneGone: 'Yes — remove the moldy berry immediately and inspect every berry it was touching. If you see white or gray fuzz on multiple berries, the spores are already everywhere. Use the remaining soft-but-fuzz-free ones today.',
+      softSpot: 'A soft spot with no mold is fine — just use it now. Soft + fuzz = toss that one.',
+      overripe: 'Overripe but no mold? Perfect for smoothies, jam, or mashing onto yogurt. Nothing wasted.',
+      toss: 'Toss if you see mold on more than 2–3 berries in the same cluster — they\'ve all been exposed.'
+    }
+  },
+  {
+    name: 'Apples', emoji: '🍎', category: 'fruit',
+    season: [1,1,1,1,1,1,1,1,2,3,3,1],
+    storage: {
+      location: 'Refrigerator crisper drawer (in a perforated plastic bag)',
+      duration: '4–6 weeks in the fridge; 1–2 weeks on the counter',
+      tips: 'Vermont apple season peaks September–October — Honeycrisp, Cortland, and McIntosh are all local. Apples emit ethylene gas heavily, which speeds ripening of everything nearby. Keep them in a bag with a few holes, away from pears, leafy greens, and most other produce.',
+      mistake: 'Storing apples loose next to other produce — they\'ll ripen everything around them in days.'
+    },
+    rescue: {
+      oneGone: 'Yes — a bruised or soft spot is cosmetic. Cut away the affected area with at least a 1-inch margin and the rest is perfectly good.',
+      softSpot: 'Cut around it generously and eat the rest immediately. If it smells fermented or alcoholic, it\'s gone all the way through — compost it.',
+      overripe: 'Overripe apples are fantastic for applesauce, baked oatmeal, or apple muffins.',
+      toss: 'Toss if there\'s visible mold AND it smells fermented. Bruise alone is never a reason to toss.'
+    }
+  },
+  {
+    name: 'Pears', emoji: '🍐', category: 'fruit',
+    season: [1,1,1,1,1,1,1,1,2,3,2,1],
+    storage: {
+      location: 'Counter until ripe, then refrigerator',
+      duration: 'Several days on counter to ripen; 3–5 days in fridge once ripe',
+      tips: 'Pears are one of the only fruits that shouldn\'t ripen on the tree — buy them firm and ripen at room temperature. Check ripeness by pressing gently near the stem (not the middle). Once they yield slightly, move to the fridge immediately to slow things down.',
+      mistake: 'Squeezing the middle to check ripeness — always check near the stem. And don\'t store ripe pears next to apples or they\'ll go soft overnight.'
+    },
+    rescue: {
+      oneGone: 'Yes for soft spots — cut around it generously and use right away. Pears turn faster than apples once they start.',
+      softSpot: 'A mushy spot that\'s just overripe is fine to cut around. Mushy + brown discoloration all the way through = compost.',
+      overripe: 'Very ripe pears are wonderful poached, blended into smoothies, or mixed into oatmeal.',
+      toss: 'Toss if there\'s visible mold or it smells fermented/alcoholic throughout.'
+    }
+  },
+  {
+    name: 'Bananas', emoji: '🍌', category: 'fruit',
+    season: [1,1,1,1,1,1,1,1,1,1,1,1],
+    storage: {
+      location: 'Counter on a banana hook, away from other fruit',
+      duration: '5–7 days on counter; fridge extends another week once at your preferred ripeness',
+      tips: 'Wrapping the crown (the bunch-end stem) tightly in plastic wrap slows the ethylene gas release and can add 3–5 extra days. Once bananas reach your perfect ripeness, the fridge is totally fine — the peel turns brown fast but the flesh inside stays perfect for another week.',
+      mistake: 'Putting bananas in a fruit bowl with other produce — they\'re ethylene factories and will ripen everything else rapidly.'
+    },
+    rescue: {
+      oneGone: 'Bananas don\'t really "go bad" on neighbors the way berries do. Each one is in its own peel.',
+      softSpot: 'Brown spots and softness are totally normal — that\'s just ripening. A completely black, mushy banana is still safe to eat or bake with.',
+      overripe: 'Overripe bananas are the BEST for baking — banana bread, muffins, smoothies, or mashed into oatmeal. Peel and freeze them in a zip bag for later.',
+      toss: 'Only toss if there\'s visible mold on the flesh itself (extremely rare) or it smells fermented/alcoholic, not just very ripe.'
+    }
+  },
+  {
+    name: 'Tomatoes', emoji: '🍅', category: 'vegetable',
+    season: [0,0,0,0,0,0,2,3,3,1,0,0],
+    storage: {
+      location: 'Counter at room temperature (never the fridge)',
+      duration: '5–7 days on the counter depending on ripeness',
+      tips: 'Cold destroys the texture and flavor of tomatoes — refrigerating them makes them mealy and bland. Store stem-side down on the counter to slow moisture loss. Keep away from direct sunlight.',
+      mistake: 'Refrigerating tomatoes. It\'s the single most common produce mistake and ruins their texture permanently.'
+    },
+    rescue: {
+      oneGone: 'If one is moldy in a batch, the others are fine — tomatoes don\'t share mold the way berries do.',
+      softSpot: 'Soft spots on tomatoes are just overripe, not dangerous. Cut around it and use the rest today. Great for sauce or roasting.',
+      overripe: 'Overripe tomatoes are perfect for homemade sauce, shakshuka, or roasted tomato soup.',
+      toss: 'Toss if it has visible white or green mold and smells off. A split or crack with no mold is fine — use today.'
+    }
+  },
+  {
+    name: 'Cucumbers', emoji: '🥒', category: 'vegetable',
+    season: [0,0,0,0,0,0,2,3,2,0,0,0],
+    storage: {
+      location: 'Counter (whole) or refrigerator wrapped in a paper towel',
+      duration: '1 week on counter; up to 10 days in fridge if wrapped',
+      tips: 'Cucumbers are sensitive to cold — below 50°F damages them. If you refrigerate, keep them in the warmest part of the fridge (door or top shelf) wrapped in a paper towel to absorb moisture. Whole is much better than cut.',
+      mistake: 'Storing cut cucumbers uncovered in the fridge — they go slimy and absorb fridge odors fast.'
+    },
+    rescue: {
+      oneGone: 'Cucumbers don\'t spread issues to neighbors.',
+      softSpot: 'Soft ends are common — just cut off the soft part and use the rest. If the whole cucumber is soft and wrinkled, it\'s past its prime but safe for making a cold soup or relish.',
+      overripe: 'Slightly past prime cucumbers work fine in tzatziki, gazpacho, or pickled quick-pickles.',
+      toss: 'Toss if it\'s slimy inside or has a strong off smell.'
+    }
+  },
+  {
+    name: 'Zucchini', emoji: '🥬', category: 'vegetable',
+    season: [0,0,0,0,0,0,2,3,3,2,0,0],
+    storage: {
+      location: 'Refrigerator crisper drawer, unwashed',
+      duration: '1–2 weeks',
+      tips: 'Keep unwashed and dry — moisture makes them go soft quickly. Don\'t store near ethylene-producing fruits (apples, bananas). Vermont summer means you may have more zucchini than you can eat — shred and freeze the excess for zucchini bread all winter.',
+      mistake: 'Washing before storing — any moisture on the skin speeds decay significantly.'
+    },
+    rescue: {
+      oneGone: 'Zucchini are separate — one going bad doesn\'t affect others.',
+      softSpot: 'Slightly soft zucchini is still totally usable — great for roasting, soups, or baking. Very mushy = compost.',
+      overripe: 'Giant overlooked zucchini (happens every Vermont summer!) can be hollowed and stuffed, shredded for bread, or used in soups.',
+      toss: 'Toss if it\'s slimy, smells sour, or has visible mold inside.'
+    }
+  },
+  {
+    name: 'Broccoli', emoji: '🥦', category: 'vegetable',
+    season: [0,0,0,0,0,1,2,2,3,2,1,0],
+    storage: {
+      location: 'Refrigerator crisper drawer, unwashed',
+      duration: '3–5 days',
+      tips: 'Keep dry and cold — broccoli is one of the more perishable vegetables. Store loosely wrapped in a dry paper towel inside a bag, unsealed. It continues to respire after harvest, so it needs airflow. Don\'t wash until right before use.',
+      mistake: 'Sealing broccoli in an airtight bag — it traps moisture and causes yellowing and odor fast.'
+    },
+    rescue: {
+      oneGone: 'Yellow or brown-edged florets are still perfectly safe to eat — just trim and use.',
+      softSpot: 'Soft or yellowing florets mean use today. They\'re not dangerous, just past peak flavor.',
+      overripe: 'Yellowing broccoli tastes slightly stronger but is totally safe in soups, stir-fries, or roasted.',
+      toss: 'Toss if it smells strongly sulfuric, is completely slimy, or has visible mold on the stem.'
+    }
+  },
+  {
+    name: 'Carrots', emoji: '🥕', category: 'vegetable',
+    season: [1,1,1,1,1,1,1,2,3,3,2,1],
+    storage: {
+      location: 'Refrigerator crisper drawer, in water or wrapped',
+      duration: '3–4 weeks',
+      tips: 'Carrots are Vermont\'s storage champions — local storage carrots are available well into winter. Remove leafy tops if present (they draw moisture from the root). Store in a container with a little water, changed every few days, or wrapped in a damp paper towel in a bag.',
+      mistake: 'Leaving the green tops on — they steal moisture and nutrients from the carrot itself and cause wilting within days.'
+    },
+    rescue: {
+      oneGone: 'Carrots are individuals — one going soft doesn\'t affect the rest.',
+      softSpot: 'Limp or rubbery carrots are just dehydrated, not spoiled. Submerge in cold water for a few hours and they\'ll often crisp right back up.',
+      overripe: 'Slightly rubbery carrots are still great for roasting, soups, or stocks — the texture matters less when cooked.',
+      toss: 'Toss if they\'re slimy, have white fuzzy mold, or smell sour.'
+    }
+  },
+  {
+    name: 'Spinach', emoji: '🌿', category: 'vegetable',
+    season: [0,0,0,1,2,3,2,2,3,2,1,0],
+    storage: {
+      location: 'Refrigerator, in original container or with paper towel lining',
+      duration: '5–7 days',
+      tips: 'Spinach is delicate and wilts fast. Keep in the original container if possible — those vented clamshells are designed for it. If you transfer, line the container with a dry paper towel to absorb excess moisture. Keep away from ethylene-producing fruits.',
+      mistake: 'Storing spinach with apples or bananas — even brief exposure to ethylene turns it yellow and slimy.'
+    },
+    rescue: {
+      oneGone: 'Remove slimy leaves immediately — they spread moisture and bacteria to neighbors fast.',
+      softSpot: 'Wilted but not slimy spinach can be revived in cold water. Slimy leaves = remove and use the rest today.',
+      overripe: 'Wilting spinach that\'s still green (not yellow or slimy) is perfect for cooking — sauté it, add to eggs, or wilt into pasta.',
+      toss: 'Toss if it\'s yellow, slimy, or smells sour. Any sliminess means bacteria are active.'
+    }
+  },
+  {
+    name: 'Kale', emoji: '🥬', category: 'vegetable',
+    season: [0,0,0,0,1,2,3,3,3,3,2,0],
+    storage: {
+      location: 'Refrigerator crisper, unwashed, stems in a little water',
+      duration: '1–2 weeks',
+      tips: 'Kale is one of Vermont\'s toughest greens — it actually gets sweeter after a frost. Treat it like cut flowers: trim the stem ends and store in a cup with an inch of water in the fridge, like a bouquet. This keeps it crisp and fresh much longer.',
+      mistake: 'Storing kale flat in a bag — it wilts much faster than standing upright in a little water.'
+    },
+    rescue: {
+      oneGone: 'One yellowing leaf doesn\'t affect the bunch. Just remove it.',
+      softSpot: 'Wilted kale can often be revived in cold water for 15 minutes. Yellowed leaves are past revival but safe — use them in a cooked dish today.',
+      overripe: 'Older kale works great cooked — soups, sautéed with garlic, or added to stews. The tougher texture is fine when wilted with heat.',
+      toss: 'Toss if leaves are slimy or smell sour.'
+    }
+  },
+  {
+    name: 'Sweet Corn', emoji: '🌽', category: 'vegetable',
+    season: [0,0,0,0,0,0,0,2,3,1,0,0],
+    storage: {
+      location: 'Refrigerator, unshucked, immediately after purchase',
+      duration: '1–3 days — the sooner the better',
+      tips: 'Vermont sweet corn is a summer treasure — eat it fast. Corn starts converting sugar to starch the moment it\'s picked. Keep it unshucked in the fridge and eat within 1–2 days for the best sweetness. If you can\'t use it quickly, blanch and freeze immediately.',
+      mistake: 'Leaving fresh-picked corn on the counter "just for a day" — you lose noticeable sweetness within hours at room temperature.'
+    },
+    rescue: {
+      oneGone: 'Corn is individual ears — one past its prime doesn\'t affect others.',
+      softSpot: 'Starchy or slightly dried kernels just mean the corn has aged past peak sweetness. Still perfectly safe and good in soups, cornbread, or succotash.',
+      overripe: 'Starchy older corn is great for corn chowder, fritters, or creamed corn where texture matters less.',
+      toss: 'Toss if there\'s mold on the kernels or it smells sour/fermented.'
+    }
+  },
+  {
+    name: 'Bell Peppers', emoji: '🫑', category: 'vegetable',
+    season: [1,1,1,1,1,1,2,3,3,2,1,1],
+    storage: {
+      location: 'Refrigerator crisper drawer, whole and unwashed',
+      duration: '1–2 weeks whole; 3–4 days once cut',
+      tips: 'Whole peppers keep much longer than cut ones. Store dry and unwashed in the crisper. Cut peppers should be stored in an airtight container — they absorb fridge odors quickly. Green peppers last longer than red, orange, or yellow (which are more ripe when picked).',
+      mistake: 'Storing cut peppers loosely in the fridge — they dry out and absorb odors within a day.'
+    },
+    rescue: {
+      oneGone: 'One wrinkled pepper doesn\'t affect the others.',
+      softSpot: 'Wrinkled skin just means dehydration — the pepper is still perfectly fine for cooking. Soft spots inside near seeds = use today.',
+      overripe: 'Slightly wrinkled peppers are great roasted, stuffed, or added to soups and stir-fries.',
+      toss: 'Toss if there\'s mold inside the cavity or it smells sour and fermented.'
+    }
+  },
+  {
+    name: 'Blueberries', emoji: '🫐', category: 'fruit',
+    season: [0,0,0,0,0,0,2,3,2,0,0,0],
+    storage: {
+      location: 'Refrigerator, unwashed, in original container',
+      duration: '1–2 weeks',
+      tips: 'Similar to strawberries — don\'t wash until ready to eat. Keep in the original vented container. A quick vinegar rinse (1 part white vinegar, 3 parts water) before thoroughly drying and refrigerating will significantly extend their life by inhibiting mold growth.',
+      mistake: 'Washing blueberries and then storing them damp — this causes mold within a day or two.'
+    },
+    rescue: {
+      oneGone: 'Yes — remove moldy ones promptly. Unlike strawberries, blueberries\' thicker skins protect neighbors a bit longer, but act quickly.',
+      softSpot: 'Soft blueberries are just very ripe — use them immediately in smoothies, pancakes, or muffins.',
+      overripe: 'Very ripe or slightly shriveled blueberries are fantastic frozen for later use or baked into muffins.',
+      toss: 'Toss visibly moldy berries. If an entire container has white fuzz on multiple berries, use the remaining clean ones today or toss.'
+    }
+  },
+  {
+    name: 'Potatoes', emoji: '🥔', category: 'vegetable',
+    season: [1,1,1,1,1,1,1,1,3,3,2,1],
+    storage: {
+      location: 'Cool, dark, dry pantry or basement (50–60°F ideal)',
+      duration: 'Weeks to months depending on variety',
+      tips: 'Never refrigerate potatoes — the cold converts starches to sugar, making them sweet and discolored when cooked. Store in a paper bag or basket in a cool dark place. Keep away from onions (they release gases that make potatoes sprout faster). Vermont storage potatoes are a winter staple.',
+      mistake: 'Storing potatoes in the fridge or in plastic bags — refrigerator turns them gritty and sweet; plastic traps moisture and promotes rot.'
+    },
+    rescue: {
+      oneGone: 'One rotten potato can affect neighbors in a closed bag — remove it and check others for soft spots.',
+      softSpot: 'A soft spot or small sprout is fine — cut it away with an inch margin and cook the rest. Green skin or flesh means remove that area; it contains solanine.',
+      overripe: 'Slightly sprouted potatoes are perfectly fine to eat — just remove the sprouts. Shrunken but firm potatoes are still good for soups and mashed.',
+      toss: 'Toss if the whole potato is mushy and smells sour, or if there\'s extensive green flesh throughout.'
+    }
+  },
+  {
+    name: 'Onions', emoji: '🧅', category: 'vegetable',
+    season: [1,1,1,1,1,1,1,2,3,3,2,1],
+    storage: {
+      location: 'Cool, dry, dark pantry — never the fridge',
+      duration: '1–3 months whole; 7–10 days cut (fridge)',
+      tips: 'Store whole onions in a mesh bag or open basket in a cool, dark, dry place. Never store near potatoes (they accelerate each other\'s spoilage). Cut onions should go in the fridge in an airtight container — they make fridge odors quickly otherwise.',
+      mistake: 'Storing onions and potatoes together — they\'re the produce equivalent of bad roommates.'
+    },
+    rescue: {
+      oneGone: 'A moldy onion can spread to neighbors in a bag — remove it and check the others.',
+      softSpot: 'A soft outer layer is often just the papery skin. Peel down to firm flesh — it\'s usually fine.',
+      overripe: 'Sprouting onions are totally edible — the sprout itself is also edible (like a mild scallion). The onion may be slightly less pungent.',
+      toss: 'Toss if it\'s completely mushy throughout or smells strongly sour/fermented inside.'
+    }
+  },
+  {
+    name: 'Winter Squash', emoji: '🎃', category: 'vegetable',
+    season: [1,1,1,0,0,0,0,1,2,3,3,2],
+    storage: {
+      location: 'Cool, dry counter or pantry (50–60°F) — not the fridge',
+      duration: '1–3 months depending on variety',
+      tips: 'Vermont\'s best long-season crop. Butternut, acorn, and delicata keep for months in a cool dry spot. Keep whole — once cut, wrap tightly and refrigerate for up to 5 days. Cure any freshly harvested squash in a warm spot for 10 days first to harden the skin.',
+      mistake: 'Refrigerating whole squash — it causes pitting and accelerates decay. Leave it on the counter or a cool pantry shelf.'
+    },
+    rescue: {
+      oneGone: 'A soft spot on the outside usually means the flesh inside is fine — inspect and cut around it.',
+      softSpot: 'A small soft patch on the exterior: cut away with a wide margin. If the flesh inside looks orange and normal, use it today.',
+      overripe: 'Very soft or stringy squash flesh is best pureed for soup, muffins, or pasta sauce.',
+      toss: 'Toss if there\'s extensive mold on the skin or the interior flesh is brown and mushy throughout.'
+    }
+  },
+  {
+    name: 'Garlic', emoji: '🧄', category: 'vegetable',
+    season: [1,1,1,1,1,1,1,3,2,1,1,1],
+    storage: {
+      location: 'Cool, dry, dark counter or pantry — never the fridge',
+      duration: '3–6 months for whole heads; 1–2 weeks for broken heads; 1 week for peeled cloves',
+      tips: 'Keep whole heads in a mesh bag or open basket with good airflow. Don\'t refrigerate — it causes sprouting and mold quickly. Once you break a head open, use the rest within 1–2 weeks. Peeled cloves can go in an airtight container in the fridge for about a week.',
+      mistake: 'Storing garlic in the fridge (promotes molding and sprouting) or in a sealed plastic bag (traps moisture).'
+    },
+    rescue: {
+      oneGone: 'One moldy clove doesn\'t affect the rest of the head — just remove it.',
+      softSpot: 'A soft or shriveled clove is dehydrated but safe to use in cooking. Sprouted cloves are fine — the sprout tastes more bitter, so remove it before cooking if preferred.',
+      overripe: 'Sprouted or slightly dried garlic still works perfectly well in cooked dishes.',
+      toss: 'Toss a clove if it\'s fully black, slimy, or smells strongly of ammonia.'
+    }
+  },
+];
+
+const MONTH_ABBR = ['J','F','M','A','M','J','J','A','S','O','N','D'];
+const CURRENT_MONTH = new Date().getMonth();
+
+let produceFilter = 'all';
+let produceQuery = '';
+
+function isInSeasonNow(produce) {
+  return produce.season[CURRENT_MONTH] >= 2;
+}
+
+function renderProduceCard(p) {
+  const tabs = ['season','storage','rescue'];
+  const tabLabels = ['🗓 In Season','❄️ Storage','🚨 Gone Bad?'];
+  const seasonBar = p.season.map((val, i) => {
+    const cls = val === 3 ? 'peak' : val === 2 ? 'available' : val === 1 ? 'storage' : '';
+    return `<div class="season-month ${cls}" title="${['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][i]}"></div>`;
+  }).join('');
+  const nowVal = p.season[CURRENT_MONTH];
+  const nowText = nowVal === 3 ? '✅ Peak local season now' : nowVal === 2 ? '✅ Locally available now' : nowVal === 1 ? '📦 Storage/imported available' : '❌ Out of season locally';
+  return `
+  <div class="produce-card">
+    <div class="produce-card-header">
+      <span class="produce-emoji">${p.emoji}</span>
+      <span class="produce-name">${p.name}</span>
+      <span class="produce-category-badge ${p.category}">${p.category}</span>
+    </div>
+    <div class="season-bar-wrap">
+      <div class="season-bar-months">${seasonBar}</div>
+      <div class="season-month-labels">${MONTH_ABBR.map(m => `<div class="season-month-label">${m}</div>`).join('')}</div>
+      <div class="season-legend">
+        <div class="legend-item"><div class="legend-dot" style="background:var(--accent)"></div>Peak local</div>
+        <div class="legend-item"><div class="legend-dot" style="background:var(--accent-light)"></div>Local</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#D4E4D0"></div>Storage</div>
+      </div>
+      <div style="font-size:0.75rem;color:var(--brown-mid);margin-top:0.4rem;font-weight:500">${nowText}</div>
+    </div>
+    <div class="produce-tabs">
+      ${tabLabels.map((label, i) => `<button class="produce-tab-btn ${i===0?'active':''}" onclick="switchProduceTab(this,'${p.name}-${tabs[i]}')">${label}</button>`).join('')}
+    </div>
+    <div class="produce-tab-content active" id="${p.name}-season">
+      <strong>Vermont Seasonality</strong>
+      Local peak season runs <strong>${getPeakMonths(p.season)}</strong>. ${getSeasonNote(p)}
+    </div>
+    <div class="produce-tab-content" id="${p.name}-storage">
+      <strong>Where to store</strong>${p.storage.location}
+      <strong>How long</strong>${p.storage.duration}
+      <strong>Pro tips</strong>${p.storage.tips}
+      <div class="produce-tip">⚠️ <strong style="display:inline;text-transform:none;font-size:inherit;color:inherit">Rookie mistake:</strong> ${p.storage.mistake}</div>
+    </div>
+    <div class="produce-tab-content" id="${p.name}-rescue">
+      <strong>One went bad — save the rest?</strong>${p.rescue.oneGone}
+      <strong>Soft spot or bruise?</strong>${p.rescue.softSpot}
+      <strong>Overripe but no mold?</strong><span class="rescue-ok">${p.rescue.overripe}</span>
+      <strong>When to toss</strong><span class="rescue-toss">${p.rescue.toss}</span>
+    </div>
+  </div>`;
+}
+
+function getPeakMonths(season) {
+  const months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  const peak = season.map((v,i) => v===3?months[i]:null).filter(Boolean);
+  const avail = season.map((v,i) => v===2?months[i]:null).filter(Boolean);
+  if (peak.length) return peak.join(', ');
+  if (avail.length) return avail.join(', ');
+  return 'imported year-round';
+}
+
+function getSeasonNote(p) {
+  const notes = {
+    'Strawberries': 'Look for Vermont-grown at Hannaford in June–July. They go fast — grab them when you see them!',
+    'Apples': 'Vermont apple orchards start in late August. Hannaford carries local varieties (Honeycrisp, Cortland, McIntosh) through late fall.',
+    'Pears': 'Local Vermont pears peak in September. Bartlett and Bosc are most common at Hannaford.',
+    'Bananas': 'Always imported — no local season. Year-round from Hannaford and Shaw\'s.',
+    'Tomatoes': 'Vermont farm tomatoes peak August–September. Worth seeking out at Hannaford\'s local section or a farmstand.',
+    'Sweet Corn': 'Vermont corn season is short and sweet — August is the golden window. Hannaford carries local corn in summer.',
+    'Winter Squash': 'Vermont\'s best storage crop. Butternut and acorn are at Hannaford all fall and winter.',
+    'Blueberries': 'Maine and Vermont blueberries are at peak in August. Frozen Maine blueberries (already in your staples!) are a great year-round backup.',
+  };
+  return notes[p.name] || `Available at Hannaford${p.category === 'vegetable' ? ' — look for Vermont-grown labels in season' : ''}.`;
+}
+
+function switchProduceTab(btn, tabId) {
+  const card = btn.closest('.produce-card');
+  card.querySelectorAll('.produce-tab-btn').forEach(b => b.classList.remove('active'));
+  card.querySelectorAll('.produce-tab-content').forEach(c => c.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById(tabId).classList.add('active');
+}
+
+function setProduceFilter(filter, btn) {
+  produceFilter = filter;
+  document.querySelectorAll('.produce-filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderProduce();
+}
+
+function filterProduce(query) {
+  produceQuery = query.toLowerCase();
+  renderProduce();
+}
+
+function renderProduce() {
+  let list = PRODUCE;
+  if (produceFilter === 'fruit') list = list.filter(p => p.category === 'fruit');
+  else if (produceFilter === 'vegetable') list = list.filter(p => p.category === 'vegetable');
+  else if (produceFilter === 'inseason') list = list.filter(p => isInSeasonNow(p));
+  if (produceQuery) list = list.filter(p => p.name.toLowerCase().includes(produceQuery));
+  const grid = document.getElementById('produce-grid');
+  if (!grid) return;
+  grid.innerHTML = list.length ? list.map(renderProduceCard).join('') : '<div class="empty-state"><p>No produce found matching your search.</p></div>';
+}
+
+// ─── ITEM LIBRARY (plain script — must be outside module for onclick access) ──
+
+const ITEM_CATEGORIES = [
+  'Asian','Bakery & Deli','Baking','Beans','Beer & Wine','Bread',
+  'Canned Fruit','Canned Meats','Canned Tomatoes','Canned Vegetables',
+  'Cereal','Cleaning Supplies','Coffee','Condiments','Dairy','Dog Supplies',
+  'Frozen','Frozen Vegetable','Fruit','Juice','Meat','Mexican',
+  'Oils/Shortening','Pasta','Pasta Sauce','Peanut Butter/Jelly','Pharmacy',
+  'Rice','Seltzer & Water','Snacks','Soda','Soup','Spices',
+  'Stuffing','Syrup','Vegetables','Other'
+];
+
+const STORE_SECTIONS = [
+  'Bakery & Deli','Baking','Beverages','Bread','Canned Goods',
+  'Cereal & Breakfast','Cleaning','Condiments','Condiments & International',
+  'Dairy','Frozen','Meat & Seafood','Pasta & Rice','Pet Supplies',
+  'Pharmacy','Produce','Snacks','Soup & Broth','Spices','Other'
+];
+
+const CAT_TO_SECTION = {
+  'Asian':'Condiments & International','Bakery & Deli':'Bakery & Deli',
+  'Baking':'Baking','Beans':'Canned Goods','Beer & Wine':'Beverages',
+  'Bread':'Bread','Canned Fruit':'Canned Goods','Canned Meats':'Canned Goods',
+  'Canned Tomatoes':'Canned Goods','Canned Vegetables':'Canned Goods',
+  'Cereal':'Cereal & Breakfast','Cleaning Supplies':'Cleaning',
+  'Coffee':'Beverages','Condiments':'Condiments','Dairy':'Dairy',
+  'Dog Supplies':'Pet Supplies','Frozen':'Frozen','Frozen Vegetable':'Frozen',
+  'Fruit':'Produce','Juice':'Beverages','Meat':'Meat & Seafood',
+  'Mexican':'Canned Goods','Oils/Shortening':'Condiments',
+  'Pasta':'Pasta & Rice','Pasta Sauce':'Pasta & Rice',
+  'Peanut Butter/Jelly':'Condiments','Pharmacy':'Pharmacy',
+  'Rice':'Pasta & Rice','Seltzer & Water':'Beverages','Snacks':'Snacks',
+  'Soda':'Beverages','Soup':'Soup & Broth','Spices':'Spices',
+  'Stuffing':'Canned Goods','Syrup':'Condiments','Vegetables':'Produce',
+  'Other':'Other'
+};
+
+// This is the shared item array — Firebase writes to it via window._itemLibrary
+// but we keep a local reference for all reads/renders
+let _itemLibrary = [];
+let _itemLibFiltered = [];
+
+// Firebase onValue writes here — called from module's Firebase scope
+window._itemLibrary = _itemLibrary; // reference, not copy
+
+function _syncFromFirebase(data) {
+  _itemLibrary.length = 0;
+  if (data) Object.values(data).forEach(i => _itemLibrary.push(i));
+  filterItemLib();
+}
+window._syncItemLib = _syncFromFirebase;
+
+function populateItemDropdowns() {
+  ['item-edit-category', 'itemLibCatFilter'].forEach(id => {
+    const sel = document.getElementById(id);
+    if (!sel || sel.querySelector('option[value="Asian"]')) return;
+    ITEM_CATEGORIES.forEach(cat => {
+      const o = document.createElement('option');
+      o.value = cat; o.textContent = cat;
+      sel.appendChild(o);
+    });
+  });
+  const secSel = document.getElementById('item-edit-section');
+  if (secSel && !secSel.querySelector('option[value="Bakery & Deli"]')) {
+    STORE_SECTIONS.forEach(s => {
+      const o = document.createElement('option');
+      o.value = s; o.textContent = s;
+      secSel.appendChild(o);
+    });
+  }
+}
+
+function syncStoreSection() {
+  const cat = document.getElementById('item-edit-category').value;
+  const secSel = document.getElementById('item-edit-section');
+  if (cat && CAT_TO_SECTION[cat]) secSel.value = CAT_TO_SECTION[cat];
+}
+
+function renderItemLib() {
+  const tbody = document.getElementById('item-lib-tbody');
+  const countEl = document.getElementById('item-lib-count');
+  if (!tbody) return;
+  if (_itemLibFiltered.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;color:var(--text-muted);padding:2rem;font-size:0.9rem">
+      ${_itemLibrary.length === 0
+        ? 'No items yet — click <strong>+ Add Item</strong> to get started.'
+        : 'No items match your search.'}
+    </td></tr>`;
+    if (countEl) countEl.textContent = _itemLibrary.length === 0 ? '' : '0 items';
+    return;
+  }
+  if (countEl) countEl.textContent = `${_itemLibFiltered.length} of ${_itemLibrary.length} item${_itemLibrary.length !== 1 ? 's' : ''}`;
+  tbody.innerHTML = _itemLibFiltered.map(item => `
+    <tr>
+      <td><strong>${escHtml(item.sortName || item.displayName)}</strong></td>
+      <td>${escHtml(item.displayName)}</td>
+      <td>${escHtml(item.category || '')}</td>
+      <td>${escHtml(item.storeSection || '')}</td>
+      <td>${item.brand ? `<span class="item-brand">${escHtml(item.brand)}</span>` : '<span style="color:var(--border)">—</span>'}</td>
+      <td>
+        <div class="item-actions">
+          <button class="item-edit-btn" onclick="openItemEditor('${item.id}')">✏️ Edit</button>
+          <button class="item-delete-btn" onclick="deleteLibItem('${item.id}')">✕</button>
+        </div>
+      </td>
+    </tr>
+  `).join('');
+}
+
+function escHtml(str) {
+  return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function filterItemLib() {
+  const q = (document.getElementById('itemLibSearch')?.value || '').toLowerCase();
+  const cat = document.getElementById('itemLibCatFilter')?.value || '';
+  _itemLibFiltered = _itemLibrary.filter(item => {
+    const matchQ = !q
+      || (item.sortName||'').toLowerCase().includes(q)
+      || (item.displayName||'').toLowerCase().includes(q)
+      || (item.brand||'').toLowerCase().includes(q)
+      || (item.category||'').toLowerCase().includes(q);
+    const matchCat = !cat || item.category === cat;
+    return matchQ && matchCat;
+  });
+  _itemLibFiltered.sort((a,b) => {
+    const an = (a.sortName || a.displayName || '').toLowerCase();
+    const bn = (b.sortName || b.displayName || '').toLowerCase();
+    return an.localeCompare(bn);
+  });
+  renderItemLib();
+}
+
+function openItemEditor(itemId) {
+  populateItemDropdowns();
+  const item = itemId ? _itemLibrary.find(i => i.id === itemId) : null;
+  document.getElementById('item-modal-title').textContent = item ? 'Edit Item' : 'Add New Item';
+  document.getElementById('item-modal-subtitle').textContent = item
+    ? `Editing: ${item.displayName}`
+    : 'Fill in the details below';
+  document.getElementById('item-edit-id').value = item ? item.id : '';
+  document.getElementById('item-edit-sort').value = item ? (item.sortName || '') : '';
+  document.getElementById('item-edit-display').value = item ? (item.displayName || '') : '';
+  document.getElementById('item-edit-category').value = item ? (item.category || '') : '';
+  document.getElementById('item-edit-section').value = item ? (item.storeSection || '') : '';
+  document.getElementById('item-edit-brand').value = item ? (item.brand || '') : '';
+  document.getElementById('item-modal').classList.add('open');
+  document.body.style.overflow = 'hidden';
+  setTimeout(() => document.getElementById('item-edit-sort').focus(), 100);
+}
+
+function closeItemModal() {
+  document.getElementById('item-modal').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+function closeItemModalOverlay(e) {
+  if (e.target === document.getElementById('item-modal')) closeItemModal();
+}
+
+function saveItemEdit() {
+  const sortName    = document.getElementById('item-edit-sort').value.trim();
+  const displayName = document.getElementById('item-edit-display').value.trim();
+  const category    = document.getElementById('item-edit-category').value;
+  const storeSection= document.getElementById('item-edit-section').value;
+  const brand       = document.getElementById('item-edit-brand').value.trim();
+  const existingId  = document.getElementById('item-edit-id').value;
+
+  if (!displayName) { alert('Display Name is required.'); return; }
+  if (!category)    { alert('Please select a Category.'); return; }
+
+  const id = existingId || 'lib_' + Date.now() + '_' + Math.random().toString(36).substr(2,5);
+  const itemData = {
+    id,
+    sortName:     sortName || displayName,
+    displayName,
+    category,
+    storeSection: storeSection || CAT_TO_SECTION[category] || 'Other',
+    brand:        brand || ''
+  };
+  // saveLibItem is defined in the Firebase module and exposed on window
+  if (window.saveLibItem) window.saveLibItem(itemData);
+  closeItemModal();
+}
+
+function deleteLibItem(id) {
+  if (confirm('Delete this item from the library?')) {
+    if (window._firebaseDeleteLibItem) window._firebaseDeleteLibItem(id);
+  }
+}
+
+function toggleNamingGuide() {
+  const guide = document.getElementById('naming-guide');
+  const btn   = document.getElementById('guide-toggle-btn');
+  const show  = guide.style.display === 'none';
+  guide.style.display = show ? 'block' : 'none';
+  btn.textContent     = show ? '✕ Hide Guide' : '📖 Naming Guide';
 }
 </script>
 </body>
