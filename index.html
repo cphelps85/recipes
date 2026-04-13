@@ -2545,7 +2545,7 @@ function renderGrid(containerId, list) {
 
 async function migrateHardcodedRecipes(showStatus) {
   try {
-    const snap = await get(ref(db, '_appMeta/recipesMigrated'));
+    const snap = await get(ref(db, 'userRecipes/_migrated'));
     if (snap.val() === true) return;
     if (showStatus) {
       const el = document.getElementById('migration-status');
@@ -2554,21 +2554,20 @@ async function migrateHardcodedRecipes(showStatus) {
     for (const r of recipes) {
       await set(ref(db, 'userRecipes/' + r.id), r);
     }
-    await set(ref(db, '_appMeta/recipesMigrated'), true);
+    await set(ref(db, 'userRecipes/_migrated'), true);
     if (showStatus) {
       const el = document.getElementById('migration-status');
       if (el) el.style.display = 'none';
     }
   } catch (err) {
     console.error('Migration error:', err);
-    if (showStatus) alert('Could not import recipes: ' + err.message);
   }
 }
 
 async function runManualMigration() {
   const btn = document.getElementById('migrate-btn');
   if (btn) btn.disabled = true;
-  await set(ref(db, '_appMeta/recipesMigrated'), false);
+  await set(ref(db, 'userRecipes/_migrated'), false);
   await migrateHardcodedRecipes(true);
   if (btn) btn.disabled = false;
   alert('All recipes imported! The page will now reload.');
