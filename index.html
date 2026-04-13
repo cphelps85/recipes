@@ -2885,7 +2885,6 @@ let userRecipes = [];
 let _parsedRecipeData = null;
 
 document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModalDirect(); });
-init();
 
 function resetUploader() {
   document.getElementById('recipe-paste-box').value = '';
@@ -3537,6 +3536,7 @@ const firebaseConfig = {
 const firebaseApp = initializeApp(firebaseConfig);
 const db = getDatabase(firebaseApp);
 const recipesRef = ref(db, 'userRecipes');
+init();
 
 // ─── LOAD RECIPES FROM FIREBASE ──────────────────────────────────
 onValue(recipesRef, (snapshot) => {
