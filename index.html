@@ -34,6 +34,18 @@
   }
 
   /* HEADER */
+  #dev-banner {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 9999;
+    background: #e65c00;
+    color: #fff;
+    text-align: center;
+    font-weight: 700;
+    font-size: 0.85rem;
+    padding: 0.4rem 1rem;
+    letter-spacing: 0.03em;
+  }
   header {
     background: var(--brown);
     padding: 2.5rem 2rem 2rem;
@@ -1545,6 +1557,88 @@
     transition: background 0.15s;
   }
   #undo-toast button:hover { background: var(--accent-light); color: var(--brown); }
+
+  /* ── NEW GROCERY ITEM FIELDS ──────────────────────────────────────── */
+  .item-tag.adhoc { background: #EDE8F5; color: #6B4FA0; }
+  .item-qty {
+    font-size: 0.68rem;
+    font-weight: 600;
+    color: var(--accent);
+    background: #FFF0E8;
+    border: 1px solid var(--accent-light);
+    border-radius: 50px;
+    padding: 0.15rem 0.5rem;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .item-brand-tag {
+    display: inline-block;
+    font-size: 0.68rem;
+    color: var(--text-muted);
+    font-style: italic;
+    margin-left: 0.35rem;
+    vertical-align: middle;
+  }
+  .item-note {
+    font-size: 0.72rem;
+    color: var(--brown-mid);
+    margin-top: 0.2rem;
+    font-style: italic;
+    line-height: 1.4;
+  }
+  .note-btn {
+    background: none;
+    border: none;
+    font-size: 0.9rem;
+    cursor: pointer;
+    padding: 0.15rem;
+    flex-shrink: 0;
+    opacity: 0.4;
+    transition: opacity 0.15s;
+    line-height: 1;
+  }
+  .note-btn:hover { opacity: 1; }
+  .grocery-item:has(.item-note) .note-btn { opacity: 0.7; }
+
+  /* ── MOVE / ADD-TO-LIST BUTTONS ON PLANNER DAYS ──────────────────── */
+  .day-move, .day-add-list {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+    text-align: left;
+    transition: color 0.15s;
+  }
+  .day-move:hover { color: var(--accent); }
+  .day-add-list { color: var(--green); font-weight: 500; }
+  .day-add-list:hover { color: var(--brown); }
+
+  /* ── MANAGE STAPLES LIST ──────────────────────────────────────────── */
+  .staple-manage-item {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.5rem 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 0.88rem;
+  }
+  .staple-manage-item:last-child { border-bottom: none; }
+  .staple-manage-name { flex: 1; color: var(--brown); }
+  .staple-manage-section { font-size: 0.72rem; color: var(--text-muted); }
+  .staple-delete-btn {
+    background: none;
+    border: none;
+    color: var(--border);
+    font-size: 1rem;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: color 0.15s;
+    line-height: 1;
+    padding: 0.15rem;
+  }
+  .staple-delete-btn:hover { color: #8B2500; }
 </style>
 </head>
 <body>
@@ -1591,6 +1685,7 @@
       <button class="recipe-filter-btn" onclick="setRecipeFilter('time','quick',this)">⚡ Under 20 min</button>
       <button class="recipe-filter-btn" onclick="setRecipeFilter('time','medium',this)">🕐 20–45 min</button>
       <button class="recipe-filter-btn" onclick="setRecipeFilter('time','slow',this)">🍲 Slow / Bake</button>
+      <button class="recipe-filter-btn" onclick="setRecipeFilter('time','lowslow',this)">🔥 Low & Slow</button>
     </div>
     <div class="filter-row">
       <span class="filter-row-label">Health</span>
@@ -1645,6 +1740,7 @@
       <div class="special-meal-row">
         <button class="special-meal-btn" onclick="assignSpecial('takeout')">🥡 Take Out</button>
         <button class="special-meal-btn" onclick="assignSpecial('eatingout')">🎉 Eating Out</button>
+        <button class="special-meal-btn" onclick="assignSpecial('leftovers')">🍱 Leftovers</button>
         <button class="special-meal-btn" onclick="assignSpecialCustom()">✏️ Custom Note</button>
       </div>
       <input type="text" placeholder="Search recipes..." class="add-input" style="width:100%;margin-bottom:1rem;" oninput="filterPicker(this.value)">
@@ -1689,7 +1785,8 @@
       <p class="week-meta" id="grocery-count">Loading...</p>
     </div>
     <div class="grocery-actions">
-      <button class="grocery-btn" onclick="loadWeekList('staples')">📋 Load Staples</button>
+      <button class="grocery-btn" onclick="reviewStaples()">📋 Review Staples</button>
+      <button class="grocery-btn" onclick="openManageStaples()">⚙️ Manage Staples</button>
       <button class="grocery-btn" onclick="loadWeekList('week')">📅 Load This Week</button>
       <button class="grocery-btn danger" onclick="clearChecked()">Clear Done</button>
       <button class="grocery-btn danger" onclick="clearAll()">Clear All</button>
@@ -1727,6 +1824,7 @@
         autocomplete="off">
       <div class="autocomplete-dropdown" id="grocery-suggestions"></div>
     </div>
+    <input type="text" id="newItemQty" placeholder="qty" class="add-input" style="width:72px;flex-shrink:0" autocomplete="off">
     <button class="add-btn" onclick="addItem()">+</button>
   </div>
 
@@ -1884,6 +1982,76 @@
 </div>
 
 </main>
+
+<!-- STAPLE REVIEW MODAL -->
+<div class="modal-overlay" id="staple-review-modal" onclick="if(event.target===this)closeStapleReview()">
+  <div class="modal" id="staple-review-content">
+    <div class="modal-header">
+      <div class="modal-day">Review</div>
+      <div class="modal-title">Staples Checklist</div>
+      <div class="modal-desc">Uncheck anything you already have, then tap Add to List</div>
+      <button class="modal-close" onclick="closeStapleReview()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div id="staple-review-list"></div>
+      <button class="print-btn" onclick="addReviewedStaples()" style="width:100%;margin-top:1rem;">Add Checked Items to Grocery List</button>
+    </div>
+  </div>
+</div>
+
+<!-- MOVE MEAL PICKER MODAL -->
+<div class="modal-overlay" id="move-picker-modal" onclick="if(event.target===this)closeMovePicker()">
+  <div class="modal" style="max-width:380px">
+    <div class="modal-header">
+      <div class="modal-day">Move meal from</div>
+      <div class="modal-title" id="move-picker-label"></div>
+      <button class="modal-close" onclick="closeMovePicker()">✕</button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:0.82rem;color:var(--text-muted);margin-bottom:0.8rem">Pick the day to move it to:</p>
+      <div id="move-day-list"></div>
+    </div>
+  </div>
+</div>
+
+<!-- MANAGE STAPLES MODAL -->
+<div class="modal-overlay" id="manage-staples-modal" onclick="if(event.target===this)closeManageStaples()">
+  <div class="modal" style="max-width:560px">
+    <div class="modal-header">
+      <div class="modal-day">Settings</div>
+      <div class="modal-title">Manage Staples</div>
+      <div class="modal-desc">Add or remove items from your regular staples list</div>
+      <button class="modal-close" onclick="closeManageStaples()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div style="display:flex;gap:0.5rem;margin-bottom:1rem">
+        <input type="text" id="new-staple-name" placeholder="Item name" class="add-input" style="flex:2">
+        <select id="new-staple-section" class="section-select" style="flex:1;max-width:180px">
+          <option value="Meat & Seafood">Meat & Seafood</option>
+          <option value="Produce">Produce</option>
+          <option value="Dairy" selected>Dairy</option>
+          <option value="Bread">Bread</option>
+          <option value="Bakery & Deli">Bakery & Deli</option>
+          <option value="Frozen">Frozen</option>
+          <option value="Beverages">Beverages</option>
+          <option value="Cereal & Breakfast">Cereal & Breakfast</option>
+          <option value="Snacks">Snacks</option>
+          <option value="Canned Goods">Canned Goods</option>
+          <option value="Condiments">Condiments</option>
+          <option value="Baking">Baking</option>
+          <option value="Pasta & Rice">Pasta & Rice</option>
+          <option value="Spices">Spices</option>
+          <option value="Soup & Broth">Soup & Broth</option>
+          <option value="Cleaning">Cleaning</option>
+          <option value="Pet Supplies">Pet Supplies</option>
+          <option value="Other">Other</option>
+        </select>
+        <button class="add-btn" onclick="addNewStaple()">+</button>
+      </div>
+      <div id="manage-staples-list"></div>
+    </div>
+  </div>
+</div>
 
 <!-- ITEM EDIT MODAL -->
 <div class="item-modal-overlay" id="item-modal" onclick="closeItemModalOverlay(event)">
@@ -2551,7 +2719,7 @@ function formatAmount(amount, base, current) {
 }
 
 function getTagHTML(tags) {
-  const map = { quick: ['tag-quick','⚡ Quick'], beef: ['tag-beef','🥩 Beef'], chicken: ['tag-chicken','🍗 Chicken'], lowsodium: ['tag-lowsodium','💚 Low Sodium'], pork: ['tag-beef','🥩 Pork'], special: ['tag-chicken','🌟 Special'], veggie: ['tag-lowsodium','🥦 Veggie'], slowcooker: ['tag-quick','🍲 Slow Cooker'] };
+  const map = { quick: ['tag-quick','⚡ Quick'], beef: ['tag-beef','🥩 Beef'], chicken: ['tag-chicken','🍗 Chicken'], lowsodium: ['tag-lowsodium','💚 Low Sodium'], pork: ['tag-beef','🥩 Pork'], special: ['tag-chicken','🌟 Special'], veggie: ['tag-lowsodium','🥦 Veggie'], slowcooker: ['tag-quick','🍲 Slow Cooker'], lowslow: ['tag-beef','🔥 Low & Slow'] };
   return tags.map(t => map[t] ? `<span class="tag ${map[t][0]}">${map[t][1]}</span>` : '').join('');
 }
 
@@ -2801,6 +2969,7 @@ const ALL_TAGS = [
   { key: 'veggie',        label: '🥦 Veggie',           group: 'Protein' },
   { key: 'quick',         label: '⚡ Quick',            group: 'Time' },
   { key: 'slowcooker',    label: '🍲 Slow Cooker',      group: 'Time' },
+  { key: 'lowslow',       label: '🔥 Low & Slow',       group: 'Time' },
   { key: 'lowsodium',     label: '💚 Low Sodium',       group: 'Diet' },
   { key: 'highfiber',     label: '🌾 High Fiber',       group: 'Diet' },
   { key: 'healthy',       label: '🥗 Healthy',          group: 'Diet' },
@@ -2884,9 +3053,11 @@ function applyRecipeFilters() {
   if (activeRecipeFilters.time === 'quick') {
     list = list.filter(r => r.tags.includes('quick'));
   } else if (activeRecipeFilters.time === 'medium') {
-    list = list.filter(r => !r.tags.includes('quick') && !r.tags.includes('slowcooker'));
+    list = list.filter(r => !r.tags.includes('quick') && !r.tags.includes('slowcooker') && !r.tags.includes('lowslow'));
   } else if (activeRecipeFilters.time === 'slow') {
     list = list.filter(r => r.tags.includes('slowcooker'));
+  } else if (activeRecipeFilters.time === 'lowslow') {
+    list = list.filter(r => r.tags.includes('lowslow'));
   }
 
   // Health filter
@@ -2958,6 +3129,182 @@ window.editRecipe = editRecipe;
 window.saveEditedRecipe = saveEditedRecipe;
 window.cancelEdit = cancelEdit;
 window.deleteRecipeConfirm = deleteRecipeConfirm;
+window.reviewRecipeForDay = reviewRecipeForDay;
+window.openMovePicker = openMovePicker;
+window.executeMoveDay = executeMoveDay;
+window.closeMovePicker = closeMovePicker;
+window.reviewStaples = reviewStaples;
+window.addReviewedStaples = addReviewedStaples;
+window.closeStapleReview = closeStapleReview;
+window.openManageStaples = openManageStaples;
+window.closeManageStaples = closeManageStaples;
+window.addNewStaple = addNewStaple;
+window.deleteStaple = deleteStaple;
+window.addNoteToItem = addNoteToItem;
+
+// ─── ADD TO LIST FROM PLANNER ────────────────────────────────────
+function reviewRecipeForDay(day) {
+  const weekKey = currentWeekKey();
+  const mealVal = getMealPlan(weekKey)[day];
+  const recipe = userRecipes.find(r => String(r.id) === String(mealVal));
+  if (!recipe) { alert('Recipe not found.'); return; }
+
+  const ingredientMap = {};
+  recipe.ingredients.forEach(ing => {
+    const key = ing.name.toLowerCase();
+    const isPantry = PANTRY_STAPLES.some(p => key.includes(p));
+    if (!isPantry) {
+      ingredientMap[key] = { ...ing, recipeName: recipe.title };
+    }
+  });
+
+  reviewIngredients = Object.values(ingredientMap).map(ing => {
+    // Pre-uncheck anything already on the grocery list
+    const alreadyOn = groceryList.some(g =>
+      (g.baseIngredient || g.name).toLowerCase().includes(ing.name.toLowerCase())
+    );
+    return { ...ing, checked: !alreadyOn, alreadyOn };
+  });
+
+  const listHTML = reviewIngredients.length === 0
+    ? '<p style="color:var(--text-muted)">All ingredients are pantry staples you already have!</p>'
+    : reviewIngredients.map((ing, i) => `
+      <div class="review-item">
+        <input type="checkbox" id="ri${i}" ${ing.checked ? 'checked' : ''} onchange="reviewIngredients[${i}].checked=this.checked">
+        <label for="ri${i}" style="flex:1;cursor:pointer;${ing.alreadyOn ? 'color:var(--text-muted);text-decoration:line-through' : ''}">${ing.name}${ing.amount ? ` — <strong>${formatAmount(ing.amount, 1, 1)} ${ing.unit}</strong>` : ''}</label>
+        ${ing.alreadyOn ? '<span class="review-recipe-label" style="color:var(--green)">on list</span>' : ''}
+      </div>`).join('');
+
+  document.getElementById('review-list').innerHTML = listHTML;
+  // Update the review modal title for context
+  document.querySelector('#review-content .modal-title').textContent = recipe.title;
+  document.querySelector('#review-content .modal-desc').textContent = 'Uncheck anything you already have';
+  document.getElementById('review-modal').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+// ─── MOVE MEAL BETWEEN DAYS ──────────────────────────────────────
+let _moveSourceDay = null;
+
+function openMovePicker(day) {
+  _moveSourceDay = day;
+  const weekKey = currentWeekKey();
+  const plan = getMealPlan(weekKey);
+  document.getElementById('move-picker-label').textContent = day;
+  document.getElementById('move-day-list').innerHTML = DAYS.filter(d => d !== day).map(d => {
+    const hasMeal = !!plan[d];
+    return `<div class="picker-item" onclick="executeMoveDay('${d}')">
+      <div class="picker-title">${d}</div>
+      ${hasMeal ? '<div class="picker-meta" style="color:#C4663A">⚠️ Will replace existing meal</div>' : '<div class="picker-meta">Empty — move here</div>'}
+    </div>`;
+  }).join('');
+  document.getElementById('move-picker-modal').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function executeMoveDay(targetDay) {
+  const weekKey = currentWeekKey();
+  const plan = getMealPlan(weekKey);
+  plan[targetDay] = plan[_moveSourceDay];
+  delete plan[_moveSourceDay];
+  setMealPlan(weekKey, plan);
+  closeMovePicker();
+  renderPlanner();
+}
+
+function closeMovePicker() {
+  document.getElementById('move-picker-modal').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+// ─── STAPLES REVIEW CHECKLIST ────────────────────────────────────
+let _stapleReviewList = [];
+
+function reviewStaples() {
+  _stapleReviewList = staplesCache.map(item => ({
+    ...item,
+    checked: !groceryList.some(g => g.name.toLowerCase() === item.name.toLowerCase())
+  }));
+  const listHTML = _stapleReviewList.length === 0
+    ? '<p style="color:var(--text-muted);font-size:0.9rem">Your staples list is empty. Use ⚙️ Manage Staples to add items.</p>'
+    : _stapleReviewList.map((item, i) => `
+      <div class="review-item">
+        <input type="checkbox" id="sr${i}" ${item.checked ? 'checked' : ''} onchange="_stapleReviewList[${i}].checked=this.checked">
+        <label for="sr${i}" style="flex:1;cursor:pointer;">${item.name}</label>
+        <span class="review-recipe-label">${item.section}</span>
+      </div>`).join('');
+  document.getElementById('staple-review-list').innerHTML = listHTML;
+  document.getElementById('staple-review-modal').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function addReviewedStaples() {
+  const toAdd = _stapleReviewList.filter(i => i.checked);
+  if (toAdd.length === 0) { alert('No items selected!'); return; }
+  toAdd.forEach(item => {
+    const exists = groceryList.some(g => g.name.toLowerCase() === item.name.toLowerCase());
+    if (!exists) {
+      const newItem = { id: generateId(), name: item.name, section: item.section, tag: 'staple', checked: false };
+      saveItem(newItem);
+    }
+  });
+  closeStapleReview();
+}
+
+function closeStapleReview() {
+  document.getElementById('staple-review-modal').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+// ─── MANAGE STAPLES ──────────────────────────────────────────────
+function openManageStaples() {
+  renderManageStaplesList();
+  document.getElementById('new-staple-name').value = '';
+  document.getElementById('manage-staples-modal').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeManageStaples() {
+  document.getElementById('manage-staples-modal').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+function renderManageStaplesList() {
+  const el = document.getElementById('manage-staples-list');
+  if (!el) return;
+  if (staplesCache.length === 0) {
+    el.innerHTML = '<p style="color:var(--text-muted);font-size:0.88rem;text-align:center;padding:1rem">No staples yet — add one above.</p>';
+    return;
+  }
+  const sorted = [...staplesCache].sort((a,b) => a.name.localeCompare(b.name));
+  el.innerHTML = sorted.map(item => `
+    <div class="staple-manage-item">
+      <span class="staple-manage-name">${item.name}</span>
+      <span class="staple-manage-section">${item.section}</span>
+      <button class="staple-delete-btn" onclick="deleteStaple('${item.id}')">✕</button>
+    </div>`).join('');
+}
+
+function addNewStaple() {
+  const name = document.getElementById('new-staple-name').value.trim();
+  const section = document.getElementById('new-staple-section').value;
+  if (!name) { alert('Please enter an item name.'); return; }
+  const newStaple = { id: 'stpl_' + Date.now(), name, section };
+  saveStaple(newStaple);
+  document.getElementById('new-staple-name').value = '';
+}
+
+function deleteStaple(id) {
+  if (window.removeStaple) window.removeStaple(id);
+}
+
+// ─── GROCERY ITEM NOTE ────────────────────────────────────────────
+function addNoteToItem(id) {
+  const item = groceryList.find(i => i.id === id);
+  if (!item) return;
+  const note = prompt('Add a note (e.g. "Sale price $0.99/lb"):', item.note || '');
+  if (note !== null) updateItem(id, { note: note.trim() });
+}
 
 // ─── RECIPE UPLOADER ─────────────────────────────────────────────
 const WORKER_URL = 'https://recipe-parser.christina-nisun-85.workers.dev';
@@ -3174,20 +3521,23 @@ function addRecipeToGrocery(recipeId, btn) {
   const recipe = userRecipes.find(r => String(r.id) === String(recipeId));
   if (!recipe) return;
   let added = 0;
+  const localBatch = {};
   recipe.ingredients.forEach(ing => {
     const isPantry = PANTRY_STAPLES.some(p => ing.name.toLowerCase().includes(p));
     if (!isPantry) {
       const ingKey = ing.name.toLowerCase().trim();
       const qtyStr = ing.amount ? `${formatAmount(ing.amount,1,1)}${ing.unit ? ' ' + ing.unit : ''}` : '';
       const source = { recipe: recipe.title, qty: qtyStr };
-      const existing = groceryList.find(i => (i.baseIngredient || i.name).toLowerCase().includes(ingKey));
+      const existing = findExistingGroceryItem(ing.name, localBatch);
       if (existing) {
         const sources = existing.sources ? [...existing.sources, source] : [source];
         updateItem(existing.id, { sources });
+        existing.sources = sources;
       } else {
         const section = guessSectionFromIngredient(ing.name);
         const newItem = { id: generateId(), name: ing.name, baseIngredient: ing.name, section, tag: 'meal', checked: false, sources: [source] };
         saveItem(newItem);
+        localBatch[ingKey] = newItem;
         added++;
       }
     }
@@ -3204,18 +3554,20 @@ function toggleRecipeToGrocery(recipeId, checked) {
 }
 
 // ─── MEAL PLANNER ────────────────────────────────────────────────
-const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+const DAYS = ['Saturday', 'Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
 const PANTRY_STAPLES = ['minced garlic', 'garlic', 'olive oil', 'black pepper', 'salt', 'cumin', 'paprika', 'chili powder', 'onion powder', 'oregano', 'basil', 'parsley', 'rosemary', 'thyme', 'ginger', 'nutmeg', 'cinnamon', 'worcestershire', 'vegetable oil', 'butter', 'cooking spray'];
 
-// Each week stored by its Monday date string: 'YYYY-MM-DD'
-function getMondayOf(date) {
+// Each week stored by its Saturday date string: 'YYYY-MM-DD'
+function getSaturdayOf(date) {
   const d = new Date(date);
   const day = d.getDay(); // 0=Sun, 1=Mon, ..., 6=Sat
-  const diff = day === 0 ? -6 : 1 - day;
+  const diff = day === 6 ? 0 : -(day + 1); // go back to most recent Saturday
   d.setDate(d.getDate() + diff);
   d.setHours(0,0,0,0);
   return d;
 }
+// Keep old name as alias for any legacy data that used Monday keys
+function getMondayOf(date) { return getSaturdayOf(date); }
 function dateKey(date) {
   return date.toISOString().slice(0,10);
 }
@@ -3225,7 +3577,7 @@ function allPlans() {
   return allPlansCache;
 }
 
-let currentPlanWeek = getMondayOf(new Date()); // Date object for current Monday
+let currentPlanWeek = getSaturdayOf(new Date()); // Date object for current week's Saturday
 let pickerTargetDay = null;
 let reviewIngredients = [];
 
@@ -3237,10 +3589,10 @@ function getMealPlan(weekKey) {
 function setMealPlan(weekKey, plan) {
   if (Object.keys(plan).length === 0) {
     delete allPlansCache[weekKey];
-    remove(ref(db, 'mealPlans/' + weekKey));
+    remove(ref(db, _mealPlansBasePath + '/' + weekKey));
   } else {
     allPlansCache[weekKey] = plan;
-    set(ref(db, 'mealPlans/' + weekKey), plan);
+    set(ref(db, _mealPlansBasePath + '/' + weekKey), plan);
   }
 }
 
@@ -3255,16 +3607,16 @@ function plannerNextWeek() {
   renderPlanner();
 }
 function plannerGoToday() {
-  currentPlanWeek = getMondayOf(new Date());
+  currentPlanWeek = getSaturdayOf(new Date());
   renderPlanner();
 }
 
-function weekLabel(monday) {
-  const today = getMondayOf(new Date());
-  const diff = Math.round((monday - today) / (7*24*3600*1000));
+function weekLabel(saturday) {
+  const today = getSaturdayOf(new Date());
+  const diff = Math.round((saturday - today) / (7*24*3600*1000));
   const opts = { month: 'short', day: 'numeric' };
-  const sun = new Date(monday); sun.setDate(sun.getDate() + 6);
-  const range = `${monday.toLocaleDateString('en-US', opts)} – ${sun.toLocaleDateString('en-US', opts)}`;
+  const fri = new Date(saturday); fri.setDate(fri.getDate() + 6);
+  const range = `${saturday.toLocaleDateString('en-US', opts)} – ${fri.toLocaleDateString('en-US', opts)}`;
   if (diff === 0) return `This week · ${range}`;
   if (diff === -1) return `Last week · ${range}`;
   if (diff === 1) return `Next week · ${range}`;
@@ -3280,7 +3632,7 @@ function renderPlanner() {
 
   const weekKey = currentWeekKey();
   const mealPlan = getMealPlan(weekKey);
-  const today = getMondayOf(new Date());
+  const today = getSaturdayOf(new Date());
   const isCurrentWeek = dateKey(currentPlanWeek) === dateKey(today);
 
   if (label) label.textContent = weekLabel(currentPlanWeek);
@@ -3307,24 +3659,31 @@ function renderPlanner() {
     // Determine meal display
     let mealHTML = '';
     let hasMeal = false;
-    if (typeof mealVal === 'number') {
-      const recipe = recipes.find(r => r.id === mealVal);
+    if (typeof mealVal === 'number' || (typeof mealVal === 'string' && !mealVal.startsWith('special:'))) {
+      const recipe = userRecipes.find(r => String(r.id) === String(mealVal));
       if (recipe) {
         hasMeal = true;
-        mealHTML = `<div class="day-recipe">${recipe.title}</div>
-          <button class="day-remove" onclick="removeFromPlan(event,'${day}')">✕ Remove</button>`;
+        mealHTML = `<div class="day-recipe" onclick="event.stopPropagation();openRecipe('${recipe.id}')" style="cursor:pointer" title="Tap to open recipe">${recipe.title}</div>
+          <div style="display:flex;gap:0.4rem;flex-wrap:wrap">
+            <button class="day-add-list" onclick="event.stopPropagation();reviewRecipeForDay('${day}')">+ List</button>
+            <button class="day-move" onclick="event.stopPropagation();openMovePicker('${day}')">↕ Move</button>
+            <button class="day-remove" onclick="removeFromPlan(event,'${day}')">✕ Remove</button>
+          </div>`;
       }
-    } else if (typeof mealVal === 'string' && mealVal.startsWith('special:')) {
+    }
+    if (!hasMeal && typeof mealVal === 'string' && mealVal.startsWith('special:')) {
       hasMeal = true;
       const specialType = mealVal.slice(8);
       let label2 = '';
       if (specialType === 'takeout') label2 = '🥡 Take Out';
       else if (specialType === 'eatingout') label2 = '🎉 Eating Out';
+      else if (specialType === 'leftovers') label2 = '🍱 Leftovers';
       else if (specialType.startsWith('custom:')) label2 = '✏️ ' + specialType.slice(7);
       else label2 = specialType;
       mealHTML = `<div class="day-recipe special">${label2}</div>
         <button class="day-remove" onclick="removeFromPlan(event,'${day}')">✕ Remove</button>`;
-    } else {
+    }
+    if (!hasMeal) {
       mealHTML = `<div class="day-empty">+ Add meal</div>`;
     }
 
@@ -3333,7 +3692,8 @@ function renderPlanner() {
       `<span class="activity-chip" onclick="event.stopPropagation();removeActivity('${dayKey}','${a.replace(/'/g,'\\\'')}')">${a} ✕</span>`
     ).join('');
 
-    return `<div class="planner-day ${hasMeal ? 'has-recipe' : ''} ${isToday ? 'is-today' : ''} ${hasActivity ? 'has-activity' : ''}" onclick="openPicker('${day}')">
+    const dayClick = hasMeal ? '' : `onclick="openPicker('${day}')"`;
+    return `<div class="planner-day ${hasMeal ? 'has-recipe' : ''} ${isToday ? 'is-today' : ''} ${hasActivity ? 'has-activity' : ''}" ${dayClick}>
       <div class="day-name">${day} <span class="day-date">${dateStr}</span></div>
       ${mealHTML}
       <div class="day-activities" onclick="event.stopPropagation()">
@@ -3373,11 +3733,11 @@ function openPicker(day) {
 
 function filterPicker(query) {
   const q = query.toLowerCase();
-  const filtered = q ? recipes.filter(r => r.title.toLowerCase().includes(q)) : recipes;
+  const filtered = q ? userRecipes.filter(r => r.title.toLowerCase().includes(q)) : userRecipes;
   document.getElementById('picker-list').innerHTML = filtered.map(r => `
-    <div class="picker-item" onclick="assignRecipe(${r.id})">
+    <div class="picker-item" onclick="assignRecipe('${r.id}')">
       <div class="picker-title">${r.title}</div>
-      <div class="picker-meta">${r.servings} servings · ${r.tags.join(', ')}</div>
+      <div class="picker-meta">${r.servings} servings · ${(r.tags||[]).join(', ')}</div>
     </div>
   `).join('');
 }
@@ -3545,6 +3905,8 @@ function reviewGroceries() {
       </div>
     `).join('');
   document.getElementById('review-list').innerHTML = listHTML;
+  document.querySelector('#review-content .modal-title').textContent = 'Ingredients to Add';
+  document.querySelector('#review-content .modal-desc').textContent = 'Uncheck anything you already have, then tap Add to Grocery List';
   document.getElementById('review-modal').classList.add('open');
   document.body.style.overflow = 'hidden';
 }
@@ -3552,18 +3914,21 @@ function reviewGroceries() {
 function addReviewedItems() {
   const toAdd = reviewIngredients.filter(i => i.checked);
   if (toAdd.length === 0) { alert('No items selected!'); return; }
+  const localBatch = {}; // track items added this batch before Firebase syncs back
   toAdd.forEach(ing => {
     const ingKey = ing.name.toLowerCase().trim();
     const qtyStr = ing.amount ? `${formatAmount(ing.amount,1,1)}${ing.unit ? ' ' + ing.unit : ''}` : '';
     const source = { recipe: ing.recipeName || '', qty: qtyStr };
-    const existing = groceryList.find(i => (i.baseIngredient || i.name).toLowerCase().includes(ingKey));
+    const existing = findExistingGroceryItem(ing.name, localBatch);
     if (existing) {
       const sources = existing.sources ? [...existing.sources, source] : [source];
       updateItem(existing.id, { sources });
+      existing.sources = sources; // keep local ref current for rest of batch
     } else {
       const section = guessSectionFromIngredient(ing.name);
       const newItem = { id: generateId(), name: ing.name, baseIngredient: ing.name, section, tag: 'meal', checked: false, sources: [source] };
       saveItem(newItem);
+      localBatch[ingKey] = newItem;
     }
   });
   closeReviewDirect();
@@ -3613,6 +3978,7 @@ const firebaseConfig = {
 
 const firebaseApp = initializeApp(firebaseConfig);
 const db = getDatabase(firebaseApp);
+const IS_DEV = window.location.protocol === 'file:';
 const recipesRef = ref(db, 'userRecipes');
 init();
 
@@ -3625,9 +3991,52 @@ onValue(recipesRef, (snapshot) => {
     renderGrid('grid-all', userRecipes);
   }
 });
-const listRef = ref(db, 'groceryList');
-const itemLibRef = ref(db, 'itemLibrary');
-const mealPlansRef = ref(db, 'mealPlans');
+const _listBasePath = IS_DEV ? 'dev/groceryList' : 'groceryList';
+const _mealPlansBasePath = IS_DEV ? 'dev/mealPlans' : 'mealPlans';
+const _staplesBasePath2 = IS_DEV ? 'dev/staples' : 'staples';
+const listRef = ref(db, _listBasePath);
+const itemLibRef = ref(db, 'itemLibrary'); // shared — test against real recipes/library
+const mealPlansRef = ref(db, _mealPlansBasePath);
+const staplesRef2 = ref(db, _staplesBasePath2);
+
+if (IS_DEV) {
+  const banner = document.createElement('div');
+  banner.id = 'dev-banner';
+  banner.textContent = '⚠️ DEV MODE — test data only, not your real list';
+  document.body.prepend(banner);
+}
+
+// ─── STAPLES FIREBASE ────────────────────────────────────────────
+let staplesCache = [];
+
+onValue(staplesRef2, (snapshot) => {
+  const data = snapshot.val();
+  staplesCache = data ? Object.values(data).filter(Boolean) : [];
+  renderManageStaplesList();
+});
+
+async function migrateStaplesToFirebase() {
+  const snap = await get(staplesRef2);
+  if (snap.val() !== null) return; // already have data
+  const batch = {};
+  STAPLES.forEach(s => {
+    const id = 'stpl_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5);
+    batch[id] = { id, name: s.name, section: s.section };
+  });
+  await set(staplesRef2, batch);
+}
+migrateStaplesToFirebase();
+
+function saveStaple(staple) {
+  set(ref(db, _staplesBasePath2 + '/' + staple.id), staple);
+}
+
+function removeStaple(id) {
+  remove(ref(db, _staplesBasePath2 + '/' + id));
+}
+
+window.saveStaple = saveStaple;
+window.removeStaple = removeStaple;
 
 // ─── MEAL PLANS FIREBASE ─────────────────────────────────────────
 onValue(mealPlansRef, (snapshot) => {
@@ -3645,7 +4054,7 @@ function migrateMealPlansFromLocalStorage() {
     const plans = JSON.parse(raw);
     if (Object.keys(plans).length === 0) { localStorage.removeItem('chrissy_all_plans'); return; }
     Object.entries(plans).forEach(([weekKey, plan]) => {
-      set(ref(db, 'mealPlans/' + weekKey), plan);
+      set(ref(db, _mealPlansBasePath + '/' + weekKey), plan);
     });
     localStorage.removeItem('chrissy_all_plans');
   } catch(e) { /* ignore */ }
@@ -3753,15 +4162,15 @@ onValue(listRef, (snapshot) => {
 });
 
 function saveItem(item) {
-  set(ref(db, 'groceryList/' + item.id), item);
+  set(ref(db, _listBasePath + '/' + item.id), item);
 }
 
 function removeItem(id) {
-  remove(ref(db, 'groceryList/' + id));
+  remove(ref(db, _listBasePath + '/' + id));
 }
 
 function updateItem(id, changes) {
-  update(ref(db, 'groceryList/' + id), changes);
+  update(ref(db, _listBasePath + '/' + id), changes);
 }
 
 function generateId() {
@@ -3784,8 +4193,9 @@ function loadWeekList(type) {
     const mealPlan = getMealPlan(currentWeekKey());
     const recipeIds = Object.values(mealPlan).filter(v => typeof v === 'number');
     if (recipeIds.length === 0) { alert('No recipes planned this week. Add meals to the planner first!'); return; }
+    const localBatch = {};
     recipeIds.forEach(id => {
-      const recipe = recipes.find(r => r.id === id);
+      const recipe = userRecipes.find(r => String(r.id) === String(id)) || recipes.find(r => r.id === id);
       if (!recipe) return;
       recipe.ingredients.forEach(ing => {
         const isPantry = PANTRY_STAPLES.some(p => ing.name.toLowerCase().includes(p));
@@ -3793,14 +4203,16 @@ function loadWeekList(type) {
           const ingKey = ing.name.toLowerCase().trim();
           const qtyStr = ing.amount ? `${formatAmount(ing.amount,1,1)}${ing.unit ? ' ' + ing.unit : ''}` : '';
           const source = { recipe: recipe.title, qty: qtyStr };
-          const existing = groceryList.find(i => (i.baseIngredient || i.name).toLowerCase().includes(ingKey));
+          const existing = findExistingGroceryItem(ing.name, localBatch);
           if (existing) {
             const sources = existing.sources ? [...existing.sources, source] : [source];
             updateItem(existing.id, { sources });
+            existing.sources = sources;
           } else {
             const section = guessSectionFromIngredient(ing.name);
             const newItem = { id: generateId(), name: ing.name, baseIngredient: ing.name, section, tag: 'meal', checked: false, sources: [source] };
             saveItem(newItem);
+            localBatch[ingKey] = newItem;
           }
         }
       });
@@ -3822,9 +4234,29 @@ function addItem() {
   const section = document.getElementById('newItemSection').value;
   const name = input.value.trim();
   if (!name) return;
-  const newItem = { id: generateId(), name, section, tag: 'staple', checked: false };
+  const qty = (document.getElementById('newItemQty').value || '').trim();
+  const brand = input.dataset.brand || '';
+
+  // Don't create a duplicate — update the existing item instead
+  const existing = findExistingGroceryItem(name, null);
+  if (existing) {
+    const updates = {};
+    if (qty) updates.qty = qty;
+    if (brand && !existing.brand) updates.brand = brand;
+    if (Object.keys(updates).length) updateItem(existing.id, updates);
+    input.value = '';
+    input.dataset.brand = '';
+    document.getElementById('newItemQty').value = '';
+    return;
+  }
+
+  const newItem = { id: generateId(), name, section, tag: 'adhoc', checked: false };
+  if (qty) newItem.qty = qty;
+  if (brand) newItem.brand = brand;
   saveItem(newItem);
   input.value = '';
+  input.dataset.brand = '';
+  document.getElementById('newItemQty').value = '';
 }
 
 function toggleItem(id) {
@@ -3892,6 +4324,77 @@ function toggleSection(section) {
   renderGrocery();
 }
 
+// ─── GROCERY DUPLICATE MATCHING ──────────────────────────────────
+// Finds an existing grocery item by name. localBatch tracks items added in the
+// current batch (before Firebase has had a chance to sync back).
+function findExistingGroceryItem(name, localBatch) {
+  const key = name.toLowerCase().trim();
+  if (localBatch && localBatch[key]) return localBatch[key];
+  return groceryList.find(i => {
+    const base = (i.baseIngredient || '').toLowerCase().trim();
+    const n = i.name.toLowerCase().trim();
+    // Exact match first
+    if (base === key || n === key) return true;
+    // Substring match only for longer strings to avoid false positives
+    if (key.length < 5) return false;
+    return base.includes(key) || key.includes(base) ||
+           n.includes(key) || key.includes(n);
+  });
+}
+
+// ─── QUANTITY COMBINING ──────────────────────────────────────────
+function parseQtyString(q) {
+  // Handles "1 lb", "½ cup", "1 ½ cups", "2.5 oz", "3", etc.
+  const fracMap = { '¼': 0.25, '⅓': 1/3, '½': 0.5, '⅔': 2/3, '¾': 0.75 };
+  let s = (q || '').trim();
+  let num = 0;
+  let hasNum = false;
+
+  for (const [ch, val] of Object.entries(fracMap)) {
+    if (s.includes(ch)) {
+      s = s.replace(ch, ' ');
+      num += val;
+      hasNum = true;
+    }
+  }
+  const numMatch = s.match(/^([\d.]+)/);
+  if (numMatch) {
+    num += parseFloat(numMatch[1]);
+    s = s.slice(numMatch[0].length);
+    hasNum = true;
+  }
+  const unit = s.trim().toLowerCase();
+  return hasNum ? { num, unit } : null;
+}
+
+function combineSourceQtys(sources) {
+  const qtys = (sources || []).filter(s => s.qty).map(s => s.qty.trim());
+  if (qtys.length === 0) return { total: '', mixed: false };
+  if (qtys.length === 1) return { total: qtys[0], mixed: false };
+
+  const byUnit = {};
+  const unparseable = [];
+
+  for (const q of qtys) {
+    const p = parseQtyString(q);
+    if (p) {
+      byUnit[p.unit] = (byUnit[p.unit] || 0) + p.num;
+    } else {
+      unparseable.push(q);
+    }
+  }
+
+  const mixed = Object.keys(byUnit).length + unparseable.length > 1;
+
+  const parts = Object.entries(byUnit).map(([unit, total]) => {
+    const formatted = formatAmount(total, 1, 1);
+    return unit ? `${formatted} ${unit}` : formatted;
+  });
+  unparseable.forEach(u => parts.push(u));
+
+  return { total: parts.join(' + '), mixed };
+}
+
 function renderGrocery() {
   const container = document.getElementById('grocery-list-container');
   if (!container) return;
@@ -3924,17 +4427,36 @@ function renderGrocery() {
     items.forEach(item => {
       const checkedClass = item.checked ? 'checked' : '';
       const checkmark = item.checked ? '✓' : '';
-      const tagLabel = item.tag === 'meal' ? 'meal' : 'staple';
+      const tagLabel = item.tag === 'meal' ? 'meal' : item.tag === 'adhoc' ? 'added' : 'staple';
+      // Combine quantities from all recipe sources
+      let displayQty = '';
+      let showQtyInSources = false;
+      if (item.sources && item.sources.length > 0) {
+        const combined = combineSourceQtys(item.sources);
+        displayQty = combined.total;
+        showQtyInSources = combined.mixed; // show per-recipe breakdown if units differ
+      }
+      // If user also typed a manual qty, tack it on
+      if (item.qty) displayQty = displayQty ? `${displayQty} + ${item.qty}` : item.qty;
+      const qtyHtml = displayQty ? `<span class="item-qty">${displayQty}</span>` : '';
+      // Sources line: just recipe names unless units are mixed (then show breakdown)
       const sourcesHtml = item.sources && item.sources.length > 0
-        ? `<div class="item-sources">from: ${item.sources.map(s => s.qty ? `${s.recipe} (${s.qty})` : s.recipe).join(' · ')}</div>`
+        ? `<div class="item-sources">from: ${item.sources.map(s =>
+            showQtyInSources && s.qty ? `${s.recipe} (${s.qty})` : s.recipe
+          ).join(' · ')}</div>`
         : '';
+      const brandHtml = item.brand ? `<span class="item-brand-tag">${item.brand}</span>` : '';
+      const noteHtml = item.note ? `<div class="item-note">📝 ${item.note}</div>` : '';
       html += `<div class="grocery-item ${checkedClass}" id="gitem-${item.id}">
         <div class="grocery-checkbox" onclick="toggleItem('${item.id}')">${checkmark}</div>
         <div class="item-label-wrap">
-          <span class="item-label">${item.name}</span>
+          <span class="item-label">${item.name}${brandHtml}</span>
           ${sourcesHtml}
+          ${noteHtml}
         </div>
+        ${qtyHtml}
         <span class="item-tag ${item.tag}">${tagLabel}</span>
+        <button class="note-btn" onclick="addNoteToItem('${item.id}')" title="Add note">📝</button>
         <button class="delete-item" onclick="deleteItem('${item.id}')">✕</button>
       </div>`;
     });
@@ -4572,7 +5094,7 @@ function groceryAutocomplete(query) {
   } else {
     dropdown.innerHTML = matches.map((item, i) => `
       <div class="autocomplete-item" data-index="${i}"
-        onmousedown="selectGrocerySuggestion('${escAc(item.displayName || item.sortName)}','${escAc(item.storeSection || 'Other')}')"
+        onmousedown="selectGrocerySuggestion('${escAc(item.displayName || item.sortName)}','${escAc(item.storeSection || 'Other')}','${escAc(item.brand || '')}')"
         onmouseover="setAcActive(${i})">
         <span class="autocomplete-name">${item.displayName || item.sortName}</span>
         <span class="autocomplete-section">${item.storeSection || ''}</span>
@@ -4586,10 +5108,11 @@ function escAc(str) {
   return (str || '').replace(/'/g, "\\'").replace(/"/g, '&quot;');
 }
 
-function selectGrocerySuggestion(name, section) {
+function selectGrocerySuggestion(name, section, brand) {
   const input = document.getElementById('newItemInput');
   const secSel = document.getElementById('newItemSection');
   input.value = name;
+  input.dataset.brand = brand || '';
   if (secSel) {
     const opt = Array.from(secSel.options).find(o => o.value === section);
     if (opt) secSel.value = section;
