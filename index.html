@@ -4333,12 +4333,7 @@ function findExistingGroceryItem(name, localBatch) {
   return groceryList.find(i => {
     const base = (i.baseIngredient || '').toLowerCase().trim();
     const n = i.name.toLowerCase().trim();
-    // Exact match first
-    if (base === key || n === key) return true;
-    // Substring match only for longer strings to avoid false positives
-    if (key.length < 5) return false;
-    return base.includes(key) || key.includes(base) ||
-           n.includes(key) || key.includes(n);
+    return base === key || n === key;
   });
 }
 
