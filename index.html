@@ -3376,7 +3376,7 @@ async function fetchNutritionFromWorker(recipe) {
   const res = await fetch(WORKER_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ type: 'nutrition', ingredients: recipe.ingredients, servings: recipe.servings })
+    body: JSON.stringify({ type: 'nutrition', title: recipe.title, ingredients: recipe.ingredients, servings: recipe.servings })
   });
   const data = await res.json();
   if (data.error) throw new Error(data.error);
