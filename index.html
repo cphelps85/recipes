@@ -1479,6 +1479,54 @@
   }
   @keyframes spin { to { transform: rotate(360deg); } }
 
+  /* Menu scanner picks */
+  .menu-picks { display: flex; flex-direction: column; gap: 0.85rem; margin-top: 0.5rem; }
+  .menu-pick-card {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    background: var(--warm-white);
+    border: 1.5px solid var(--border);
+    border-radius: 14px;
+    padding: 1rem 1.2rem;
+  }
+  .menu-pick-rank {
+    flex-shrink: 0;
+    width: 2rem; height: 2rem;
+    background: var(--accent);
+    color: white;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700;
+    font-size: 0.85rem;
+    margin-top: 0.1rem;
+  }
+  .menu-pick-rank.rank-2 { background: var(--brown-mid); }
+  .menu-pick-rank.rank-3 { background: var(--brown-light); }
+  .menu-pick-name {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.05rem;
+    color: var(--brown);
+    margin-bottom: 0.2rem;
+  }
+  .menu-pick-note { font-size: 0.84rem; color: var(--text-muted); line-height: 1.5; }
+  .menu-rescan-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 1.4rem;
+    background: none;
+    border: 1.5px solid var(--border);
+    border-radius: 50px;
+    padding: 0.55rem 1.3rem;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.85rem;
+    color: var(--brown-mid);
+    cursor: pointer;
+    transition: border-color 0.2s, color 0.2s;
+  }
+  .menu-rescan-btn:hover { border-color: var(--accent); color: var(--accent); }
+
   /* Recipe preview editor */
   .recipe-preview {
     display: none;
@@ -1670,6 +1718,7 @@
   <button onclick="showWeek('grocery', this)">🛒 Grocery List</button>
   <button onclick="showWeek('items', this)">📦 Item Library</button>
   <button onclick="showWeek('upload', this)">➕ Add Recipe</button>
+  <button onclick="showWeek('menu', this)">🍽️ Menu Scanner</button>
 </nav>
 
 <div class="search-bar">
@@ -1993,6 +2042,29 @@
       <button class="save-recipe-btn" onclick="saveNewRecipe()">💾 Save to My Recipes</button>
       <button class="discard-btn" onclick="discardRecipePreview()">Discard</button>
     </div>
+  </div>
+</div>
+
+<!-- MENU SCANNER -->
+<div class="week-section" id="section-menu">
+  <p class="week-label">🍽️ Menu Scanner</p>
+  <p class="week-meta">Upload a menu photo — Claude picks 2–3 options ranked for your goals</p>
+
+  <div class="upload-zone" id="menu-upload-zone" onclick="document.getElementById('menuFileInput').click()">
+    <div class="upload-zone-icon">📷</div>
+    <h3>Tap to upload a menu photo</h3>
+    <p>JPG, PNG, HEIC — works great with phone photos of printed or screen menus</p>
+    <input type="file" id="menuFileInput" accept=".jpg,.jpeg,.png,.heic,.webp" style="display:none" onchange="handleMenuFile(this.files[0])">
+  </div>
+
+  <div class="parsing-status" id="menu-scanning-status">
+    <div class="parsing-spinner"></div>
+    <p id="menu-scanning-msg">Reading the menu…</p>
+  </div>
+
+  <div id="menu-results" style="display:none">
+    <div class="menu-picks" id="menu-picks-list"></div>
+    <button class="menu-rescan-btn" onclick="resetMenuScanner()">📷 Scan Another Menu</button>
   </div>
 </div>
 
@@ -2808,6 +2880,7 @@ function showWeek(week, btn) {
   if (week === 'produce') renderProduce();
   if (week === 'upload') resetUploader();
   if (week === 'items') { if(window.populateItemDropdowns) window.populateItemDropdowns(); if(window.filterItemLib) window.filterItemLib(); }
+  if (week === 'menu') resetMenuScanner();
 }
 
 function searchRecipes() {
@@ -5321,6 +5394,53 @@ function importItemsFromFile(input) {
     }
   };
   reader.readAsArrayBuffer(file);
+}
+
+// ── Menu Scanner ─────────────────────────────────────────────────────
+async function handleMenuFile(file) {
+  if (!file) return;
+  document.getElementById('menuFileInput').value = '';
+  document.getElementById('menu-upload-zone').style.display = 'none';
+  document.getElementById('menu-results').style.display = 'none';
+  document.getElementById('menu-scanning-status').classList.add('visible');
+
+  try {
+    const base64 = await fileToBase64(file);
+    const res = await fetch(WORKER_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ type: 'menu', imageData: base64, mediaType: file.type || 'image/jpeg' })
+    });
+    const data = await res.json();
+    if (data.error) throw new Error(data.error);
+    renderMenuResults(data.picks || []);
+  } catch (err) {
+    document.getElementById('menu-scanning-status').classList.remove('visible');
+    document.getElementById('menu-upload-zone').style.display = 'block';
+    alert('Could not scan menu: ' + err.message);
+  }
+}
+
+function renderMenuResults(picks) {
+  document.getElementById('menu-scanning-status').classList.remove('visible');
+  const rankColors = ['', 'rank-2', 'rank-3'];
+  document.getElementById('menu-picks-list').innerHTML = picks.map((p, i) => `
+    <div class="menu-pick-card">
+      <div class="menu-pick-rank ${rankColors[i] || ''}">${i + 1}</div>
+      <div>
+        <div class="menu-pick-name">${p.name}</div>
+        <div class="menu-pick-note">${p.note}</div>
+      </div>
+    </div>
+  `).join('');
+  document.getElementById('menu-results').style.display = 'block';
+}
+
+function resetMenuScanner() {
+  document.getElementById('menu-upload-zone').style.display = 'block';
+  document.getElementById('menu-scanning-status').classList.remove('visible');
+  document.getElementById('menu-results').style.display = 'none';
+  document.getElementById('menu-picks-list').innerHTML = '';
 }
 </script>
 </body>

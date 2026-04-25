@@ -94,6 +94,49 @@ Return ONLY the JSON object, no other text, no markdown.`;
   };
 }
 
+// ── Menu scanner via Claude ──────────────────────────────────────────
+async function scanMenu(imageData, mediaType, anthropicKey) {
+  const prompt = `You are a nutrition-aware restaurant guide helping someone managing fatty liver disease. Their goals: lower refined carbs, liver-friendly choices (low added sugar, not deep-fried), and protein-forward meals.
+
+Look at this restaurant menu and recommend exactly 2-3 items that best fit those goals. Rank them best-to-worst fit.
+
+Return ONLY a JSON object:
+{
+  "picks": [
+    { "name": "Exact menu item name", "note": "One sentence, max 12 words, on why this is a good pick" },
+    { "name": "...", "note": "..." }
+  ]
+}
+
+Return ONLY the JSON, no other text.`;
+
+  const res = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': anthropicKey,
+      'anthropic-version': '2023-06-01',
+    },
+    body: JSON.stringify({
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 512,
+      messages: [{
+        role: 'user',
+        content: [
+          { type: 'image', source: { type: 'base64', media_type: mediaType || 'image/jpeg', data: imageData } },
+          { type: 'text', text: prompt }
+        ]
+      }]
+    })
+  });
+
+  if (!res.ok) throw new Error('Claude API error: ' + res.status);
+  const data = await res.json();
+  const raw = data.content[0].text;
+  const jsonMatch = raw.match(/\{[\s\S]*\}/);
+  return JSON.parse(jsonMatch ? jsonMatch[0] : raw);
+}
+
 export default {
   async fetch(request, env, ctx) {
     if (request.method === 'OPTIONS') {
@@ -113,6 +156,14 @@ export default {
     try {
       const body = await request.json();
       const { type } = body;
+
+      // ── Menu scanner ──────────────────────────────────────────────
+      if (type === 'menu') {
+        const result = await scanMenu(body.imageData, body.mediaType, env.ANTHROPIC_API_KEY);
+        return new Response(JSON.stringify(result), {
+          headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+        });
+      }
 
       // ── Nutrition calculation ─────────────────────────────────────
       if (type === 'nutrition') {
