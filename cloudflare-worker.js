@@ -98,7 +98,15 @@ Return ONLY the JSON object, no other text, no markdown.`;
 async function scanMenu(images, anthropicKey) {
   const prompt = `You are a nutrition-aware restaurant guide helping someone managing fatty liver disease. Their goals: lower refined carbs, liver-friendly choices (low added sugar, not deep-fried), and protein-forward meals.
 
-The images above show pages of a restaurant menu. Look across all of them and recommend exactly 5 items that best fit those goals. Rank them best-to-worst fit so the person has real variety and doesn't feel locked into the same choice.
+The images above show pages of a restaurant menu. Recommend exactly 5 items, ranked best-to-worst fit.
+
+Critical rules:
+- DO NOT default to salads. Salads with sweet dressings, dried fruit, croutons, or candied nuts are often worse than a grilled protein dish. A salad is only a good pick if it is clearly protein-forward with a simple dressing.
+- Spread picks across DIFFERENT dish types — e.g. a grilled protein, a fish dish, a lettuce-wrap or bunless option, a veggie-forward plate, a soup. Variety matters.
+- Best picks: grilled/baked/braised proteins (fish, chicken, lean beef), dishes with non-starchy vegetables, broth-based soups.
+- Avoid: pasta, white rice bowls, fried items, sandwiches/burgers on bread (unless you note "ask for no bun"), heavy cream sauces.
+- If a burger or sandwich is the best available option, include it and note "ask for no bun" or "lettuce wrap".
+- Be honest — if the menu is mostly unhealthy, say so in the note for lower-ranked picks.
 
 Return ONLY a JSON object:
 {
