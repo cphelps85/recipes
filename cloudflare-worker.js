@@ -101,7 +101,7 @@ async function scanMenu(images, anthropicKey) {
 The images above show pages of a restaurant menu. Recommend exactly 5 items, ranked best-to-worst fit.
 
 Critical rules:
-- DO NOT default to salads. Salads with sweet dressings, dried fruit, croutons, or candied nuts are often worse than a grilled protein dish. A salad is only a good pick if it is clearly protein-forward with a simple dressing.
+- No more than 2 of the 5 picks may be salads. Salads with sweet dressings, dried fruit, croutons, or candied nuts are often worse than a grilled protein — only include a salad if it is protein-forward with a simple dressing.
 - Spread picks across DIFFERENT dish types — e.g. a grilled protein, a fish dish, a lettuce-wrap or bunless option, a veggie-forward plate, a soup. Variety matters.
 - Best picks: grilled/baked/braised proteins (fish, chicken, lean beef), dishes with non-starchy vegetables, broth-based soups.
 - Avoid: pasta, white rice bowls, fried items, sandwiches/burgers on bread (unless you note "ask for no bun"), heavy cream sauces.
