@@ -1592,15 +1592,29 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin-bottom: 0.85rem;
     flex-wrap: wrap;
     gap: 0.5rem;
+    cursor: pointer;
+    user-select: none;
   }
+  .saved-restaurant-card.collapsed .menu-picks { display: none; }
+  .saved-restaurant-card.collapsed { padding-bottom: 1rem; }
+  .saved-restaurant-toggle {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    transition: transform 0.2s;
+    margin-right: 0.4rem;
+  }
+  .saved-restaurant-card.collapsed .saved-restaurant-toggle { transform: rotate(-90deg); }
   .saved-restaurant-name {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
     font-family: 'Playfair Display', serif;
     font-size: 1.05rem;
     color: var(--brown);
   }
+  .saved-restaurant-card .menu-picks { margin-top: 0.85rem; }
   .saved-restaurant-btns { display: flex; gap: 0.5rem; }
   .saved-action-btn {
     background: none;
@@ -5708,12 +5722,14 @@ function renderSavedRestaurants(list) {
   section.style.display = 'block';
   const rankColors = ['', 'rank-2', 'rank-3', 'rank-4', 'rank-5'];
   document.getElementById('menu-saved-list').innerHTML = list.map(r => `
-    <div class="saved-restaurant-card">
-      <div class="saved-restaurant-header">
-        <div class="saved-restaurant-name">${r.name}</div>
+    <div class="saved-restaurant-card collapsed" id="rcard-${r.id}">
+      <div class="saved-restaurant-header" onclick="toggleRestaurantCard('${r.id}')">
+        <div class="saved-restaurant-name">
+          <span class="saved-restaurant-toggle">▼</span>${r.name}
+        </div>
         <div class="saved-restaurant-btns">
-          <button class="saved-action-btn" onclick="startRescan('${r.id}', ${JSON.stringify(r.name)})">🔄 Re-scan</button>
-          <button class="saved-action-btn del" onclick="confirmDeleteRestaurant('${r.id}', ${JSON.stringify(r.name)})">🗑 Remove</button>
+          <button class="saved-action-btn" onclick="event.stopPropagation();startRescan('${r.id}', ${JSON.stringify(r.name)})">🔄 Re-scan</button>
+          <button class="saved-action-btn del" onclick="event.stopPropagation();confirmDeleteRestaurant('${r.id}', ${JSON.stringify(r.name)})">🗑 Remove</button>
         </div>
       </div>
       <div class="menu-picks">
@@ -5730,6 +5746,10 @@ function renderSavedRestaurants(list) {
   `).join('');
 }
 window.renderSavedRestaurants = renderSavedRestaurants;
+
+function toggleRestaurantCard(id) {
+  document.getElementById('rcard-' + id).classList.toggle('collapsed');
+}
 
 function resetMenuScanner() {
   _menuPhotos = [];
