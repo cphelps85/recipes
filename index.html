@@ -5405,8 +5405,13 @@ async function handleMenuFile(file) {
   document.getElementById('menu-scanning-status').classList.add('visible');
 
   try {
-    const base64 = await fileToBase64(file);
-    const res = await fetch(WORKER_URL, {
+    const base64 = await new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = e => resolve(e.target.result.split(',')[1]);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+    const res = await fetch('https://recipe-parser.christina-nisun-85.workers.dev', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ type: 'menu', imageData: base64, mediaType: file.type || 'image/jpeg' })
