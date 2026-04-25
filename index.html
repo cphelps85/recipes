@@ -5462,8 +5462,9 @@ function importItemsFromFile(input) {
 let _menuPhotos = [];
 
 function addMenuPhotos(files) {
+  const fileArray = Array.from(files);
   document.getElementById('menuFileInput').value = '';
-  Array.from(files).forEach(file => {
+  fileArray.forEach(file => {
     const reader = new FileReader();
     reader.onload = e => {
       const dataUrl = e.target.result;
