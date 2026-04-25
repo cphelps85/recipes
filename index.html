@@ -1503,6 +1503,8 @@
   }
   .menu-pick-rank.rank-2 { background: var(--brown-mid); }
   .menu-pick-rank.rank-3 { background: var(--brown-light); }
+  .menu-pick-rank.rank-4 { background: var(--text-muted); }
+  .menu-pick-rank.rank-5 { background: #C4B8AE; }
   .menu-pick-name {
     font-family: 'Playfair Display', serif;
     font-size: 1.05rem;
@@ -1566,6 +1568,90 @@
     transition: background 0.2s;
   }
   .menu-scan-btn:hover { background: var(--brown); }
+
+  /* Saved restaurant cards */
+  .saved-restaurants-header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    margin-bottom: 0.75rem;
+  }
+  .saved-restaurants-label {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.1rem;
+    color: var(--brown);
+  }
+  .saved-restaurant-card {
+    background: var(--warm-white);
+    border: 1.5px solid var(--border);
+    border-radius: 14px;
+    padding: 1rem 1.2rem;
+    margin-bottom: 1rem;
+  }
+  .saved-restaurant-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.85rem;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+  .saved-restaurant-name {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.05rem;
+    color: var(--brown);
+  }
+  .saved-restaurant-btns { display: flex; gap: 0.5rem; }
+  .saved-action-btn {
+    background: none;
+    border: 1.5px solid var(--border);
+    border-radius: 50px;
+    padding: 0.3rem 0.85rem;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.78rem;
+    color: var(--brown-mid);
+    cursor: pointer;
+    transition: border-color 0.2s, color 0.2s;
+  }
+  .saved-action-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .saved-action-btn.del:hover { border-color: #c0392b; color: #c0392b; }
+
+  /* Save form after scanning */
+  .menu-save-form {
+    display: flex;
+    gap: 0.75rem;
+    align-items: center;
+    margin-top: 1.2rem;
+    flex-wrap: wrap;
+  }
+  .menu-save-input {
+    flex: 1;
+    min-width: 180px;
+    padding: 0.6rem 1rem;
+    border: 1.5px solid var(--border);
+    border-radius: 50px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.88rem;
+    background: var(--cream);
+    color: var(--brown);
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .menu-save-input:focus { border-color: var(--accent); }
+  .menu-save-submit {
+    background: var(--green);
+    color: white;
+    border: none;
+    border-radius: 50px;
+    padding: 0.6rem 1.3rem;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.85rem;
+    font-weight: 500;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background 0.2s;
+  }
+  .menu-save-submit:hover { background: var(--brown); }
 
   .menu-rescan-btn {
     display: inline-flex;
@@ -2105,11 +2191,20 @@
 <!-- MENU SCANNER -->
 <div class="week-section" id="section-menu">
   <p class="week-label">🍽️ Menu Scanner</p>
-  <p class="week-meta">Add photos of each menu page — Claude reads them all and picks 2–3 options ranked for your goals</p>
+  <p class="week-meta">Add photos of each menu page — Claude reads them all and picks your top 5 options</p>
+
+  <!-- Saved restaurants -->
+  <div id="menu-saved-section" style="display:none">
+    <div class="saved-restaurants-header">
+      <span class="saved-restaurants-label">My Restaurants</span>
+    </div>
+    <div id="menu-saved-list"></div>
+    <div class="upload-divider">scan a new menu</div>
+  </div>
 
   <div class="upload-zone" id="menu-upload-zone" onclick="document.getElementById('menuFileInput').click()">
     <div class="upload-zone-icon">📷</div>
-    <h3>Tap to add menu photos</h3>
+    <h3 id="menu-upload-heading">Tap to add menu photos</h3>
     <p>Add as many pages as you need — JPG, PNG, HEIC</p>
     <input type="file" id="menuFileInput" accept=".jpg,.jpeg,.png,.heic,.webp" multiple style="display:none" onchange="addMenuPhotos(this.files)">
   </div>
@@ -2126,6 +2221,7 @@
 
   <div id="menu-results" style="display:none">
     <div class="menu-picks" id="menu-picks-list"></div>
+    <div id="menu-save-area"></div>
     <button class="menu-rescan-btn" onclick="resetMenuScanner()">📷 Scan Another Menu</button>
   </div>
 </div>
@@ -4691,6 +4787,24 @@ function renderGrocery() {
   container.innerHTML = html;
   updateCount();
 }
+
+// ── Saved Restaurants ────────────────────────────────────────────────
+const savedRestaurantsRef = ref(db, 'savedRestaurants');
+
+onValue(savedRestaurantsRef, (snapshot) => {
+  const data = snapshot.val() || {};
+  const list = Object.values(data).sort((a, b) => b.savedAt - a.savedAt);
+  if (window.renderSavedRestaurants) window.renderSavedRestaurants(list);
+});
+
+window.saveRestaurant = async function(name, picks, existingId) {
+  const id = existingId || 'rest_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5);
+  await set(ref(db, 'savedRestaurants/' + id), { id, name, picks, savedAt: Date.now() });
+};
+
+window.deleteRestaurant = async function(id) {
+  await remove(ref(db, 'savedRestaurants/' + id));
+};
 </script>
 
 <!-- ─── PRODUCE GUIDE (plain script — must be outside module for onclick access) ─── -->
@@ -5460,6 +5574,8 @@ function importItemsFromFile(input) {
 
 // ── Menu Scanner ─────────────────────────────────────────────────────
 let _menuPhotos = [];
+let _rescanRestaurant = null; // { id, name } when updating a saved restaurant
+let _lastScanPicks = [];
 
 function addMenuPhotos(files) {
   const fileArray = Array.from(files);
@@ -5515,7 +5631,8 @@ async function scanMenuPhotos() {
     });
     const data = await res.json();
     if (data.error) throw new Error(data.error);
-    renderMenuResults(data.picks || []);
+    _lastScanPicks = data.picks || [];
+    renderMenuResults(_lastScanPicks);
   } catch (err) {
     document.getElementById('menu-scanning-status').classList.remove('visible');
     document.getElementById('menu-staging').style.display = 'block';
@@ -5525,7 +5642,7 @@ async function scanMenuPhotos() {
 
 function renderMenuResults(picks) {
   document.getElementById('menu-scanning-status').classList.remove('visible');
-  const rankColors = ['', 'rank-2', 'rank-3'];
+  const rankColors = ['', 'rank-2', 'rank-3', 'rank-4', 'rank-5'];
   document.getElementById('menu-picks-list').innerHTML = picks.map((p, i) => `
     <div class="menu-pick-card">
       <div class="menu-pick-rank ${rankColors[i] || ''}">${i + 1}</div>
@@ -5535,16 +5652,96 @@ function renderMenuResults(picks) {
       </div>
     </div>
   `).join('');
+
+  const saveArea = document.getElementById('menu-save-area');
+  if (_rescanRestaurant) {
+    saveArea.innerHTML = `
+      <div class="menu-save-form">
+        <button class="menu-save-submit" onclick="updateSavedRestaurant()">💾 Update ${_rescanRestaurant.name}</button>
+      </div>`;
+  } else {
+    saveArea.innerHTML = `
+      <div class="menu-save-form">
+        <input type="text" class="menu-save-input" id="menu-restaurant-name" placeholder="Restaurant name…">
+        <button class="menu-save-submit" onclick="saveNewRestaurant()">💾 Save Restaurant</button>
+      </div>`;
+  }
+
   document.getElementById('menu-results').style.display = 'block';
 }
 
+async function saveNewRestaurant() {
+  const name = document.getElementById('menu-restaurant-name').value.trim();
+  if (!name) { document.getElementById('menu-restaurant-name').focus(); return; }
+  if (!window.saveRestaurant) return;
+  await window.saveRestaurant(name, _lastScanPicks);
+  document.getElementById('menu-save-area').innerHTML = `<p style="font-size:0.85rem;color:var(--green);margin-top:1rem;">✓ Saved to My Restaurants</p>`;
+}
+
+async function updateSavedRestaurant() {
+  if (!_rescanRestaurant || !window.saveRestaurant) return;
+  await window.saveRestaurant(_rescanRestaurant.name, _lastScanPicks, _rescanRestaurant.id);
+  _rescanRestaurant = null;
+  document.getElementById('menu-save-area').innerHTML = `<p style="font-size:0.85rem;color:var(--green);margin-top:1rem;">✓ Updated</p>`;
+}
+
+function startRescan(id, name) {
+  _rescanRestaurant = { id, name };
+  _menuPhotos = [];
+  _lastScanPicks = [];
+  document.getElementById('menu-upload-heading').textContent = `Update ${name} menu`;
+  document.getElementById('menu-upload-zone').style.display = 'block';
+  document.getElementById('menu-staging').style.display = 'none';
+  document.getElementById('menu-scanning-status').classList.remove('visible');
+  document.getElementById('menu-results').style.display = 'none';
+}
+
+function confirmDeleteRestaurant(id, name) {
+  if (confirm(`Remove ${name} from saved restaurants?`) && window.deleteRestaurant) {
+    window.deleteRestaurant(id);
+  }
+}
+
+function renderSavedRestaurants(list) {
+  const section = document.getElementById('menu-saved-section');
+  if (!list || list.length === 0) { section.style.display = 'none'; return; }
+  section.style.display = 'block';
+  const rankColors = ['', 'rank-2', 'rank-3', 'rank-4', 'rank-5'];
+  document.getElementById('menu-saved-list').innerHTML = list.map(r => `
+    <div class="saved-restaurant-card">
+      <div class="saved-restaurant-header">
+        <div class="saved-restaurant-name">${r.name}</div>
+        <div class="saved-restaurant-btns">
+          <button class="saved-action-btn" onclick="startRescan('${r.id}', ${JSON.stringify(r.name)})">🔄 Re-scan</button>
+          <button class="saved-action-btn del" onclick="confirmDeleteRestaurant('${r.id}', ${JSON.stringify(r.name)})">🗑 Remove</button>
+        </div>
+      </div>
+      <div class="menu-picks">
+        ${(r.picks || []).map((p, i) => `
+          <div class="menu-pick-card">
+            <div class="menu-pick-rank ${rankColors[i] || ''}">${i + 1}</div>
+            <div>
+              <div class="menu-pick-name">${p.name}</div>
+              <div class="menu-pick-note">${p.note}</div>
+            </div>
+          </div>`).join('')}
+      </div>
+    </div>
+  `).join('');
+}
+window.renderSavedRestaurants = renderSavedRestaurants;
+
 function resetMenuScanner() {
   _menuPhotos = [];
+  _rescanRestaurant = null;
+  _lastScanPicks = [];
+  document.getElementById('menu-upload-heading').textContent = 'Tap to add menu photos';
   document.getElementById('menu-upload-zone').style.display = 'block';
   document.getElementById('menu-staging').style.display = 'none';
   document.getElementById('menu-scanning-status').classList.remove('visible');
   document.getElementById('menu-results').style.display = 'none';
   document.getElementById('menu-picks-list').innerHTML = '';
+  document.getElementById('menu-save-area').innerHTML = '';
 }
 </script>
 </body>

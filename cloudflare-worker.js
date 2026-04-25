@@ -98,7 +98,7 @@ Return ONLY the JSON object, no other text, no markdown.`;
 async function scanMenu(images, anthropicKey) {
   const prompt = `You are a nutrition-aware restaurant guide helping someone managing fatty liver disease. Their goals: lower refined carbs, liver-friendly choices (low added sugar, not deep-fried), and protein-forward meals.
 
-The images above show pages of a restaurant menu. Look across all of them and recommend exactly 2-3 items that best fit those goals. Rank them best-to-worst fit.
+The images above show pages of a restaurant menu. Look across all of them and recommend exactly 5 items that best fit those goals. Rank them best-to-worst fit so the person has real variety and doesn't feel locked into the same choice.
 
 Return ONLY a JSON object:
 {
@@ -124,7 +124,7 @@ Return ONLY the JSON, no other text.`;
     },
     body: JSON.stringify({
       model: 'claude-haiku-4-5-20251001',
-      max_tokens: 512,
+      max_tokens: 800,
       messages: [{
         role: 'user',
         content: [...imageContent, { type: 'text', text: prompt }]
