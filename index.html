@@ -1510,6 +1510,63 @@
     margin-bottom: 0.2rem;
   }
   .menu-pick-note { font-size: 0.84rem; color: var(--text-muted); line-height: 1.5; }
+  .menu-photo-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    margin-bottom: 1.2rem;
+  }
+  .menu-photo-thumb {
+    position: relative;
+    width: 90px; height: 90px;
+    border-radius: 10px;
+    overflow: hidden;
+    border: 1.5px solid var(--border);
+    flex-shrink: 0;
+  }
+  .menu-photo-thumb img { width: 100%; height: 100%; object-fit: cover; }
+  .menu-photo-remove {
+    position: absolute;
+    top: 3px; right: 3px;
+    width: 20px; height: 20px;
+    background: rgba(61,43,31,0.75);
+    color: white;
+    border: none;
+    border-radius: 50%;
+    font-size: 0.6rem;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .menu-add-more {
+    width: 90px; height: 90px;
+    border: 2px dashed var(--border);
+    border-radius: 10px;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    cursor: pointer;
+    color: var(--text-muted);
+    font-size: 0.72rem;
+    gap: 0.3rem;
+    transition: border-color 0.2s, color 0.2s;
+    flex-shrink: 0;
+  }
+  .menu-add-more:hover { border-color: var(--accent); color: var(--accent); }
+  .menu-add-more-icon { font-size: 1.5rem; line-height: 1; }
+  .menu-scan-btn {
+    background: var(--accent);
+    color: white;
+    border: none;
+    border-radius: 50px;
+    padding: 0.75rem 2rem;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+    margin-bottom: 0.5rem;
+    transition: background 0.2s;
+  }
+  .menu-scan-btn:hover { background: var(--brown); }
+
   .menu-rescan-btn {
     display: inline-flex;
     align-items: center;
@@ -2048,13 +2105,18 @@
 <!-- MENU SCANNER -->
 <div class="week-section" id="section-menu">
   <p class="week-label">🍽️ Menu Scanner</p>
-  <p class="week-meta">Upload a menu photo — Claude picks 2–3 options ranked for your goals</p>
+  <p class="week-meta">Add photos of each menu page — Claude reads them all and picks 2–3 options ranked for your goals</p>
 
   <div class="upload-zone" id="menu-upload-zone" onclick="document.getElementById('menuFileInput').click()">
     <div class="upload-zone-icon">📷</div>
-    <h3>Tap to upload a menu photo</h3>
-    <p>JPG, PNG, HEIC — works great with phone photos of printed or screen menus</p>
-    <input type="file" id="menuFileInput" accept=".jpg,.jpeg,.png,.heic,.webp" style="display:none" onchange="handleMenuFile(this.files[0])">
+    <h3>Tap to add menu photos</h3>
+    <p>Add as many pages as you need — JPG, PNG, HEIC</p>
+    <input type="file" id="menuFileInput" accept=".jpg,.jpeg,.png,.heic,.webp" multiple style="display:none" onchange="addMenuPhotos(this.files)">
+  </div>
+
+  <div id="menu-staging" style="display:none">
+    <div class="menu-photo-grid" id="menu-photo-grid"></div>
+    <button class="menu-scan-btn" onclick="scanMenuPhotos()">✨ Get My Picks</button>
   </div>
 
   <div class="parsing-status" id="menu-scanning-status">
@@ -5397,31 +5459,65 @@ function importItemsFromFile(input) {
 }
 
 // ── Menu Scanner ─────────────────────────────────────────────────────
-async function handleMenuFile(file) {
-  if (!file) return;
+let _menuPhotos = [];
+
+function addMenuPhotos(files) {
   document.getElementById('menuFileInput').value = '';
+  Array.from(files).forEach(file => {
+    const reader = new FileReader();
+    reader.onload = e => {
+      const dataUrl = e.target.result;
+      _menuPhotos.push({ dataUrl, base64: dataUrl.split(',')[1], mediaType: file.type || 'image/jpeg' });
+      renderMenuStaging();
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+function removeMenuPhoto(index) {
+  _menuPhotos.splice(index, 1);
+  renderMenuStaging();
+}
+
+function renderMenuStaging() {
+  if (_menuPhotos.length === 0) {
+    document.getElementById('menu-upload-zone').style.display = 'block';
+    document.getElementById('menu-staging').style.display = 'none';
+    return;
+  }
   document.getElementById('menu-upload-zone').style.display = 'none';
+  document.getElementById('menu-photo-grid').innerHTML = _menuPhotos.map((p, i) => `
+    <div class="menu-photo-thumb">
+      <img src="${p.dataUrl}" alt="Menu page ${i + 1}">
+      <button class="menu-photo-remove" onclick="removeMenuPhoto(${i})">✕</button>
+    </div>
+  `).join('') + `
+    <div class="menu-add-more" onclick="document.getElementById('menuFileInput').click()">
+      <span class="menu-add-more-icon">＋</span>
+      <span>Add more</span>
+    </div>`;
+  document.getElementById('menu-staging').style.display = 'block';
+}
+
+async function scanMenuPhotos() {
+  if (_menuPhotos.length === 0) return;
+  document.getElementById('menu-staging').style.display = 'none';
   document.getElementById('menu-results').style.display = 'none';
   document.getElementById('menu-scanning-status').classList.add('visible');
 
   try {
-    const base64 = await new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = e => resolve(e.target.result.split(',')[1]);
-      reader.onerror = reject;
-      reader.readAsDataURL(file);
-    });
+    const images = _menuPhotos.map(p => ({ imageData: p.base64, mediaType: p.mediaType }));
     const res = await fetch('https://recipe-parser.christina-nisun-85.workers.dev', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ type: 'menu', imageData: base64, mediaType: file.type || 'image/jpeg' })
+      body: JSON.stringify({ type: 'menu', images })
     });
     const data = await res.json();
     if (data.error) throw new Error(data.error);
     renderMenuResults(data.picks || []);
   } catch (err) {
     document.getElementById('menu-scanning-status').classList.remove('visible');
-    document.getElementById('menu-upload-zone').style.display = 'block';
+    document.getElementById('menu-staging').style.display = 'block';
     alert('Could not scan menu: ' + err.message);
   }
 }
@@ -5442,7 +5538,9 @@ function renderMenuResults(picks) {
 }
 
 function resetMenuScanner() {
+  _menuPhotos = [];
   document.getElementById('menu-upload-zone').style.display = 'block';
+  document.getElementById('menu-staging').style.display = 'none';
   document.getElementById('menu-scanning-status').classList.remove('visible');
   document.getElementById('menu-results').style.display = 'none';
   document.getElementById('menu-picks-list').innerHTML = '';

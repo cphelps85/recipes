@@ -95,10 +95,10 @@ Return ONLY the JSON object, no other text, no markdown.`;
 }
 
 // ── Menu scanner via Claude ──────────────────────────────────────────
-async function scanMenu(imageData, mediaType, anthropicKey) {
+async function scanMenu(images, anthropicKey) {
   const prompt = `You are a nutrition-aware restaurant guide helping someone managing fatty liver disease. Their goals: lower refined carbs, liver-friendly choices (low added sugar, not deep-fried), and protein-forward meals.
 
-Look at this restaurant menu and recommend exactly 2-3 items that best fit those goals. Rank them best-to-worst fit.
+The images above show pages of a restaurant menu. Look across all of them and recommend exactly 2-3 items that best fit those goals. Rank them best-to-worst fit.
 
 Return ONLY a JSON object:
 {
@@ -109,6 +109,11 @@ Return ONLY a JSON object:
 }
 
 Return ONLY the JSON, no other text.`;
+
+  const imageContent = images.map(img => ({
+    type: 'image',
+    source: { type: 'base64', media_type: img.mediaType || 'image/jpeg', data: img.imageData }
+  }));
 
   const res = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
@@ -122,10 +127,7 @@ Return ONLY the JSON, no other text.`;
       max_tokens: 512,
       messages: [{
         role: 'user',
-        content: [
-          { type: 'image', source: { type: 'base64', media_type: mediaType || 'image/jpeg', data: imageData } },
-          { type: 'text', text: prompt }
-        ]
+        content: [...imageContent, { type: 'text', text: prompt }]
       }]
     })
   });
@@ -159,7 +161,7 @@ export default {
 
       // ── Menu scanner ──────────────────────────────────────────────
       if (type === 'menu') {
-        const result = await scanMenu(body.imageData, body.mediaType, env.ANTHROPIC_API_KEY);
+        const result = await scanMenu(body.images, env.ANTHROPIC_API_KEY);
         return new Response(JSON.stringify(result), {
           headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
         });
