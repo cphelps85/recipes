@@ -1018,6 +1018,9 @@
   @media (max-width: 600px) {
     .item-table th:nth-child(3),
     .item-table td:nth-child(3) { display: none; }
+    .add-item-row { flex-wrap: wrap; }
+    .add-item-row .autocomplete-wrap { width: 100%; flex: none; order: -1; }
+    .add-item-row .section-select { flex: 1; max-width: none; }
   }
   .produce-controls {
     display: flex;
@@ -1869,13 +1872,13 @@
 </header>
 
 <nav id="nav">
-  <button class="active" onclick="showWeek('all', this)">All Recipes</button>
+  <button class="active" onclick="showWeek('grocery', this)">🛒 Grocery List</button>
   <button onclick="showWeek('planner', this)">📅 Meal Planner</button>
-  <button onclick="showWeek('produce', this)">🌿 Produce Guide</button>
-  <button onclick="showWeek('grocery', this)">🛒 Grocery List</button>
-  <button onclick="showWeek('items', this)">📦 Item Library</button>
   <button onclick="showWeek('upload', this)">➕ Add Recipe</button>
   <button onclick="showWeek('menu', this)">🍽️ Menu Scanner</button>
+  <button onclick="showWeek('all', this)">All Recipes</button>
+  <button onclick="showWeek('produce', this)">🌿 Produce Guide</button>
+  <button onclick="showWeek('items', this)">📦 Item Library</button>
 </nav>
 
 <div class="search-bar">
@@ -1890,7 +1893,7 @@
 </div>
 
 <!-- ALL / SEARCH RESULTS -->
-<div class="week-section active" id="section-all">
+<div class="week-section" id="section-all">
   <div class="recipe-filters" id="recipe-filters">
     <div class="filter-row">
       <span class="filter-row-label">Protein</span>
@@ -1999,7 +2002,7 @@
   <div class="produce-grid" id="produce-grid"></div>
 </div>
 
-<div class="week-section" id="section-grocery">
+<div class="week-section active" id="section-grocery">
   <div class="grocery-header">
     <div>
       <p class="week-label">Grocery List</p>
@@ -3508,7 +3511,8 @@ function reviewStaples() {
 }
 
 function addReviewedStaples() {
-  const toAdd = _stapleReviewList.filter(i => i.checked);
+  const checkboxes = document.querySelectorAll('#staple-review-list input[type="checkbox"]');
+  const toAdd = _stapleReviewList.filter((_, i) => checkboxes[i]?.checked);
   if (toAdd.length === 0) { alert('No items selected!'); return; }
   toAdd.forEach(item => {
     const exists = groceryList.some(g => g.name.toLowerCase() === item.name.toLowerCase());
@@ -4229,7 +4233,7 @@ function reviewGroceries() {
         if (ingredientMap[key]) {
           ingredientMap[key].amount += ing.amount;
         } else {
-          ingredientMap[key] = { ...ing, recipeName: recipe.title, checked: true };
+          ingredientMap[key] = { ...ing, recipeName: recipe.title, checked: false };
         }
       }
     });
@@ -4246,13 +4250,14 @@ function reviewGroceries() {
     `).join('');
   document.getElementById('review-list').innerHTML = listHTML;
   document.querySelector('#review-content .modal-title').textContent = 'Ingredients to Add';
-  document.querySelector('#review-content .modal-desc').textContent = 'Uncheck anything you already have, then tap Add to Grocery List';
+  document.querySelector('#review-content .modal-desc').textContent = 'Check the items you need, then tap Add to Grocery List';
   document.getElementById('review-modal').classList.add('open');
   document.body.style.overflow = 'hidden';
 }
 
 function addReviewedItems() {
-  const toAdd = reviewIngredients.filter(i => i.checked);
+  const checkboxes = document.querySelectorAll('#review-list input[type="checkbox"]');
+  const toAdd = reviewIngredients.filter((_, i) => checkboxes[i]?.checked);
   if (toAdd.length === 0) { alert('No items selected!'); return; }
   const localBatch = {}; // track items added this batch before Firebase syncs back
   toAdd.forEach(ing => {
