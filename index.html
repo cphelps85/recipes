@@ -3386,6 +3386,196 @@ async function autoTagCourses(apply = false) {
   location.reload();
 }
 
+async function splitCoupledRecipes(apply = false) {
+  const newId = () => 'split_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5);
+
+  const splits = [
+    {
+      deleteId: 1,
+      label: 'Healthy Meatloaf with Mashed Potatoes & Green Beans',
+      recipes: [
+        {
+          title: 'Healthy Meatloaf', desc: 'A lighter take on the classic — lower sodium, lower fat, but totally satisfying. The ketchup-mustard glaze caramelizes beautifully.',
+          course: 'main', tags: ['beef'], servings: 6,
+          ingredients: [
+            { name: 'Ground beef (90/10 lean)', amount: 2, unit: 'lb' },
+            { name: 'Egg', amount: 1, unit: '' },
+            { name: 'Plain breadcrumbs (or crushed saltines)', amount: 0.5, unit: 'cup' },
+            { name: 'Low-fat milk', amount: 0.25, unit: 'cup' },
+            { name: 'Minced garlic', amount: 1.5, unit: 'tsp' },
+            { name: 'Onion powder', amount: 1, unit: 'tsp' },
+            { name: 'Dried parsley', amount: 1, unit: 'tsp' },
+            { name: 'Black pepper', amount: 0.5, unit: 'tsp' },
+            { name: 'Worcestershire sauce', amount: 1, unit: 'tbsp' },
+            { name: 'Low-sodium ketchup (topping)', amount: 3, unit: 'tbsp' },
+            { name: 'Yellow mustard (topping)', amount: 1, unit: 'tbsp' },
+          ],
+          steps: [
+            { title: 'Preheat oven', text: 'Preheat oven to 375°F. Line a loaf pan or rimmed baking sheet with foil.' },
+            { title: 'Mix', text: "In a large bowl, combine ground beef, egg, breadcrumbs, milk, garlic, onion powder, parsley, black pepper, and Worcestershire sauce. Mix gently with your hands until just combined — don't overmix or it gets tough." },
+            { title: 'Shape and top', text: 'Form into a loaf shape on the pan. Mix ketchup and mustard together and spread evenly over the top.' },
+            { title: 'Bake', text: 'Bake at 375°F for 55–65 minutes until internal temperature reaches 160°F.' },
+            { title: 'Rest and slice', text: 'Let meatloaf rest 10 minutes before slicing.' },
+          ],
+          notes: 'Leftovers make fantastic meatloaf sandwiches for lunch! Pairs well with Simple Mashed Potatoes and Steamed Green Beans.',
+        },
+        {
+          title: 'Simple Mashed Potatoes', desc: 'Creamy, comforting mashed potatoes made lighter — great alongside any protein.',
+          course: 'starch', tags: ['veggie', 'kidapproved'], servings: 6,
+          ingredients: [
+            { name: 'Potatoes (Yukon gold or russet), peeled and cubed', amount: 4, unit: 'medium' },
+            { name: 'Butter', amount: 1, unit: 'tbsp' },
+            { name: 'Low-fat milk', amount: 0.25, unit: 'cup' },
+            { name: 'Black pepper', amount: 0.25, unit: 'tsp' },
+            { name: 'Garlic powder', amount: 0.25, unit: 'tsp' },
+          ],
+          steps: [
+            { title: 'Boil', text: 'Place cubed potatoes in a pot and cover with cold water. Bring to a boil and cook 15–18 minutes until fork-tender. Drain very well.' },
+            { title: 'Mash', text: 'Mash drained potatoes with butter and milk. Season with black pepper and garlic powder. Mash until smooth and creamy.' },
+          ],
+          notes: 'Drain the potatoes very well before mashing — excess water makes them gluey.',
+        },
+        {
+          title: 'Steamed Green Beans', desc: 'Simple, fast, and works with any weeknight dinner. Minimal effort, minimal cleanup.',
+          course: 'vegetable', tags: ['veggie', 'quick', 'lowsodium'], servings: 4,
+          ingredients: [
+            { name: 'Green beans (frozen or fresh)', amount: 2, unit: 'cups' },
+            { name: 'Black pepper', amount: 0.25, unit: 'tsp' },
+            { name: 'Lemon juice (optional)', amount: 1, unit: 'tsp' },
+          ],
+          steps: [
+            { title: 'Steam', text: 'Steam or microwave green beans 4–5 minutes until tender-crisp. For microwave: place in a bowl with 2 tbsp water, cover loosely, and cook 3–4 minutes.' },
+            { title: 'Season', text: 'Season with black pepper. A squeeze of lemon brightens them up nicely.' },
+          ],
+          notes: "Don't overcook — they should still have a little bite. Fresh has better texture; frozen is faster.",
+        },
+      ],
+    },
+    {
+      deleteId: 16,
+      label: 'Pan-Seared Pork Chops with Roasted Potatoes & Green Beans',
+      recipes: [
+        {
+          title: 'Pan-Seared Pork Chops', desc: 'Deep golden sear on the stovetop, finished in the oven — juicy and flavorful every time.',
+          course: 'main', tags: ['pork', 'lowsodium'], servings: 4,
+          ingredients: [
+            { name: 'Bone-in pork chops (thawed)', amount: 4, unit: '' },
+            { name: 'Garlic powder', amount: 0.5, unit: 'tsp' },
+            { name: 'Paprika', amount: 0.5, unit: 'tsp' },
+            { name: 'Onion powder', amount: 0.5, unit: 'tsp' },
+            { name: 'Black pepper', amount: 0.5, unit: 'tsp' },
+            { name: 'Dried thyme or rosemary', amount: 0.25, unit: 'tsp' },
+            { name: 'Olive oil', amount: 1, unit: 'tbsp' },
+            { name: 'Minced garlic', amount: 1, unit: 'tsp' },
+          ],
+          steps: [
+            { title: 'Season', text: 'Pat pork chops completely dry with paper towels — this is key for a good sear. Mix garlic powder, paprika, onion powder, pepper, and thyme and rub all over both sides.' },
+            { title: 'Sear', text: 'Heat olive oil in a large oven-safe skillet over medium-high heat until shimmering. Add pork chops and sear 3–4 minutes per side until deep golden brown. Add garlic in the last minute.' },
+            { title: 'Finish in oven', text: 'Transfer skillet to oven at 425°F for 8–10 minutes until internal temp reaches 145°F.' },
+            { title: 'Rest', text: 'Let rest 5 minutes before serving. Drizzle any pan juices over the top.' },
+          ],
+          notes: '⚠️ Move chops from freezer to fridge the morning before to thaw! Pat them VERY dry before searing — moisture is the enemy of a good crust. Make extra for lunch the next day.',
+        },
+        {
+          title: 'Oven-Roasted Potatoes', desc: 'Crispy-edged roasted potato cubes — simple seasoning, best results with convection.',
+          course: 'starch', tags: ['veggie', 'kidapproved'], servings: 4,
+          ingredients: [
+            { name: 'Potatoes, cubed into 1-inch pieces', amount: 4, unit: 'medium' },
+            { name: 'Olive oil', amount: 1, unit: 'tbsp' },
+            { name: 'Garlic powder', amount: 0.5, unit: 'tsp' },
+            { name: 'Paprika', amount: 0.5, unit: 'tsp' },
+            { name: 'Black pepper', amount: 0.25, unit: 'tsp' },
+          ],
+          steps: [
+            { title: 'Preheat', text: 'Preheat oven to 425°F (use convection if available for best crispiness).' },
+            { title: 'Season', text: 'Toss cubed potatoes with olive oil, garlic powder, paprika, and black pepper until evenly coated.' },
+            { title: 'Roast', text: "Spread in a single layer on a foil-lined sheet pan — don't crowd them. Roast 25–30 minutes, flipping once halfway, until golden and crispy at the edges." },
+          ],
+          notes: "Don't crowd the pan — potatoes need space to roast, not steam. Convection gives the best crispiness.",
+        },
+        {
+          title: 'Lemon Green Beans', desc: 'Steamed green beans with a bright squeeze of lemon — done in 5 minutes.',
+          course: 'vegetable', tags: ['veggie', 'quick', 'lowsodium'], servings: 4,
+          ingredients: [
+            { name: 'Green beans (frozen or fresh)', amount: 2, unit: 'cups' },
+            { name: 'Lemon juice', amount: 1, unit: 'tbsp' },
+            { name: 'Black pepper', amount: 0.25, unit: 'tsp' },
+          ],
+          steps: [
+            { title: 'Steam', text: 'Steam or microwave green beans 4–5 minutes until tender-crisp. For microwave: place in a bowl with 2 tbsp water, cover, and cook 3–4 minutes.' },
+            { title: 'Season', text: 'Squeeze lemon juice over the top and season with black pepper. Toss and serve.' },
+          ],
+          notes: "The lemon adds brightness without needing salt. Don't overcook — they should still have a slight bite.",
+        },
+      ],
+    },
+    {
+      deleteId: 9,
+      label: 'Homemade Ground Beef Burgers & Oven Fries',
+      recipes: [
+        {
+          title: 'Homemade Ground Beef Burgers', desc: 'Simple, satisfying, and totally kid-friendly — homemade beats fast food every time.',
+          course: 'main', tags: ['beef', 'kidapproved', 'quick'], servings: 4,
+          ingredients: [
+            { name: 'Ground beef (85/15)', amount: 1.5, unit: 'lb' },
+            { name: 'Garlic powder', amount: 0.5, unit: 'tsp' },
+            { name: 'Onion powder', amount: 0.5, unit: 'tsp' },
+            { name: 'Black pepper', amount: 0.25, unit: 'tsp' },
+            { name: 'Worcestershire sauce', amount: 1, unit: 'tbsp' },
+            { name: 'Burger buns (whole wheat if available)', amount: 4, unit: '' },
+            { name: 'Cheddar cheese slices', amount: 4, unit: '' },
+            { name: 'Shredded lettuce', amount: 1, unit: 'cup' },
+          ],
+          steps: [
+            { title: 'Make the patties', text: "Mix ground beef gently with garlic powder, onion powder, pepper, and Worcestershire. Form into 4 patties about ¾ inch thick. Press a small indent in the center of each — keeps them from puffing up." },
+            { title: 'Cook', text: 'Heat a skillet or grill pan over medium-high heat. Cook patties 4–5 minutes per side until cooked through (160°F internal). Add cheese in the last minute and cover to melt.' },
+            { title: 'Rest and serve', text: 'Let burgers rest 2 minutes. Serve on buns with lettuce and toppings.' },
+          ],
+          notes: 'A plain patty with just cheese works for the pickiest eater! Great on the charcoal grill — char adds flavor without extra fat.',
+        },
+        {
+          title: 'Oven Fries', desc: "Crispy oven-baked potato wedges — all the satisfaction of fries, none of the fryer.",
+          course: 'starch', tags: ['veggie', 'kidapproved'], servings: 4,
+          ingredients: [
+            { name: 'Potatoes, cut into wedges', amount: 4, unit: 'medium' },
+            { name: 'Olive oil', amount: 1, unit: 'tbsp' },
+            { name: 'Paprika', amount: 0.25, unit: 'tsp' },
+            { name: 'Black pepper', amount: 0.25, unit: 'tsp' },
+          ],
+          steps: [
+            { title: 'Preheat', text: 'Preheat oven to 425°F. Line a baking sheet with foil.' },
+            { title: 'Season', text: 'Toss potato wedges with olive oil, paprika, and a pinch of pepper until evenly coated.' },
+            { title: 'Bake', text: "Spread in a single layer — don't overlap. Bake 30–35 minutes, flipping once halfway, until golden and crispy." },
+          ],
+          notes: "Start these first when making burgers — they take longer. Don't overlap them on the pan or they'll steam instead of crisp.",
+        },
+      ],
+    },
+  ];
+
+  if (!apply) {
+    console.log(`📋 splitCoupledRecipes preview — will delete 3 combined recipes and create 8 individual ones:`);
+    splits.forEach(s => {
+      console.log(`\n  🗑️  DELETE: "${s.label}"`);
+      s.recipes.forEach(r => console.log(`  ✅  CREATE: "${r.title}" [${r.course}]`));
+    });
+    console.log('\nRun splitCoupledRecipes(true) to apply.');
+    return;
+  }
+
+  for (const s of splits) {
+    for (const r of s.recipes) {
+      r.id = newId();
+      await set(ref(db, `userRecipes/${r.id}`), r);
+      console.log(`  ✅ Created: ${r.title}`);
+    }
+    await remove(ref(db, `userRecipes/${s.deleteId}`));
+    console.log(`  🗑️ Deleted: ${s.label}`);
+  }
+  console.log('Done! Reloading...');
+  location.reload();
+}
+
 async function migrateHardcodedRecipes(showStatus) {
   try {
     const snap = await get(ref(db, 'userRecipes/_migrated'));
@@ -3798,6 +3988,7 @@ window.resetUploader = resetUploader;
 window.toggleSection = toggleSection;
 window.toggleRecipeSection = toggleRecipeSection;
 window.autoTagCourses = autoTagCourses;
+window.splitCoupledRecipes = splitCoupledRecipes;
 window.calcNutritionForCurrent = calcNutritionForCurrent;
 window.openActivityPicker = openActivityPicker;
 window.addActivityPreset = addActivityPreset;
