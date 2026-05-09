@@ -1844,10 +1844,12 @@
   .event-shop-name { flex: 1; font-size: 0.9rem; color: var(--brown); }
   .event-shop-qty { font-size: 0.82rem; color: var(--text-muted); white-space: nowrap; }
   .event-guest-edit-row {
-    display: flex; align-items: center; gap: 0.4rem;
+    display: flex; align-items: flex-end; gap: 0.4rem;
     padding: 0.4rem 0; border-bottom: 1px solid var(--border); flex-wrap: wrap;
   }
   .event-guest-edit-row:last-child { border-bottom: none; }
+  .guest-col-label { display: none; font-size: 0.65rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.06em; padding-bottom: 2px; }
+  .event-guest-edit-row:first-child .guest-col-label { display: block; }
   .event-guest-bringing { font-size: 0.75rem; color: var(--text-muted); font-style: italic; }
   .item-qty {
     font-size: 0.68rem;
@@ -2130,13 +2132,6 @@
       <div class="event-section-label">
         <span>👥 Guest List</span>
         <span id="event-guest-total" style="font-size:0.8rem;font-weight:500;text-transform:none;letter-spacing:0;color:var(--brown)"></span>
-      </div>
-      <div id="event-guests-header" style="display:none;font-size:0.65rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;padding:0.4rem 0 0.1rem;display:flex;gap:0.4rem;align-items:center;flex-wrap:wrap">
-        <span style="flex:2;min-width:80px">Name</span>
-        <span style="width:62px;text-align:center">Adults</span>
-        <span style="width:52px;text-align:center">Kids</span>
-        <span style="flex:2;min-width:80px">Bringing</span>
-        <span style="width:24px"></span>
       </div>
       <div id="event-guests-list"></div>
       <div class="event-add-row" style="flex-wrap:wrap;gap:0.4rem;margin-top:0.3rem">
@@ -4456,7 +4451,7 @@ function addReviewedItems() {
         if (existing) {
           if (qtyStr && existing.qty !== qtyStr) existing.qty = [existing.qty, qtyStr].filter(Boolean).join(' + ');
         } else {
-          evt.items.push({ id: 'item_' + Date.now() + '_' + Math.random().toString(36).slice(2,4), name: ing.name, qty: qtyStr, section: ing.section });
+          evt.items.push({ id: 'item_' + Date.now() + '_' + Math.random().toString(36).slice(2,4), name: ing.name, qty: qtyStr, section: ing.section, fromRecipe: ing.fromRecipe || '' });
         }
       });
       set(ref(db, _eventsBasePath + '/' + _currentEventId + '/items'), evt.items);
@@ -4597,7 +4592,10 @@ function renderEventItems() {
   if (countEl) countEl.textContent = items.length > 0 ? `${items.length} item${items.length !== 1 ? 's' : ''}` : '';
   list.innerHTML = items.map((item, i) => `
     <div class="event-shop-row">
-      <span class="event-shop-name">${item.name}</span>
+      <div style="flex:1;min-width:0">
+        <span class="event-shop-name">${item.name}</span>
+        ${item.fromRecipe ? `<div style="font-size:0.72rem;color:var(--text-muted)">from: ${item.fromRecipe}</div>` : ''}
+      </div>
       <span class="event-shop-qty">${item.qty || ''}</span>
       <button class="delete-item" onclick="removeEventItem(${i})">✕</button>
     </div>`).join('');
@@ -4685,7 +4683,7 @@ function assignRecipeToEvent(recipeId) {
   const scale = servings / (recipe.servings || 4);
   reviewIngredients = recipe.ingredients
     .filter(ing => !PANTRY_STAPLES.some(p => ing.name.toLowerCase().includes(p)))
-    .map(ing => ({ ...ing, amount: (ing.amount || 0) * scale, section: sectionFromLibrary(ing.name) }));
+    .map(ing => ({ ...ing, amount: (ing.amount || 0) * scale, section: sectionFromLibrary(ing.name), fromRecipe: recipe.title }));
   const listHTML = reviewIngredients.length === 0
     ? '<p style="color:var(--text-muted)">All ingredients are pantry staples!</p>'
     : reviewIngredients.map((ing, i) => `
@@ -4751,23 +4749,33 @@ function renderEventGuests() {
   const list = document.getElementById('event-guests-list');
   if (!list) return;
   updateEventGuestSummary();
-  const header = document.getElementById('event-guests-header');
-  if (header) header.style.display = guests.length > 0 ? 'flex' : 'none';
   list.innerHTML = guests.map((g, i) => `
     <div class="event-guest-edit-row">
-      <input type="text" class="add-input" placeholder="Name" style="flex:2;min-width:80px"
-        value="${(g.name || '').replace(/"/g, '&quot;')}"
-        onblur="updateEventGuest(${i}, 'name', this.value)">
-      <input type="number" class="add-input" placeholder="adults" min="0" max="99" style="width:62px;text-align:center"
-        value="${g.adults ?? g.count ?? 0}"
-        onchange="updateEventGuest(${i}, 'adults', this.value)">
-      <input type="number" class="add-input" placeholder="kids" min="0" max="99" style="width:52px;text-align:center"
-        value="${g.kids || 0}"
-        onchange="updateEventGuest(${i}, 'kids', this.value)">
-      <input type="text" class="add-input" placeholder="bringing..." style="flex:2;min-width:80px"
-        value="${(g.bringing || '').replace(/"/g, '&quot;')}"
-        onblur="updateEventGuest(${i}, 'bringing', this.value)">
-      <button class="delete-item" onclick="removeEventGuest(${i})">✕</button>
+      <div style="flex:2;min-width:80px;display:flex;flex-direction:column">
+        <span class="guest-col-label">Name</span>
+        <input type="text" class="add-input" placeholder="Name" style="width:100%"
+          value="${(g.name || '').replace(/"/g, '&quot;')}"
+          onblur="updateEventGuest(${i}, 'name', this.value)">
+      </div>
+      <div style="width:62px;display:flex;flex-direction:column">
+        <span class="guest-col-label" style="text-align:center">Adults</span>
+        <input type="number" class="add-input" placeholder="0" min="0" max="99" style="width:100%;text-align:center"
+          value="${g.adults ?? g.count ?? 0}"
+          oninput="updateEventGuest(${i}, 'adults', this.value)">
+      </div>
+      <div style="width:52px;display:flex;flex-direction:column">
+        <span class="guest-col-label" style="text-align:center">Kids</span>
+        <input type="number" class="add-input" placeholder="0" min="0" max="99" style="width:100%;text-align:center"
+          value="${g.kids || 0}"
+          oninput="updateEventGuest(${i}, 'kids', this.value)">
+      </div>
+      <div style="flex:2;min-width:80px;display:flex;flex-direction:column">
+        <span class="guest-col-label">Bringing</span>
+        <input type="text" class="add-input" placeholder="bringing..." style="width:100%"
+          value="${(g.bringing || '').replace(/"/g, '&quot;')}"
+          onblur="updateEventGuest(${i}, 'bringing', this.value)">
+      </div>
+      <button class="delete-item" style="margin-bottom:2px" onclick="removeEventGuest(${i})">✕</button>
     </div>`).join('');
 }
 
