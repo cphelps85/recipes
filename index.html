@@ -4410,7 +4410,12 @@ function createEvent() {
   const evt = { id, name: '', date: '', dishes: [], createdAt: Date.now() };
   set(ref(db, _eventsBasePath + '/' + id), evt);
   eventsCache[id] = evt;
-  openEvent(id);
+  _currentEventId = id;
+  document.getElementById('events-list-view').style.display = 'none';
+  document.getElementById('events-detail-view').style.display = 'block';
+  document.getElementById('event-name-input').value = '';
+  document.getElementById('event-date-input').value = '';
+  renderEventDishes();
 }
 
 function openEvent(id) {
@@ -4719,7 +4724,7 @@ let eventsCache = {};
 onValue(eventsRef, (snapshot) => {
   eventsCache = snapshot.val() || {};
   const eventsSection = document.getElementById('section-events');
-  if (eventsSection && eventsSection.classList.contains('active')) renderEvents();
+  if (eventsSection && eventsSection.classList.contains('active') && !_currentEventId) renderEvents();
 });
 
 // ─── ITEM LIBRARY FIREBASE ───────────────────────────────────────
