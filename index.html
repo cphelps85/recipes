@@ -3875,7 +3875,7 @@ function addRecipeToGrocery(recipeId, btn) {
         updateItem(existing.id, { sources });
         existing.sources = sources;
       } else {
-        const section = guessSectionFromIngredient(ing.name);
+        const section = sectionFromLibrary(ing.name);
         const newItem = { id: generateId(), name: ing.name, baseIngredient: ing.name, section, tag: 'meal', checked: false, sources: [source] };
         saveItem(newItem);
         localBatch[ingKey] = newItem;
@@ -4271,13 +4271,35 @@ function addReviewedItems() {
       updateItem(existing.id, { sources });
       existing.sources = sources; // keep local ref current for rest of batch
     } else {
-      const section = guessSectionFromIngredient(ing.name);
+      const section = sectionFromLibrary(ing.name);
       const newItem = { id: generateId(), name: ing.name, baseIngredient: ing.name, section, tag: 'meal', checked: false, sources: [source] };
       saveItem(newItem);
       localBatch[ingKey] = newItem;
     }
   });
   closeReviewDirect();
+}
+
+function sectionFromLibrary(name) {
+  const lib = window._itemLibrary;
+  if (!lib || lib.length === 0) return guessSectionFromIngredient(name);
+  const n = name.toLowerCase().trim();
+  // 1. Exact match on display name
+  let match = lib.find(i => (i.displayName || '').toLowerCase().trim() === n);
+  // 2. Library item name is contained in ingredient name — prefer longest match
+  //    e.g. "Garlic" matches "fresh garlic cloves", "Chicken Breast" matches "boneless chicken breast"
+  if (!match) {
+    match = lib.reduce((best, i) => {
+      const libName = (i.displayName || '').toLowerCase().trim();
+      if (libName.length > 2 && n.includes(libName)) {
+        return (!best || libName.length > (best.displayName || '').length) ? i : best;
+      }
+      return best;
+    }, null);
+  }
+  // 3. Ingredient name is contained in library item name
+  if (!match) match = lib.find(i => (i.displayName || '').toLowerCase().includes(n));
+  return match ? (match.section || guessSectionFromIngredient(name)) : guessSectionFromIngredient(name);
 }
 
 function guessSectionFromIngredient(name) {
@@ -4557,7 +4579,7 @@ function loadWeekList(type) {
             updateItem(existing.id, { sources });
             existing.sources = sources;
           } else {
-            const section = guessSectionFromIngredient(ing.name);
+            const section = sectionFromLibrary(ing.name);
             const newItem = { id: generateId(), name: ing.name, baseIngredient: ing.name, section, tag: 'meal', checked: false, sources: [source] };
             saveItem(newItem);
             localBatch[ingKey] = newItem;
