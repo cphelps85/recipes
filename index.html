@@ -1825,6 +1825,24 @@
     padding: 1rem 0 0.3rem; border-top: 1px solid var(--border); margin-top: 0.8rem;
   }
   .event-add-row { display: flex; gap: 0.5rem; align-items: center; padding: 0.4rem 0 0.6rem; }
+  .event-guest-banner {
+    background: var(--cream); border-radius: 10px;
+    padding: 0.5rem 1rem; margin-top: 0.6rem;
+    font-size: 0.88rem; color: var(--brown); font-weight: 500;
+  }
+  .event-recipes-row { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.3rem; padding-bottom: 0.3rem; }
+  .event-recipe-card {
+    background: var(--cream); border: 1px solid var(--border); border-radius: 10px;
+    padding: 0.45rem 0.75rem; display: flex; align-items: center; gap: 0.5rem;
+  }
+  .event-recipe-title { font-size: 0.85rem; color: var(--brown); font-weight: 600; }
+  .event-shop-row {
+    display: flex; align-items: center; gap: 0.6rem;
+    padding: 0.65rem 0; border-bottom: 1px solid var(--border);
+  }
+  .event-shop-row:last-child { border-bottom: none; }
+  .event-shop-name { flex: 1; font-size: 0.9rem; color: var(--brown); }
+  .event-shop-qty { font-size: 0.82rem; color: var(--text-muted); white-space: nowrap; }
   .item-qty {
     font-size: 0.68rem;
     font-weight: 600;
@@ -2026,7 +2044,7 @@
     </div>
     <div class="modal-body">
       <div id="review-list"></div>
-      <button class="print-btn" onclick="addReviewedItems()" style="width:100%;margin-top:1rem;">Add Checked Items to Grocery List</button>
+      <button class="print-btn" id="review-add-btn" onclick="addReviewedItems()" style="width:100%;margin-top:1rem;">Add Checked Items to Grocery List</button>
     </div>
   </div>
 </div>
@@ -2061,46 +2079,69 @@
       <div class="grocery-actions">
         <button class="grocery-btn" onclick="backToEventList()">← Back</button>
         <button class="grocery-btn" onclick="openEventDishPicker()">+ Add Recipe</button>
-        <button class="grocery-btn" onclick="reviewEventForGrocery()">🛒 Add to Grocery List</button>
+        <button class="grocery-btn" onclick="portEventToGrocery()">🛒 Port to Grocery List</button>
         <button class="grocery-btn danger" onclick="deleteCurrentEvent()">Delete</button>
       </div>
     </div>
 
-    <div id="event-dishes-container" style="margin-top:0.5rem">
-      <p class="event-empty" id="event-dishes-empty">No dishes yet — add a recipe above or search items below.</p>
-      <div id="event-dishes-list"></div>
-      <div class="add-item-row" style="margin-top:0.6rem">
+    <!-- Guest summary banner -->
+    <div id="event-guest-banner" class="event-guest-banner" style="display:none"></div>
+
+    <!-- Recipes planned -->
+    <div id="event-recipes-container">
+      <div class="event-section-label" style="margin-top:0.6rem">
+        <span>🍽️ Recipes</span>
+        <span style="font-size:0.7rem;font-weight:400;text-transform:none;letter-spacing:0">adding a recipe shows ingredient checklist</span>
+      </div>
+      <div id="event-recipes-list" class="event-recipes-row"></div>
+      <p class="event-empty" id="event-recipes-empty" style="padding:0.5rem 0 0;text-align:left;font-size:0.82rem">No recipes yet.</p>
+    </div>
+
+    <!-- Shopping list -->
+    <div id="event-items-container">
+      <div class="event-section-label">
+        <span>🛒 Shopping List</span>
+        <span id="event-items-count" style="font-size:0.8rem;font-weight:500;text-transform:none;letter-spacing:0;color:var(--brown)"></span>
+      </div>
+      <div id="event-items-list"></div>
+      <p class="event-empty" id="event-items-empty" style="padding:0.5rem 0 0;text-align:left;font-size:0.82rem">Nothing yet — add a recipe above or search below.</p>
+      <div class="add-item-row" style="margin-top:0.5rem">
         <div class="autocomplete-wrap" style="flex:1;position:relative">
           <input type="text" id="event-item-input" class="add-input" style="width:100%"
-            placeholder="Search items (hot dogs, buns...)"
+            placeholder="Search items (buns, drinks, chips...)"
             oninput="eventItemAutocomplete(this.value)"
             onkeydown="handleEventItemKey(event)"
             autocomplete="off">
           <div class="autocomplete-dropdown" id="event-item-suggestions"></div>
         </div>
+        <input type="text" id="event-item-qty" class="add-input" placeholder="qty" style="width:68px;flex-shrink:0" autocomplete="off">
         <button class="add-btn" onclick="addEventItem()">+</button>
       </div>
     </div>
 
+    <!-- Guest list -->
     <div id="event-guests-container">
       <div class="event-section-label">
         <span>👥 Guest List</span>
         <span id="event-guest-total" style="font-size:0.8rem;font-weight:500;text-transform:none;letter-spacing:0;color:var(--brown)"></span>
       </div>
       <div id="event-guests-list"></div>
-      <div class="event-add-row">
-        <input type="text" id="guest-name-input" class="add-input" placeholder="Name (e.g. The Rougiers)" style="flex:2;min-width:0"
+      <div class="event-add-row" style="flex-wrap:wrap;gap:0.4rem">
+        <input type="text" id="guest-name-input" class="add-input" placeholder="Name (e.g. The Rougiers)" style="flex:2;min-width:120px"
           onkeydown="if(event.key==='Enter') addEventGuest()">
-        <input type="number" id="guest-count-input" class="add-input" placeholder="+N" min="1" max="99" style="width:55px;text-align:center"
+        <input type="number" id="guest-adults-input" class="add-input" placeholder="adults" min="0" max="99" style="width:68px;text-align:center"
+          onkeydown="if(event.key==='Enter') addEventGuest()">
+        <input type="number" id="guest-kids-input" class="add-input" placeholder="kids" min="0" max="99" style="width:58px;text-align:center"
           onkeydown="if(event.key==='Enter') addEventGuest()">
         <button class="grocery-btn" onclick="addEventGuest()">Add</button>
       </div>
     </div>
 
+    <!-- Contributions -->
     <div id="event-contributions-container">
       <div class="event-section-label">
         <span>🤝 They're Bringing</span>
-        <span style="font-size:0.7rem;font-weight:400;text-transform:none;letter-spacing:0">not on your grocery list</span>
+        <span style="font-size:0.7rem;font-weight:400;text-transform:none;letter-spacing:0">not on your shopping list</span>
       </div>
       <div id="event-contributions-list"></div>
       <div class="event-add-row">
@@ -3509,10 +3550,11 @@ window.backToEventList = backToEventList;
 window.saveCurrentEventMeta = saveCurrentEventMeta;
 window.openEventDishPicker = openEventDishPicker;
 
-window.updateEventDishServings = updateEventDishServings;
-window.removeEventDish = removeEventDish;
 window.deleteCurrentEvent = deleteCurrentEvent;
-window.reviewEventForGrocery = reviewEventForGrocery;
+window.portEventToGrocery = portEventToGrocery;
+window.updateEventRecipeServings = updateEventRecipeServings;
+window.removeEventRecipe = removeEventRecipe;
+window.removeEventItem = removeEventItem;
 window.addEventGuest = addEventGuest;
 window.removeEventGuest = removeEventGuest;
 window.addEventContribution = addEventContribution;
@@ -4402,15 +4444,37 @@ function addReviewedItems() {
   const checkboxes = document.querySelectorAll('#review-list input[type="checkbox"]');
   const toAdd = reviewIngredients.filter((_, i) => checkboxes[i]?.checked);
   if (toAdd.length === 0) { alert('No items selected!'); return; }
+
+  // ── Event ingredient review → add to event shopping list ──────
+  if (_reviewingEventIngredients) {
+    _reviewingEventIngredients = false;
+    const evt = eventsCache[_currentEventId];
+    if (evt) {
+      if (!evt.items) evt.items = [];
+      toAdd.forEach(ing => {
+        const qtyStr = ing.amount ? `${formatAmount(ing.amount,1,1)}${ing.unit ? ' ' + ing.unit : ''}` : '';
+        const key = ing.name.toLowerCase().trim();
+        const existing = evt.items.find(i => i.name.toLowerCase().trim() === key);
+        if (existing) {
+          if (qtyStr && existing.qty !== qtyStr) existing.qty = [existing.qty, qtyStr].filter(Boolean).join(' + ');
+        } else {
+          evt.items.push({ id: 'item_' + Date.now() + '_' + Math.random().toString(36).slice(2,4), name: ing.name, qty: qtyStr, section: ing.section });
+        }
+      });
+      set(ref(db, _eventsBasePath + '/' + _currentEventId + '/items'), evt.items);
+      renderEventItems();
+    }
+    closeReviewDirect();
+    return;
+  }
+
+  // ── Meal plan review → add to grocery list ────────────────────
   const localBatch = {};
-  const isEvent = _reviewingForEvent;
   _reviewingForEvent = false;
   toAdd.forEach(ing => {
     const ingKey = ing.name.toLowerCase().trim();
     const qtyStr = ing.amount ? `${formatAmount(ing.amount,1,1)}${ing.unit ? ' ' + ing.unit : ''}` : '';
-    const source = isEvent
-      ? { recipe: ing.eventName || 'Event', qty: qtyStr }
-      : { recipe: ing.recipeName || '', qty: qtyStr };
+    const source = { recipe: ing.recipeName || ing.eventName || '', qty: qtyStr };
     const existing = findExistingGroceryItem(ing.name, localBatch);
     if (existing) {
       const sources = existing.sources ? [...existing.sources, source] : [source];
@@ -4418,8 +4482,7 @@ function addReviewedItems() {
       existing.sources = sources;
     } else {
       const section = ing.section || sectionFromLibrary(ing.name);
-      const tag = isEvent ? 'event' : 'meal';
-      const newItem = { id: generateId(), name: ing.name, baseIngredient: ing.name, section, tag, checked: false, sources: [source] };
+      const newItem = { id: generateId(), name: ing.name, baseIngredient: ing.name, section, tag: 'meal', checked: false, sources: [source] };
       saveItem(newItem);
       localBatch[ingKey] = newItem;
     }
@@ -4431,6 +4494,7 @@ function addReviewedItems() {
 let _currentEventId = null;
 let _eventPickerMode = false;
 let _reviewingForEvent = false;
+let _reviewingEventIngredients = false;
 
 function renderEvents() {
   const container = document.getElementById('events-list-container');
@@ -4443,14 +4507,18 @@ function renderEvents() {
     return;
   }
   container.innerHTML = events.map(evt => {
-    const dishes = evt.dishes || [];
-    const guestTotal = (evt.guests || []).reduce((sum, g) => sum + (g.count || 1), 0);
+    const recipes = evt.recipes || [];
+    const items = evt.items || (evt.dishes || []).filter(d => d.type === 'custom');
+    const guestTotal = (evt.guests || []).reduce((sum, g) => sum + (g.adults || g.count || 0) + (g.kids || 0), 0);
     const dateStr = evt.date ? new Date(evt.date + 'T12:00:00').toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : 'No date set';
-    const guestStr = guestTotal > 0 ? ` · ${guestTotal} guests` : '';
+    const parts = [];
+    if (recipes.length) parts.push(`${recipes.length} recipe${recipes.length !== 1 ? 's' : ''}`);
+    if (items.length) parts.push(`${items.length} item${items.length !== 1 ? 's' : ''}`);
+    if (guestTotal) parts.push(`${guestTotal} guests`);
     return `<div class="event-card" onclick="openEvent('${evt.id}')">
       <div>
         <div class="event-card-name">${evt.name || 'Unnamed Event'}</div>
-        <div class="event-card-meta">${dateStr} · ${dishes.length} dish${dishes.length !== 1 ? 'es' : ''}${guestStr}</div>
+        <div class="event-card-meta">${dateStr}${parts.length ? ' · ' + parts.join(' · ') : ''}</div>
       </div>
       <span style="color:var(--text-muted);font-size:1.3rem">›</span>
     </div>`;
@@ -4459,7 +4527,7 @@ function renderEvents() {
 
 function createNewEvent() {
   const id = 'evt_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6);
-  const evt = { id, name: '', date: '', dishes: [], guests: [], contributions: [], createdAt: Date.now() };
+  const evt = { id, name: '', date: '', recipes: [], items: [], guests: [], contributions: [], createdAt: Date.now() };
   set(ref(db, _eventsBasePath + '/' + id), evt);
   eventsCache[id] = evt;
   _currentEventId = id;
@@ -4467,7 +4535,8 @@ function createNewEvent() {
   document.getElementById('events-detail-view').style.display = 'block';
   document.getElementById('event-name-input').value = '';
   document.getElementById('event-date-input').value = '';
-  renderEventDishes();
+  renderEventRecipes();
+  renderEventItems();
   renderEventGuests();
   renderEventContributions();
 }
@@ -4480,7 +4549,8 @@ function openEvent(id) {
   document.getElementById('events-detail-view').style.display = 'block';
   document.getElementById('event-name-input').value = evt.name || '';
   document.getElementById('event-date-input').value = evt.date || '';
-  renderEventDishes();
+  renderEventRecipes();
+  renderEventItems();
   renderEventGuests();
   renderEventContributions();
 }
@@ -4503,38 +4573,61 @@ function saveCurrentEventMeta() {
   }
 }
 
-function renderEventDishes() {
+function renderEventRecipes() {
   const evt = eventsCache[_currentEventId];
-  const dishes = evt ? (evt.dishes || []) : [];
-  const empty = document.getElementById('event-dishes-empty');
-  const list = document.getElementById('event-dishes-list');
+  const recipes = evt ? (evt.recipes || []) : [];
+  const list = document.getElementById('event-recipes-list');
+  const empty = document.getElementById('event-recipes-empty');
   if (!list) return;
-  empty.style.display = dishes.length === 0 ? 'block' : 'none';
-  list.innerHTML = dishes.map((dish, i) => `
-    <div class="event-dish-row">
-      <span class="event-dish-title">${dish.title}${dish.type === 'custom' ? ' <span style="font-size:0.7rem;color:var(--text-muted)">(custom)</span>' : ''}</span>
-      ${dish.type === 'recipe' ? `
-        <label style="font-size:0.75rem;color:var(--text-muted);white-space:nowrap">Serves</label>
-        <input type="number" class="add-input" style="width:60px;text-align:center;padding:0.35rem" value="${dish.servings || 4}" min="1" max="200"
-          onchange="updateEventDishServings(${i}, this.value)">
-      ` : ''}
-      <button class="delete-item" onclick="removeEventDish(${i})">✕</button>
+  empty.style.display = recipes.length === 0 ? 'block' : 'none';
+  list.innerHTML = recipes.map((r, i) => `
+    <div class="event-recipe-card">
+      <span class="event-recipe-title">${r.title}</span>
+      <label style="font-size:0.72rem;color:var(--text-muted)">serves</label>
+      <input type="number" class="add-input" style="width:50px;text-align:center;padding:0.2rem 0.3rem;font-size:0.82rem"
+        value="${r.servings || 4}" min="1" max="200" onchange="updateEventRecipeServings(${i}, this.value)">
+      <button class="delete-item" onclick="removeEventRecipe(${i})">✕</button>
     </div>`).join('');
 }
 
-function updateEventDishServings(index, value) {
+function renderEventItems() {
   const evt = eventsCache[_currentEventId];
-  if (!evt || !evt.dishes[index]) return;
-  evt.dishes[index].servings = parseInt(value) || 4;
-  set(ref(db, _eventsBasePath + '/' + _currentEventId + '/dishes'), evt.dishes);
+  const items = evt ? (evt.items || []) : [];
+  const list = document.getElementById('event-items-list');
+  const empty = document.getElementById('event-items-empty');
+  const countEl = document.getElementById('event-items-count');
+  if (!list) return;
+  empty.style.display = items.length === 0 ? 'block' : 'none';
+  if (countEl) countEl.textContent = items.length > 0 ? `${items.length} item${items.length !== 1 ? 's' : ''}` : '';
+  list.innerHTML = items.map((item, i) => `
+    <div class="event-shop-row">
+      <span class="event-shop-name">${item.name}</span>
+      <span class="event-shop-qty">${item.qty || ''}</span>
+      <button class="delete-item" onclick="removeEventItem(${i})">✕</button>
+    </div>`).join('');
 }
 
-function removeEventDish(index) {
+function updateEventRecipeServings(index, value) {
   const evt = eventsCache[_currentEventId];
-  if (!evt) return;
-  evt.dishes.splice(index, 1);
-  set(ref(db, _eventsBasePath + '/' + _currentEventId + '/dishes'), evt.dishes.length ? evt.dishes : []);
-  renderEventDishes();
+  if (!evt || !evt.recipes || !evt.recipes[index]) return;
+  evt.recipes[index].servings = parseInt(value) || 4;
+  set(ref(db, _eventsBasePath + '/' + _currentEventId + '/recipes'), evt.recipes);
+}
+
+function removeEventRecipe(index) {
+  const evt = eventsCache[_currentEventId];
+  if (!evt || !evt.recipes) return;
+  evt.recipes.splice(index, 1);
+  set(ref(db, _eventsBasePath + '/' + _currentEventId + '/recipes'), evt.recipes.length ? evt.recipes : []);
+  renderEventRecipes();
+}
+
+function removeEventItem(index) {
+  const evt = eventsCache[_currentEventId];
+  if (!evt || !evt.items) return;
+  evt.items.splice(index, 1);
+  set(ref(db, _eventsBasePath + '/' + _currentEventId + '/items'), evt.items.length ? evt.items : []);
+  renderEventItems();
 }
 
 function deleteCurrentEvent() {
@@ -4558,20 +4651,22 @@ function openEventDishPicker() {
 
 function addEventItem() {
   const input = document.getElementById('event-item-input');
+  const qtyInput = document.getElementById('event-item-qty');
   const name = (input.value || '').trim();
   if (!name) return;
+  const qty = qtyInput ? (qtyInput.value || '').trim() : '';
   const section = input.dataset.section || sectionFromLibrary(name);
   const evt = eventsCache[_currentEventId];
   if (!evt) return;
-  if (!evt.dishes) evt.dishes = [];
-  const dish = { id: 'dish_' + Date.now(), type: 'custom', title: name, section, servings: 0 };
-  evt.dishes.push(dish);
-  set(ref(db, _eventsBasePath + '/' + _currentEventId + '/dishes'), evt.dishes);
+  if (!evt.items) evt.items = [];
+  evt.items.push({ id: 'item_' + Date.now(), name, qty, section });
+  set(ref(db, _eventsBasePath + '/' + _currentEventId + '/items'), evt.items);
   input.value = '';
+  if (qtyInput) qtyInput.value = '';
   delete input.dataset.section;
   const d = document.getElementById('event-item-suggestions');
   if (d) d.classList.remove('open');
-  renderEventDishes();
+  renderEventItems();
 }
 
 function assignRecipeToEvent(recipeId) {
@@ -4579,60 +4674,56 @@ function assignRecipeToEvent(recipeId) {
   if (!recipe || !_currentEventId) return;
   const evt = eventsCache[_currentEventId];
   if (!evt) return;
-  if (!evt.dishes) evt.dishes = [];
-  const dish = { id: 'dish_' + Date.now(), type: 'recipe', recipeId: String(recipeId), title: recipe.title, servings: recipe.servings || 4 };
-  evt.dishes.push(dish);
-  set(ref(db, _eventsBasePath + '/' + _currentEventId + '/dishes'), evt.dishes);
   document.getElementById('picker-modal').classList.remove('open');
   document.body.style.overflow = '';
   _eventPickerMode = false;
-  renderEventDishes();
-}
-
-function reviewEventForGrocery() {
-  saveCurrentEventMeta();
-  const evt = eventsCache[_currentEventId];
-  if (!evt || !(evt.dishes || []).length) {
-    alert('Add at least one dish or custom item first.');
-    return;
+  if (!evt.recipes) evt.recipes = [];
+  const already = evt.recipes.find(r => String(r.recipeId) === String(recipeId));
+  const servings = already ? already.servings : (recipe.servings || 4);
+  if (!already) {
+    evt.recipes.push({ id: 'rec_' + Date.now(), recipeId: String(recipeId), title: recipe.title, servings });
+    set(ref(db, _eventsBasePath + '/' + _currentEventId + '/recipes'), evt.recipes);
+    renderEventRecipes();
   }
-  const ingredientMap = {};
-  (evt.dishes || []).forEach(dish => {
-    if (dish.type === 'recipe') {
-      const recipe = userRecipes.find(r => String(r.id) === String(dish.recipeId));
-      if (!recipe) return;
-      const scale = (dish.servings || 4) / (recipe.servings || 4);
-      recipe.ingredients.forEach(ing => {
-        const key = ing.name.toLowerCase().trim();
-        const isPantry = PANTRY_STAPLES.some(p => key.includes(p));
-        if (isPantry) return;
-        if (ingredientMap[key]) {
-          ingredientMap[key].amount += (ing.amount || 0) * scale;
-        } else {
-          ingredientMap[key] = { ...ing, amount: (ing.amount || 0) * scale, eventName: evt.name || 'Event', checked: false };
-        }
-      });
-    } else if (dish.type === 'custom') {
-      const key = dish.title.toLowerCase().trim();
-      if (!ingredientMap[key]) {
-        ingredientMap[key] = { name: dish.title, amount: 0, unit: '', section: dish.section, eventName: evt.name || 'Event', checked: false };
-      }
-    }
-  });
-  reviewIngredients = Object.values(ingredientMap);
+  // Open ingredient checklist
+  const scale = servings / (recipe.servings || 4);
+  reviewIngredients = recipe.ingredients
+    .filter(ing => !PANTRY_STAPLES.some(p => ing.name.toLowerCase().includes(p)))
+    .map(ing => ({ ...ing, amount: (ing.amount || 0) * scale, section: sectionFromLibrary(ing.name) }));
   const listHTML = reviewIngredients.length === 0
     ? '<p style="color:var(--text-muted)">All ingredients are pantry staples!</p>'
     : reviewIngredients.map((ing, i) => `
       <div class="review-item">
-        <input type="checkbox" id="ri${i}">
+        <input type="checkbox" id="ri${i}" checked>
         <label for="ri${i}" style="flex:1;cursor:pointer">${ing.name}${ing.amount ? ` — <strong>${formatAmount(ing.amount, 1, 1)} ${ing.unit || ''}</strong>` : ''}</label>
       </div>`).join('');
   document.getElementById('review-list').innerHTML = listHTML;
-  document.querySelector('#review-content .modal-title').textContent = evt.name || 'Event';
-  document.querySelector('#review-content .modal-desc').textContent = 'Check the items you need, then tap Add to Grocery List';
-  _reviewingForEvent = true;
+  document.querySelector('#review-content .modal-title').textContent = recipe.title;
+  document.querySelector('#review-content .modal-desc').textContent = 'Check ingredients to add to your shopping list';
+  const btn = document.getElementById('review-add-btn');
+  if (btn) btn.textContent = 'Add Checked Items to Shopping List';
+  _reviewingEventIngredients = true;
   document.getElementById('review-modal').classList.add('open');
   document.body.style.overflow = 'hidden';
+}
+
+function portEventToGrocery() {
+  saveCurrentEventMeta();
+  const evt = eventsCache[_currentEventId];
+  const items = evt ? (evt.items || []) : [];
+  if (!items.length) { alert('Your shopping list is empty — add items first.'); return; }
+  const evtName = evt.name || 'Event';
+  items.forEach(item => {
+    const section = item.section || sectionFromLibrary(item.name);
+    const source = { recipe: evtName, qty: item.qty || '' };
+    const existing = findExistingGroceryItem(item.name, {});
+    if (existing) {
+      updateItem(existing.id, { sources: [...(existing.sources || []), source] });
+    } else {
+      saveItem({ id: generateId(), name: item.name, baseIngredient: item.name, section, tag: 'event', checked: false, sources: [source] });
+    }
+  });
+  showWeek('grocery', document.querySelector('nav button'));
 }
 
 function renderEventGuests() {
@@ -4640,27 +4731,50 @@ function renderEventGuests() {
   const guests = evt ? (evt.guests || []) : [];
   const list = document.getElementById('event-guests-list');
   if (!list) return;
-  const total = guests.reduce((sum, g) => sum + (g.count || 1), 0);
+  const totalAdults = guests.reduce((sum, g) => sum + (g.adults ?? g.count ?? 0), 0);
+  const totalKids = guests.reduce((sum, g) => sum + (g.kids || 0), 0);
+  const totalAll = totalAdults + totalKids;
   const totalEl = document.getElementById('event-guest-total');
-  if (totalEl) totalEl.textContent = total > 0 ? `${total} guests` : '';
-  list.innerHTML = guests.map((g, i) => `
-    <div class="event-dish-row">
-      <span class="event-dish-title">${g.name} <span style="color:var(--text-muted)">+${g.count}</span></span>
+  if (totalEl) totalEl.textContent = totalAll > 0 ? `${totalAll} total` : '';
+  const banner = document.getElementById('event-guest-banner');
+  if (banner) {
+    if (totalAll > 0) {
+      const parts = [];
+      if (totalAdults > 0) parts.push(`${totalAdults} adult${totalAdults !== 1 ? 's' : ''}`);
+      if (totalKids > 0) parts.push(`${totalKids} kid${totalKids !== 1 ? 's' : ''}`);
+      parts.push(`${totalAll} total`);
+      banner.textContent = '👥 ' + parts.join(' · ');
+      banner.style.display = 'block';
+    } else {
+      banner.style.display = 'none';
+    }
+  }
+  list.innerHTML = guests.map((g, i) => {
+    const adults = g.adults ?? g.count ?? 0;
+    const kids = g.kids || 0;
+    const countParts = [];
+    if (adults > 0) countParts.push(`${adults} adult${adults !== 1 ? 's' : ''}`);
+    if (kids > 0) countParts.push(`${kids} kid${kids !== 1 ? 's' : ''}`);
+    return `<div class="event-dish-row">
+      <span class="event-dish-title">${g.name}${countParts.length ? ' <span style="color:var(--text-muted);font-size:0.8rem">(' + countParts.join(', ') + ')</span>' : ''}</span>
       <button class="delete-item" onclick="removeEventGuest(${i})">✕</button>
-    </div>`).join('');
+    </div>`;
+  }).join('');
 }
 
 function addEventGuest() {
   const name = (document.getElementById('guest-name-input').value || '').trim();
-  const count = parseInt(document.getElementById('guest-count-input').value) || 1;
+  const adults = parseInt(document.getElementById('guest-adults-input').value) || 0;
+  const kids = parseInt(document.getElementById('guest-kids-input').value) || 0;
   if (!name) return;
   const evt = eventsCache[_currentEventId];
   if (!evt) return;
   if (!evt.guests) evt.guests = [];
-  evt.guests.push({ id: 'g_' + Date.now(), name, count });
+  evt.guests.push({ id: 'g_' + Date.now(), name, adults, kids });
   set(ref(db, _eventsBasePath + '/' + _currentEventId + '/guests'), evt.guests);
   document.getElementById('guest-name-input').value = '';
-  document.getElementById('guest-count-input').value = '';
+  document.getElementById('guest-adults-input').value = '';
+  document.getElementById('guest-kids-input').value = '';
   renderEventGuests();
 }
 
@@ -4751,6 +4865,9 @@ function closeReviewModal(e) {
 function closeReviewDirect() {
   document.getElementById('review-modal').classList.remove('open');
   document.body.style.overflow = '';
+  _reviewingEventIngredients = false;
+  const btn = document.getElementById('review-add-btn');
+  if (btn) btn.textContent = 'Add Checked Items to Grocery List';
 }
 
 // ─── END OF MODULE — produce guide and item library render in plain script below ───
