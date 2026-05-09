@@ -176,6 +176,24 @@
     gap: 1rem;
     margin-bottom: 2rem;
   }
+  .recipe-section { margin-bottom: 2rem; }
+  .recipe-section-header {
+    display: flex; align-items: center; gap: 0.5rem;
+    font-size: 0.78rem; font-weight: 700; color: var(--brown-mid);
+    text-transform: uppercase; letter-spacing: 0.1em;
+    padding: 0.5rem 0; margin-bottom: 0.9rem;
+    border-bottom: 2px solid var(--accent-light);
+  }
+  .recipe-section-count {
+    font-size: 0.7rem; font-weight: 500; color: var(--text-muted);
+    text-transform: none; letter-spacing: 0;
+  }
+  .recipe-section-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 1rem;
+  }
+  .recipe-section-grid .course-badge { display: none; }
 
   .recipe-card {
     background: var(--warm-white);
@@ -2023,7 +2041,7 @@
       <button class="recipe-filter-btn" onclick="setRecipeFilter('tags','spicy',this)">🌶️ Spicy</button>
     </div>
   </div>
-  <div class="recipe-grid" id="grid-all"></div>
+  <div id="grid-all"></div>
   <div class="empty-state" id="no-results" style="display:none">
     <p>No recipes found. Try a different search or filter!</p>
   </div>
@@ -3226,20 +3244,73 @@ function getTagHTML(tags) {
   return (tags || []).map(t => map[t] ? `<span class="tag ${map[t][0]}">${map[t][1]}</span>` : '').join('');
 }
 
+function recipeCardHTML(r) {
+  return `<div class="recipe-card" onclick="openRecipe('${r.id}')">
+    ${r.course ? `<div class="course-badge">${COURSE_LABELS[r.course] || r.course}</div>` : ''}
+    <div class="card-title">${r.title}</div>
+    <div class="card-desc">${r.desc}</div>
+    <div class="card-tags">${getTagHTML(r.tags)}</div>
+    <div class="card-actions" onclick="event.stopPropagation()">
+      <button class="add-to-list-btn" id="atl-${r.id}" onclick="addRecipeToGrocery('${r.id}', this)">+ Add to List</button>
+    </div>
+  </div>`;
+}
+
+const COURSE_SECTION_ORDER = ['main', 'side', 'starch', 'vegetable', 'soup', 'salad', 'snack', 'breakfast'];
+const COURSE_SECTION_LABELS = {
+  main: '🍖 Mains', side: '🥗 Sides', starch: '🍚 Starches',
+  vegetable: '🥦 Vegetables', soup: '🥣 Soups', salad: '🥙 Salads',
+  snack: '🍎 Snacks', breakfast: '🍳 Breakfast',
+};
+
+function renderGroupedGrid(containerId, list) {
+  const el = document.getElementById(containerId);
+  if (!el) return;
+  el.className = '';
+  const grouped = {};
+  const uncategorized = [];
+  list.forEach(r => {
+    if (r.course && COURSE_SECTION_ORDER.includes(r.course)) {
+      (grouped[r.course] = grouped[r.course] || []).push(r);
+    } else {
+      uncategorized.push(r);
+    }
+  });
+  let html = '';
+  COURSE_SECTION_ORDER.forEach(course => {
+    const group = grouped[course];
+    if (!group || group.length === 0) return;
+    html += `<div class="recipe-section">
+      <div class="recipe-section-header">
+        ${COURSE_SECTION_LABELS[course]}
+        <span class="recipe-section-count">${group.length} recipe${group.length !== 1 ? 's' : ''}</span>
+      </div>
+      <div class="recipe-section-grid">${group.map(recipeCardHTML).join('')}</div>
+    </div>`;
+  });
+  if (uncategorized.length > 0) {
+    html += `<div class="recipe-section">
+      <div class="recipe-section-header">Other <span class="recipe-section-count">${uncategorized.length} recipe${uncategorized.length !== 1 ? 's' : ''}</span></div>
+      <div class="recipe-section-grid">${uncategorized.map(recipeCardHTML).join('')}</div>
+    </div>`;
+  }
+  el.innerHTML = html;
+}
+
 function renderGrid(containerId, list) {
   const el = document.getElementById(containerId);
   if (!el) return;
-  el.innerHTML = list.map(r => `
-    <div class="recipe-card" onclick="openRecipe('${r.id}')">
-      ${r.course ? `<div class="course-badge">${COURSE_LABELS[r.course] || r.course}</div>` : ''}
-      <div class="card-title">${r.title}</div>
-      <div class="card-desc">${r.desc}</div>
-      <div class="card-tags">${getTagHTML(r.tags)}</div>
-      <div class="card-actions" onclick="event.stopPropagation()">
-        <button class="add-to-list-btn" id="atl-${r.id}" onclick="addRecipeToGrocery('${r.id}', this)">+ Add to List</button>
-      </div>
-    </div>
-  `).join('');
+  el.className = 'recipe-grid';
+  el.innerHTML = list.map(recipeCardHTML).join('');
+}
+
+function renderRecipes(list) {
+  if (activeRecipeFilters.course === 'all') {
+    renderGroupedGrid('grid-all', list);
+  } else {
+    renderGrid('grid-all', list);
+  }
+  document.getElementById('no-results').style.display = list.length === 0 ? 'block' : 'none';
 }
 
 async function migrateHardcodedRecipes(showStatus) {
@@ -3284,7 +3355,7 @@ function showWeek(week, btn) {
   btn.classList.add('active');
   document.getElementById('searchInput').value = '';
   document.getElementById('no-results').style.display = 'none';
-  if (week === 'all') renderGrid('grid-all', userRecipes);
+  if (week === 'all') renderRecipes(userRecipes);
   if (week === 'grocery') renderGrocery();
   if (week === 'planner') renderPlanner();
   if (week === 'events') renderEvents();
@@ -3306,8 +3377,7 @@ function searchRecipes() {
     r.tags.some(t => t.includes(q)) ||
     r.ingredients.some(i => i.name.toLowerCase().includes(q))
   ) : userRecipes;
-  renderGrid('grid-all', filtered);
-  document.getElementById('no-results').style.display = filtered.length === 0 ? 'block' : 'none';
+  renderRecipes(filtered);
 }
 
 function openRecipe(id) {
@@ -3439,7 +3509,7 @@ function saveEditedRecipe() {
   }
 
   cancelEdit();
-  renderGrid('grid-all', userRecipes);
+  renderRecipes(userRecipes);
 }
 
 function deleteRecipeConfirm() {
@@ -3449,7 +3519,7 @@ function deleteRecipeConfirm() {
   userRecipes = userRecipes.filter(r => String(r.id) !== String(currentRecipe.id));
   currentRecipe = null;
   closeModalDirect();
-  renderGrid('grid-all', userRecipes);
+  renderRecipes(userRecipes);
 }
 
 function renderIngredients() {
@@ -3593,8 +3663,7 @@ function applyRecipeFilters() {
     list = list.filter(r => r.tags.includes(activeRecipeFilters.tags));
   }
 
-  renderGrid('grid-all', list);
-  document.getElementById('no-results').style.display = list.length === 0 ? 'block' : 'none';
+  renderRecipes(list);
 }
 
 // Expose functions globally for onclick handlers
@@ -5036,7 +5105,7 @@ onValue(recipesRef, (snapshot) => {
   userRecipes = data ? Object.values(data).filter(r => r && r.id) : [];
   const allSection = document.getElementById('section-all');
   if (allSection && allSection.classList.contains('active')) {
-    renderGrid('grid-all', userRecipes);
+    renderRecipes(userRecipes);
   }
 });
 const _listBasePath = IS_DEV ? 'dev/groceryList' : 'groceryList';
