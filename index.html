@@ -3341,10 +3341,10 @@ function renderRecipes(list) {
   document.getElementById('no-results').style.display = list.length === 0 ? 'block' : 'none';
 }
 
-async function autoTagCourses() {
+async function autoTagCourses(apply = false) {
   const VEGETABLE_WORDS = /\b(green beans|broccoli|asparagus|zucchini|carrots?|cauliflower|spinach|kale|brussels sprouts?|roasted veg|saut[eé]ed veg|glazed|vegetable side|steamed|stir.?fried veg)\b/i;
   const STARCH_WORDS = /\b(mashed potato|roasted potato|rice|pasta|noodles?|mac (and|&|n) cheese|macaroni|quinoa|couscous|bread|rolls?|biscuits?|grits|polenta|orzo|farro)\b/i;
-  const SOUP_WORDS = /\b(soup|stew|chili|chowder|bisque|broth|chili)\b/i;
+  const SOUP_WORDS = /\b(soup|stew|chili|chowder|bisque|broth)\b/i;
   const SALAD_WORDS = /\b(salad|slaw|coleslaw)\b/i;
   const SIDE_WORDS = /\b(side dish|applesauce|baked beans|corn|succotash|relish|salsa|dip|hummus)\b/i;
   const BREAKFAST_WORDS = /\b(breakfast|pancake|waffle|egg|omelette|omelet|frittata|quiche|oatmeal|granola|smoothie bowl|french toast)\b/i;
@@ -3364,26 +3364,25 @@ async function autoTagCourses() {
 
   const untagged = userRecipes.filter(r => !r.course);
   if (untagged.length === 0) {
-    alert('All recipes already have a course assigned!');
+    console.log('✅ All recipes already have a course assigned!');
     return;
   }
 
   const proposals = untagged.map(r => ({ r, suggested: inferCourse(r) }));
-  const preview = proposals.map(({ r, suggested }) =>
-    `  ${r.title}  →  ${suggested}`
-  ).join('\n');
 
-  const confirmed = confirm(
-    `Auto-tag ${proposals.length} untagged recipes?\n\nProposed tags:\n${preview}\n\nYou can edit any individually after. Continue?`
-  );
-  if (!confirmed) return;
+  if (!apply) {
+    console.log(`📋 ${proposals.length} untagged recipes — proposed tags:`);
+    console.table(proposals.map(({ r, suggested }) => ({ title: r.title, suggested })));
+    console.log('✏️  To apply these, run: autoTagCourses(true)');
+    return;
+  }
 
   let updated = 0;
   for (const { r, suggested } of proposals) {
     await set(ref(db, `userRecipes/${r.id}/course`), suggested);
     updated++;
   }
-  alert(`Done! Tagged ${updated} recipes. The page will reload to show the changes.`);
+  console.log(`✅ Tagged ${updated} recipes. Reloading...`);
   location.reload();
 }
 
