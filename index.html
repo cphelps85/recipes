@@ -1878,7 +1878,6 @@
   <button onclick="showWeek('menu', this)">🍽️ Menu Scanner</button>
   <button onclick="showWeek('all', this)">All Recipes</button>
   <button onclick="showWeek('produce', this)">🌿 Produce Guide</button>
-  <button onclick="showWeek('items', this)">📦 Item Library</button>
 </nav>
 
 <div class="search-bar">
@@ -2014,6 +2013,7 @@
       <button class="grocery-btn" onclick="loadWeekList('week')">📅 Load This Week</button>
       <button class="grocery-btn danger" onclick="clearChecked()">Clear Done</button>
       <button class="grocery-btn danger" onclick="clearAll()">Clear All</button>
+      <button class="grocery-btn" id="item-lib-toggle-btn" onclick="toggleItemLib()">📦 Item Library</button>
     </div>
   </div>
 
@@ -2054,73 +2054,74 @@
 
   <!-- List -->
   <div id="grocery-list-container"></div>
-</div>
 
-<!-- ITEM LIBRARY -->
-<div class="week-section" id="section-items">
-  <div class="item-lib-header">
-    <div>
-      <p class="week-label">📦 Item Library</p>
-      <p class="week-meta" id="item-lib-meta">Your master list of grocery items</p>
+  <!-- Item Library (collapsible panel) -->
+  <div id="section-items" style="display:none;margin-top:1.5rem">
+    <div class="item-lib-header">
+      <div>
+        <p class="week-label">📦 Item Library</p>
+        <p class="week-meta" id="item-lib-meta">Your master list of grocery items</p>
+      </div>
+      <div class="grocery-actions">
+        <button class="grocery-btn" onclick="openItemEditor(null)">+ Add Item</button>
+        <button class="grocery-btn" onclick="document.getElementById('xlsxImport').click()">📥 Import XLSX</button>
+        <button class="grocery-btn" onclick="importFromSpreadsheet()">📋 Import from Spreadsheet</button>
+        <button class="grocery-btn" onclick="toggleNamingGuide()" id="guide-toggle-btn">📖 Naming Guide</button>
+      </div>
+      <input type="file" id="xlsxImport" accept=".xlsx,.xls,.csv" style="display:none" onchange="importItemsFromFile(this)">
     </div>
-    <div class="grocery-actions">
-      <button class="grocery-btn" onclick="openItemEditor(null)">+ Add Item</button>
-      <button class="grocery-btn" onclick="document.getElementById('xlsxImport').click()">📥 Import XLSX</button>
-      <button class="grocery-btn" onclick="toggleNamingGuide()" id="guide-toggle-btn">📖 Naming Guide</button>
+
+    <!-- Naming Guide (collapsible) -->
+    <div class="naming-guide" id="naming-guide" style="display:none">
+      <button class="naming-guide-close" onclick="toggleNamingGuide()">✕</button>
+      <div class="naming-guide-title">📖 Item Naming Guide — Noun first, descriptor second</div>
+      <p style="font-size:0.78rem;color:var(--brown-mid);margin-bottom:0.7rem;line-height:1.5">
+        Filing items by their main noun keeps your list grouped at the store. Use <strong>Noun, Descriptor</strong> format for the Sort Name so similar items stay together alphabetically.
+      </p>
+      <div class="naming-guide-rules">
+        <div class="naming-guide-rule"><span class="do">✓ Pepper, Bell - Red</span><span class="dont">✗ Red Bell Pepper</span></div>
+        <div class="naming-guide-rule"><span class="do">✓ Pepper, Bell - Green</span><span class="dont">✗ Green Pepper</span></div>
+        <div class="naming-guide-rule"><span class="do">✓ Carrot, Baby</span><span class="dont">✗ Baby Carrots</span></div>
+        <div class="naming-guide-rule"><span class="do">✓ Carrot, Shredded</span><span class="dont">✗ Shredded Carrots</span></div>
+        <div class="naming-guide-rule"><span class="do">✓ Tomato, Cherry</span><span class="dont">✗ Cherry Tomatoes</span></div>
+        <div class="naming-guide-rule"><span class="do">✓ Potato, Russet</span><span class="dont">✗ Russet Potato</span></div>
+        <div class="naming-guide-rule"><span class="do">✓ Mushroom, Sliced</span><span class="dont">✗ Sliced Mushrooms</span></div>
+        <div class="naming-guide-rule"><span class="do">✓ Cheese, Cheddar</span><span class="dont">✗ Cheddar Cheese</span></div>
+        <div class="naming-guide-rule"><span class="do">✓ Butter, Salted</span><span class="dont">✗ Salted Butter</span></div>
+        <div class="naming-guide-rule"><span class="do">✓ Juice, Apple</span><span class="dont">✗ Apple Juice</span></div>
+        <div class="naming-guide-rule"><span class="do">✓ Chicken, Breast</span><span class="dont">✗ Chicken Breast</span></div>
+        <div class="naming-guide-rule"><span class="do">✓ Sausage, Italian</span><span class="dont">✗ Italian Sausage</span></div>
+      </div>
+      <p style="font-size:0.72rem;color:var(--text-muted);margin-top:0.7rem">
+        The <strong>Display Name</strong> can be written naturally (e.g. "Red Bell Pepper") — that's what appears on your shopping list. The Sort Name is just for filing order.
+      </p>
     </div>
-    <input type="file" id="xlsxImport" accept=".xlsx,.xls,.csv" style="display:none" onchange="importItemsFromFile(this)">
-  </div>
 
-  <!-- Naming Guide (collapsible) -->
-  <div class="naming-guide" id="naming-guide" style="display:none">
-    <button class="naming-guide-close" onclick="toggleNamingGuide()">✕</button>
-    <div class="naming-guide-title">📖 Item Naming Guide — Noun first, descriptor second</div>
-    <p style="font-size:0.78rem;color:var(--brown-mid);margin-bottom:0.7rem;line-height:1.5">
-      Filing items by their main noun keeps your list grouped at the store. Use <strong>Noun, Descriptor</strong> format for the Sort Name so similar items stay together alphabetically.
-    </p>
-    <div class="naming-guide-rules">
-      <div class="naming-guide-rule"><span class="do">✓ Pepper, Bell - Red</span><span class="dont">✗ Red Bell Pepper</span></div>
-      <div class="naming-guide-rule"><span class="do">✓ Pepper, Bell - Green</span><span class="dont">✗ Green Pepper</span></div>
-      <div class="naming-guide-rule"><span class="do">✓ Carrot, Baby</span><span class="dont">✗ Baby Carrots</span></div>
-      <div class="naming-guide-rule"><span class="do">✓ Carrot, Shredded</span><span class="dont">✗ Shredded Carrots</span></div>
-      <div class="naming-guide-rule"><span class="do">✓ Tomato, Cherry</span><span class="dont">✗ Cherry Tomatoes</span></div>
-      <div class="naming-guide-rule"><span class="do">✓ Potato, Russet</span><span class="dont">✗ Russet Potato</span></div>
-      <div class="naming-guide-rule"><span class="do">✓ Mushroom, Sliced</span><span class="dont">✗ Sliced Mushrooms</span></div>
-      <div class="naming-guide-rule"><span class="do">✓ Cheese, Cheddar</span><span class="dont">✗ Cheddar Cheese</span></div>
-      <div class="naming-guide-rule"><span class="do">✓ Butter, Salted</span><span class="dont">✗ Salted Butter</span></div>
-      <div class="naming-guide-rule"><span class="do">✓ Juice, Apple</span><span class="dont">✗ Apple Juice</span></div>
-      <div class="naming-guide-rule"><span class="do">✓ Chicken, Breast</span><span class="dont">✗ Chicken Breast</span></div>
-      <div class="naming-guide-rule"><span class="do">✓ Sausage, Italian</span><span class="dont">✗ Italian Sausage</span></div>
+    <!-- Search + filter row -->
+    <div class="item-lib-controls">
+      <input type="text" class="item-lib-search" id="itemLibSearch" placeholder="Search items..." oninput="filterItemLib()">
+      <select class="item-lib-cat-filter" id="itemLibCatFilter" onchange="filterItemLib()">
+        <option value="">All Categories</option>
+      </select>
+      <span class="item-lib-count" id="item-lib-count"></span>
     </div>
-    <p style="font-size:0.72rem;color:var(--text-muted);margin-top:0.7rem">
-      The <strong>Display Name</strong> can be written naturally (e.g. "Red Bell Pepper") — that's what appears on your shopping list. The Sort Name is just for filing order.
-    </p>
-  </div>
 
-  <!-- Search + filter row -->
-  <div class="item-lib-controls">
-    <input type="text" class="item-lib-search" id="itemLibSearch" placeholder="Search items..." oninput="filterItemLib()">
-    <select class="item-lib-cat-filter" id="itemLibCatFilter" onchange="filterItemLib()">
-      <option value="">All Categories</option>
-    </select>
-    <span class="item-lib-count" id="item-lib-count"></span>
-  </div>
-
-  <!-- Table -->
-  <div class="item-table-wrap">
-    <table class="item-table">
-      <thead>
-        <tr>
-          <th>Sort Name</th>
-          <th>Display Name</th>
-          <th>Category</th>
-          <th>Store Section</th>
-          <th>Brand (optional)</th>
-          <th></th>
-        </tr>
-      </thead>
-      <tbody id="item-lib-tbody"></tbody>
-    </table>
+    <!-- Table -->
+    <div class="item-table-wrap">
+      <table class="item-table">
+        <thead>
+          <tr>
+            <th>Sort Name</th>
+            <th>Display Name</th>
+            <th>Category</th>
+            <th>Store Section</th>
+            <th>Brand (optional)</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="item-lib-tbody"></tbody>
+      </table>
+    </div>
   </div>
 </div>
 
@@ -3054,7 +3055,7 @@ function showWeek(week, btn) {
   if (week === 'planner') renderPlanner();
   if (week === 'produce') renderProduce();
   if (week === 'upload') resetUploader();
-  if (week === 'items') { if(window.populateItemDropdowns) window.populateItemDropdowns(); if(window.filterItemLib) window.filterItemLib(); }
+  if (week === 'items') { showWeek('grocery', document.querySelector('nav button')); if(window.toggleItemLib) window.toggleItemLib(); return; }
   if (week === 'menu') resetMenuScanner();
 }
 
@@ -4490,11 +4491,13 @@ const EASTER_WEEK3 = [
 ];
 
 const SECTION_ORDER = [
-  'Meat & Seafood', 'Produce', 'Dairy', 'Bread', 'Bakery & Deli',
-  'Frozen', 'Beverages', 'Cereal & Breakfast', 'Snacks',
-  'Canned Goods', 'Condiments', 'Condiments & International',
-  'Baking', 'Pasta & Rice', 'Spices', 'Soup & Broth',
-  'Cleaning', 'Pet Supplies', 'Pharmacy', 'Other'
+  'Produce', 'Bakery & Deli',
+  'Pasta & Rice', 'Canned Goods', 'Condiments & International', 'Condiments', 'Soup & Broth',
+  'Baking', 'Spices',
+  'Frozen', 'Cereal & Breakfast', 'Snacks', 'Beverages',
+  'Cleaning', 'Pet Supplies',
+  'Dairy', 'Bread', 'Pharmacy',
+  'Meat & Seafood', 'Other'
 ];
 
 let groceryList = [];
@@ -5236,11 +5239,14 @@ function renderProduce() {
 const ITEM_CATEGORIES = [
   'Asian','Bakery & Deli','Baking','Beans','Beer & Wine','Bread',
   'Canned Fruit','Canned Meats','Canned Tomatoes','Canned Vegetables',
-  'Cereal','Cleaning Supplies','Coffee','Condiments','Dairy','Dog Supplies',
-  'Frozen','Frozen Vegetable','Fruit','Juice','Meat','Mexican',
+  'Cereal','Chips','Cleaning Supplies','Coffee','Condiments','Crackers',
+  'Dairy','Dish Detergent','Dog Supplies','Energy Bars',
+  'Frozen','Frozen Bread','Frozen Breakfast','Frozen Dinners','Frozen Entrees',
+  'Frozen Fish','Frozen Novelties','Frozen Pizza','Frozen Potatoes','Frozen Poultry','Frozen Vegetable',
+  'Fruit','Hot Cereal','Ice Cream','Juice','Laundry Detergent','Meat','Mexican',
   'Oils/Shortening','Pasta','Pasta Sauce','Peanut Butter/Jelly','Pharmacy',
-  'Rice','Seltzer & Water','Snacks','Soda','Soup','Spices',
-  'Stuffing','Syrup','Vegetables','Other'
+  'Rice','Rice Cakes','Seltzer & Water','Snacks','Soda','Soup','Spices',
+  'Stuffing','Syrup','Tea','Tissues','Vegetables','Other'
 ];
 
 const STORE_SECTIONS = [
@@ -5255,17 +5261,23 @@ const CAT_TO_SECTION = {
   'Baking':'Baking','Beans':'Canned Goods','Beer & Wine':'Beverages',
   'Bread':'Bread','Canned Fruit':'Canned Goods','Canned Meats':'Canned Goods',
   'Canned Tomatoes':'Canned Goods','Canned Vegetables':'Canned Goods',
-  'Cereal':'Cereal & Breakfast','Cleaning Supplies':'Cleaning',
-  'Coffee':'Beverages','Condiments':'Condiments','Dairy':'Dairy',
-  'Dog Supplies':'Pet Supplies','Frozen':'Frozen','Frozen Vegetable':'Frozen',
-  'Fruit':'Produce','Juice':'Beverages','Meat':'Meat & Seafood',
-  'Mexican':'Canned Goods','Oils/Shortening':'Condiments',
+  'Cereal':'Cereal & Breakfast','Chips':'Snacks','Cleaning Supplies':'Cleaning',
+  'Coffee':'Beverages','Condiments':'Condiments','Crackers':'Snacks','Dairy':'Dairy',
+  'Dish Detergent':'Cleaning','Dog Supplies':'Pet Supplies','Energy Bars':'Cereal & Breakfast',
+  'Flour':'Baking',
+  'Frozen':'Frozen','Frozen Bread':'Frozen','Frozen Breakfast':'Frozen',
+  'Frozen Dinners':'Frozen','Frozen Entrees':'Frozen','Frozen Fish':'Frozen',
+  'Frozen Novelties':'Frozen','Frozen Pizza':'Frozen','Frozen Potatoes':'Frozen',
+  'Frozen Poultry':'Frozen','Frozen Vegetable':'Frozen',
+  'Fruit':'Produce','Hot Cereal':'Cereal & Breakfast','Ice Cream':'Frozen',
+  'Juice':'Beverages','Laundry Detergent':'Cleaning','Meat':'Meat & Seafood',
+  'Mexican':'Canned Goods','Oils/Shortening':'Baking',
   'Pasta':'Pasta & Rice','Pasta Sauce':'Pasta & Rice',
   'Peanut Butter/Jelly':'Condiments','Pharmacy':'Pharmacy',
-  'Rice':'Pasta & Rice','Seltzer & Water':'Beverages','Snacks':'Snacks',
+  'Rice':'Pasta & Rice','Rice Cakes':'Snacks','Seltzer & Water':'Beverages','Snacks':'Snacks',
   'Soda':'Beverages','Soup':'Soup & Broth','Spices':'Spices',
-  'Stuffing':'Canned Goods','Syrup':'Condiments','Vegetables':'Produce',
-  'Other':'Other'
+  'Stuffing':'Canned Goods','Syrup':'Condiments','Tea':'Beverages',
+  'Tissues':'Other','Vegetables':'Produce','Other':'Other'
 };
 
 // This is the shared item array — Firebase writes to it via window._itemLibrary
@@ -5420,6 +5432,78 @@ function deleteLibItem(id) {
   if (confirm('Delete this item from the library?')) {
     if (window._firebaseDeleteLibItem) window._firebaseDeleteLibItem(id);
   }
+}
+
+function toggleItemLib() {
+  const panel = document.getElementById('section-items');
+  const btn = document.getElementById('item-lib-toggle-btn');
+  const show = panel.style.display === 'none';
+  panel.style.display = show ? 'block' : 'none';
+  btn.textContent = show ? '✕ Close Library' : '📦 Item Library';
+  if (show) {
+    if (window.populateItemDropdowns) window.populateItemDropdowns();
+    if (window.filterItemLib) window.filterItemLib();
+    panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+}
+
+function importFromSpreadsheet() {
+  if (!window.saveLibItem) { alert('Not ready yet — try again in a moment.'); return; }
+  const CSV_ITEMS = [
+    {n:'Hoisin Sauce',c:'Asian',a:2},{n:'Lite Coconut Milk',c:'Asian',a:2},{n:'Oyster Sauce',c:'Asian',a:2},{n:'Rice Wine Vinegar',c:'Asian',a:2},{n:'Sesame Oil',c:'Asian',a:2},{n:'Sesame Seeds',c:'Asian',a:2},{n:'Soy Sauce',c:'Asian',a:2},{n:'Mirin',c:'Asian',a:2},{n:'Miso (White)',c:'Asian',a:2},
+    {n:'Parmesan Cheese',c:'Bakery & Deli',a:0.3},{n:'Feta Cheese',c:'Bakery & Deli',a:0.3},{n:'Mascarpone Cheese',c:'Bakery & Deli',a:0.3},{n:'Pancetta',c:'Bakery & Deli',a:0.3},{n:'Pizza Dough',c:'Bakery & Deli',a:0.3},{n:'Sliced Turkey',c:'Bakery & Deli',a:0.3},{n:'Sliced Ham',c:'Bakery & Deli',a:0.3},{n:'Sliced Roast Beef',c:'Bakery & Deli',a:0.3},{n:'Guacamole',c:'Bakery & Deli',a:0.3},{n:'Hummus',c:'Bakery & Deli',a:0.3},{n:'Cotija Cheese',c:'Bakery & Deli',a:0.3},{n:'Gruyere Cheese',c:'Bakery & Deli',a:0.3},{n:'French Bread',c:'Bakery & Deli',a:0.3},{n:'Multigrain Bread',c:'Bakery & Deli',a:0.3},{n:'Deli Chicken',c:'Bakery & Deli',a:0.3},{n:'Deli Meat (Generic)',c:'Bakery & Deli',a:0.3},{n:'Deli Cheese (Generic)',c:'Bakery & Deli',a:0.3},
+    {n:'All Purpose Flour',c:'Baking',a:3},{n:'Baking Mix',c:'Baking',a:3},{n:'Baking Powder',c:'Baking',a:3},{n:'Baking Soda',c:'Baking',a:3},{n:'Dark Brown Sugar',c:'Baking',a:3},{n:'Light Brown Sugar',c:'Baking',a:3},{n:'Milk Chocolate Chips',c:'Baking',a:3},{n:'Cornmeal',c:'Baking',a:3},{n:'Corn Starch',c:'Baking',a:3},{n:'Dark Chocolate Chips',c:'Baking',a:3},{n:'Instant Yeast',c:'Baking',a:3},{n:'Rolled Oats',c:'Baking',a:3},{n:'Almonds (Slivered)',c:'Baking',a:3},{n:'Almonds (Whole)',c:'Baking',a:3},{n:'Sugar',c:'Baking',a:3},{n:'Unsweetened Shredded Coconut',c:'Baking',a:3},{n:'Vanilla Extract',c:'Baking',a:3},{n:'Whole Wheat Flour',c:'Baking',a:3},{n:'Confectioners (Powdered) Sugar',c:'Baking',a:3},{n:'Dried Cranberries',c:'Baking',a:3},{n:'Condensed Milk',c:'Baking',a:3},{n:'Semi-Sweet Chocolate Chips',c:'Baking',a:3},{n:'Buttermilk Powder',c:'Baking',a:3},{n:'Vegetable Shortening',c:'Baking',a:3},{n:'Cornbread Mix',c:'Baking',a:3},{n:'Baking Cocoa',c:'Baking',a:3},{n:'Flax Seed',c:'Baking',a:3},{n:'Pecans',c:'Baking',a:3},{n:'Condensed Milk',c:'Baking',a:3},{n:'Vegetable Shortening',c:'Baking',a:3},
+    {n:'Cannellini Beans',c:'Beans',a:2},{n:'Black Beans',c:'Beans',a:2},{n:'Chickpeas',c:'Beans',a:2},{n:'Lentils',c:'Beans',a:2},{n:'Split Peas',c:'Beans',a:2},{n:'Chili Beans',c:'Beans',a:2},{n:'Baked Beans',c:'Beans',a:2},{n:'Red Kidney Beans',c:'Beans',a:2},
+    {n:'Tortillas (Taco)',c:'Bread',a:13},{n:'English Muffins',c:'Bread',a:13},{n:'Whole Grain White Bread',c:'Bread',a:13},{n:'Tortillas (Burrito)',c:'Bread',a:13},{n:'Hot Dog Buns',c:'Bread',a:13},{n:'Hamburger Rolls',c:'Bread',a:13},{n:'Slider Rolls',c:'Bread',a:13},{n:'Dinner Rolls',c:'Bread',a:13},{n:'Doughnuts',c:'Bread',a:13},{n:'Mini-Bagels',c:'Bread',a:13},{n:'Whole Wheat Bagels',c:'Bread',a:13},{n:'Little Bite Muffins',c:'Bread',a:13},{n:'Parchment Paper',c:'Bread',a:13},
+    {n:'Apple Sauce',c:'Canned Fruit',a:3},{n:'Canned Peaches',c:'Canned Fruit',a:3},{n:'Fruit Cocktail',c:'Canned Fruit',a:3},{n:'Mandarin Oranges',c:'Canned Fruit',a:3},{n:'Crushed Pineapple',c:'Canned Fruit',a:3},{n:'Cranberry Sauce',c:'Canned Fruit',a:3},{n:'Canned Pears',c:'Canned Fruit',a:3},{n:'Pineapple Chunks',c:'Canned Fruit',a:3},
+    {n:'Canned Chicken',c:'Canned Meats',a:2},{n:'Canned Tuna',c:'Canned Meats',a:2},{n:'Spam',c:'Canned Meats',a:2},
+    {n:'Tomato Puree',c:'Canned Tomatoes',a:1.05},{n:'Diced Roasted Red Peppers',c:'Canned Tomatoes',a:1.05},{n:'Diced Tomatoes',c:'Canned Tomatoes',a:1.05},{n:'Tomato Paste',c:'Canned Tomatoes',a:1.05},{n:'Diced Tomatoes with Green Chiles',c:'Canned Tomatoes',a:1.05},{n:'Crushed Tomatoes with Puree',c:'Canned Tomatoes',a:1.05},{n:'Basil Garlic & Oregano Diced Tomatoes',c:'Canned Tomatoes',a:1.05},{n:'Sun Dried Tomatoes',c:'Canned Tomatoes',a:1.05},{n:'Pepperoni',c:'Canned Tomatoes',a:1.05},
+    {n:'Canned Corn',c:'Canned Vegetables',a:2.1},{n:'Canned Peas',c:'Canned Vegetables',a:2.1},{n:'Canned Carrots',c:'Canned Vegetables',a:2.1},{n:'Peas & Carrots',c:'Canned Vegetables',a:2.1},{n:'Canned Mushrooms',c:'Canned Vegetables',a:2.1},{n:'Canned Sweet Corn',c:'Canned Vegetables',a:2.1},{n:'Red Kidney Beans (Canned)',c:'Canned Vegetables',a:2.1},{n:'Canned Green Beans',c:'Canned Vegetables',a:2.1},{n:'French Fried Onions',c:'Canned Vegetables',a:2.1},
+    {n:'Multigrain Cheerios',c:'Cereal',a:6},{n:'Raisin Bran Crunch',c:'Cereal',a:6},{n:'Lucky Charms',c:'Cereal',a:6},{n:'Old Fashioned Oats',c:'Cereal',a:6},{n:'Unsweetened Wheat Germ',c:'Cereal',a:6},{n:'Granola',c:'Cereal',a:6},{n:'Granola Bars',c:'Cereal',a:6},{n:'Bear Fruit Rolls',c:'Cereal',a:6},
+    {n:'Tortilla Chips',c:'Chips',a:9},{n:'Potato Chips',c:'Chips',a:9},{n:'Microwave Popcorn',c:'Chips',a:9},{n:'Peanut Butter Cracker',c:'Chips',a:9},
+    {n:'Dishwasher Rinse Aid',c:'Cleaning Supplies',a:11},{n:'Toilet Wand Refills',c:'Cleaning Supplies',a:11},{n:'Swifter WetJet Pads',c:'Cleaning Supplies',a:11},{n:'Pledge',c:'Cleaning Supplies',a:11},{n:'Windex',c:'Cleaning Supplies',a:11},{n:'Bathroom Cleaner',c:'Cleaning Supplies',a:11},{n:'OxiClean',c:'Laundry Detergent',a:11},{n:'Spray & Wash',c:'Laundry Detergent',a:11},{n:'Dryer Sheets',c:'Laundry Detergent',a:11},{n:'Dish Washer Detergent',c:'Dish Detergent',a:11},{n:'Regular Dish Soap',c:'Cleaning Supplies',a:11},{n:'Hand Soap',c:'Pharmacy',a:13},{n:'Febreeze',c:'Cleaning Supplies',a:11},{n:'Lysol Cleaning Solution',c:'Cleaning Supplies',a:11},{n:'Jet Dry',c:'Cleaning Supplies',a:11},{n:'WetJet Solution',c:'Cleaning Supplies',a:11},{n:'Scotch Brite Wand Refill Pad',c:'Cleaning Supplies',a:11},{n:'Paper Towels',c:'Cleaning Supplies',a:11},
+    {n:'Caffeinated Coffee',c:'Coffee',a:7},{n:'Decaffeinated Coffee',c:'Coffee',a:7},{n:'Coffee Filters',c:'Coffee',a:7},
+    {n:'Apple Cider Vinegar',c:'Condiments',a:2},{n:'Dry Sherry',c:'Condiments',a:2},{n:'Hot Sauce (Generic)',c:'Condiments',a:2},{n:'Ketchup',c:'Condiments',a:2},{n:'Mayonnaise',c:'Condiments',a:2},{n:'Hot Banana Peppers',c:'Condiments',a:2},{n:'Prepared Mustard',c:'Condiments',a:2},{n:'Ranch Seasoning',c:'Condiments',a:2},{n:'Red Wine Vinegar',c:'Condiments',a:2},{n:'Croutons',c:'Condiments',a:2},{n:'Sriracha',c:'Condiments',a:2},{n:'Tabasco (Green)',c:'Condiments',a:2},{n:'Tabasco (Red)',c:'Condiments',a:2},{n:'Whole Grain Dijon Mustard',c:'Condiments',a:2},{n:'Worcestershire Sauce',c:'Condiments',a:2},{n:'Dijon Mustard',c:'Condiments',a:2},{n:'Ranch Dressing',c:'Condiments',a:2},{n:'BBQ Sauce',c:'Condiments',a:2},{n:'Raspberry Vinaigrette',c:'Condiments',a:2},{n:'Specialty Mayo',c:'Condiments',a:2},{n:'Yellow Mustard',c:'Condiments',a:2},{n:'Teriyaki Sauce',c:'Asian',a:2},
+    {n:'Graham Crackers',c:'Crackers',a:9},{n:'Ritz Crackers',c:'Crackers',a:9},{n:'Saltine Crackers',c:'Crackers',a:9},{n:'Pretzels',c:'Crackers',a:9},{n:'Goldfish Individuals',c:'Crackers',a:9},{n:'Cheez-It',c:'Crackers',a:9},{n:'Snap Pea Snack',c:'Crackers',a:9},{n:'Rice Cakes',c:'Rice Cakes',a:6},
+    {n:'Almond Milk',c:'Dairy',a:13},{n:'Cheese Slices',c:'Dairy',a:13},{n:'Salted Butter',c:'Dairy',a:13},{n:'Unsalted Butter',c:'Dairy',a:13},{n:'Buttermilk',c:'Dairy',a:13},{n:'Cheddar Jack Cheese',c:'Dairy',a:13},{n:'Colby Jack Cheese',c:'Dairy',a:13},{n:'Cream Cheese',c:'Dairy',a:13},{n:'Eggs',c:'Dairy',a:13},{n:'Egg Whites',c:'Dairy',a:13},{n:'Half and Half',c:'Dairy',a:13},{n:'Heavy Cream',c:'Dairy',a:13},{n:'Light Cream',c:'Dairy',a:13},{n:'Kefir',c:'Dairy',a:13},{n:'Sour Cream',c:'Dairy',a:13},{n:'Mexican Cheese Blend',c:'Dairy',a:13},{n:'2% Milk',c:'Dairy',a:13},{n:'Lactaid Milk',c:'Dairy',a:13},{n:'Monterrey Jack Cheese',c:'Dairy',a:13},{n:'Two Good Vanilla Yogurt',c:'Dairy',a:13},{n:'Plain Yogurt',c:'Dairy',a:13},{n:'Yogurt Tubes',c:'Dairy',a:13},{n:'Mozzarella Cheese',c:'Dairy',a:13},{n:'Cheddar Cheese',c:'Dairy',a:13},{n:'Extra Sharp Cheddar Cheese',c:'Dairy',a:13},{n:'Pillsbury Crescent Rolls',c:'Dairy',a:13},{n:'Pizza Cheese',c:'Dairy',a:13},{n:'Orange Juice',c:'Dairy',a:13},{n:'Cinnamon Rolls',c:'Dairy',a:13},{n:'Siggi\'s Whole Plain Yogurt',c:'Dairy',a:13},{n:'Daisy Cottage Cheese',c:'Dairy',a:13},{n:'Velveeta Cheese',c:'Dairy',a:13},{n:'Pepper Jack Cheese',c:'Dairy',a:13},{n:'Cabot Vermont Extra Sharp Cheese',c:'Dairy',a:13},{n:'Whipped Cream',c:'Dairy',a:13},{n:'Gallon Storage Bags',c:'Dairy',a:13},{n:'Quart Storage Bags',c:'Dairy',a:13},{n:'Kitchen Trash Bags',c:'Dairy',a:13},
+    {n:'Fish Sticks',c:'Frozen Fish',a:4},
+    {n:'Bell Peppers and Onions Blend',c:'Frozen Vegetable',a:4},{n:'Frozen Maine Blueberries',c:'Frozen Vegetable',a:4},{n:'Frozen Broccoli',c:'Frozen Vegetable',a:4},{n:'Cauliflower Rice',c:'Frozen Vegetable',a:4},{n:'Frozen Spinach',c:'Frozen Vegetable',a:4},{n:'Frozen Peas and Carrots',c:'Frozen Vegetable',a:4},{n:'Frozen Carrots',c:'Frozen Vegetable',a:4},{n:'Frozen Peas',c:'Frozen Vegetable',a:4},{n:'Frozen Green Beans',c:'Frozen Vegetable',a:4},{n:'Frozen Strawberries',c:'Frozen Vegetable',a:4},{n:'Frozen Berry Medley',c:'Frozen Vegetable',a:4},{n:'Frozen Vegetables',c:'Frozen Vegetable',a:4},{n:'Frozen Stir Fry Vegetables',c:'Frozen Vegetable',a:4},{n:'Frozen Corn',c:'Frozen Vegetable',a:4},{n:'Frozen Corn on the Cob',c:'Frozen Vegetable',a:4},
+    {n:'Frozen Pizza',c:'Frozen Pizza',a:5},{n:'Dinosaur Chicken Nuggets',c:'Frozen Poultry',a:5},{n:'Frozen Chicken Tenders',c:'Frozen Poultry',a:5},{n:'Frozen Lasagna',c:'Frozen Dinners',a:4},{n:'TV Dinner',c:'Frozen Entrees',a:4},{n:'French Fries',c:'Frozen Potatoes',a:4},{n:'Ice Cream Drumsticks',c:'Ice Cream',a:5},{n:'Ice Cream',c:'Ice Cream',a:5},{n:'Garlic Knots',c:'Frozen Bread',a:4},{n:'Frozen Soft Pretzels',c:'Frozen Bread',a:4},{n:'Frozen Bread Sticks',c:'Frozen Bread',a:4},{n:'Frozen Rolls',c:'Frozen Bread',a:4},{n:'Frozen Biscuits',c:'Frozen Bread',a:4},{n:'Frozen Pancakes',c:'Frozen Breakfast',a:4},
+    {n:'Banana',c:'Fruit',a:0.2},{n:'Fresh Blueberries',c:'Fruit',a:0.2},{n:'Pineapple',c:'Fruit',a:0.2},{n:'Grapes',c:'Fruit',a:0.2},{n:'Lime',c:'Fruit',a:0.2},{n:'Strawberries',c:'Fruit',a:0.2},{n:'Lemon',c:'Fruit',a:0.2},{n:'Granny Smith Apple',c:'Fruit',a:0.2},{n:'Raspberries',c:'Fruit',a:0.2},{n:'Cherries',c:'Fruit',a:0.2},{n:'Mandarin Oranges (Fresh)',c:'Fruit',a:0.2},{n:'Pomegranate Arils',c:'Fruit',a:0.2},{n:'Kiwi',c:'Fruit',a:0.2},{n:'Apple Cider',c:'Fruit',a:0.2},
+    {n:'Instant Maple Oatmeal',c:'Hot Cereal',a:6},
+    {n:'Tomato Juice',c:'Juice',a:7},{n:'Apple Juice',c:'Juice',a:7},{n:'Prune Juice',c:'Juice',a:7},{n:'Pear Juice',c:'Juice',a:7},{n:'Cranberry Juice',c:'Juice',a:7},{n:'Lemon Juice',c:'Juice',a:7},
+    {n:'Ground Beef',c:'Meat',a:14},{n:'Boneless Pork Chops',c:'Meat',a:14},{n:'Bone-in Pork Chops',c:'Meat',a:14},{n:'Chicken Breast',c:'Meat',a:14},{n:'Chicken Wings',c:'Meat',a:14},{n:'Chicken Thighs',c:'Meat',a:14},{n:'Chicken Legs',c:'Meat',a:14},{n:'Ground Chicken',c:'Meat',a:14},{n:'Chicken Sausage',c:'Meat',a:14},{n:'Cod Fillets',c:'Meat',a:14},{n:'Haddock Fillets',c:'Meat',a:14},{n:'Salmon Fillets',c:'Meat',a:14},{n:'Corned Beef Brisket',c:'Meat',a:14},{n:'Beef Brisket',c:'Meat',a:14},{n:'Strip Steak',c:'Meat',a:14},{n:'Sirloin Steak',c:'Meat',a:14},{n:'T-bone Steak',c:'Meat',a:14},{n:'Ribeye Steak',c:'Meat',a:14},{n:'Whole Chicken',c:'Meat',a:14},{n:'Whole Turkey',c:'Meat',a:14},{n:'Whole Ham',c:'Meat',a:14},{n:'Pork Loin',c:'Meat',a:14},{n:'Pork Butt',c:'Meat',a:14},{n:'Pork Shoulder',c:'Meat',a:14},{n:'Ground Pork',c:'Meat',a:14},{n:'Italian Turkey Sausage',c:'Meat',a:14},{n:'Kielbasa',c:'Meat',a:14},{n:'Hot Dogs',c:'Meat',a:14},{n:'Bacon',c:'Meat',a:14},{n:'Ground Breakfast Sausage',c:'Meat',a:14},{n:'Breakfast Sausage Links',c:'Meat',a:14},{n:'Ground Turkey',c:'Meat',a:14},{n:'Lunchables',c:'Meat',a:14},{n:'Beef Stew Meat',c:'Meat',a:14},{n:'Boneless Country-Style Pork Ribs',c:'Meat',a:14},{n:'Turkey Tenderloin',c:'Meat',a:14},{n:'Meatloaf Mix',c:'Meat',a:14},{n:'Prepared Mashed Potatoes',c:'Meat',a:14},{n:'Cooked Ham',c:'Meat',a:14},{n:'Sage Pork Sausage',c:'Meat',a:14},{n:'Ground Italian Sausage',c:'Meat',a:14},{n:'Burger Patties',c:'Meat',a:14},{n:'Shaved Steak',c:'Meat',a:14},{n:'Chuck Roast',c:'Meat',a:14},{n:'Rib Roast',c:'Meat',a:14},{n:'Fish Counter',c:'Meat',a:14},
+    {n:'Refried Beans',c:'Mexican',a:1.3},{n:'Green Chilis',c:'Mexican',a:1.3},{n:'Pickled Jalapenos',c:'Mexican',a:1.3},{n:'Salsa',c:'Mexican',a:1.3},{n:'Taco Shells',c:'Mexican',a:1.3},{n:'Black Eyed Peas',c:'Mexican',a:1.3},
+    {n:'Olive Oil',c:'Oils/Shortening',a:3},{n:'Vegetable Oil',c:'Oils/Shortening',a:3},
+    {n:'Spaghetti',c:'Pasta',a:1.1},{n:'Egg Noodles',c:'Pasta',a:1.1},{n:'Elbow Macaroni',c:'Pasta',a:1.1},{n:'Bow Tie Pasta',c:'Pasta',a:1.1},{n:'Fusilli Pasta',c:'Pasta',a:1.1},{n:'Cavatappi Pasta',c:'Pasta',a:1.1},{n:'Fettuccine',c:'Pasta',a:1.1},{n:'Farfalle Pasta',c:'Pasta',a:1.1},{n:'Penne Pasta',c:'Pasta',a:1.1},{n:'Pasta Shells (small)',c:'Pasta',a:1.1},
+    {n:'Tomato Sauce',c:'Pasta Sauce',a:1.2},{n:'Spaghetti Sauce',c:'Pasta Sauce',a:1.2},{n:'Pizza Sauce',c:'Pasta Sauce',a:1.2},{n:'Alfredo Sauce',c:'Pasta Sauce',a:1.2},
+    {n:'Creamy Peanut Butter',c:'Peanut Butter/Jelly',a:6},{n:'Strawberry Jam',c:'Peanut Butter/Jelly',a:6},
+    {n:'Omeprazole',c:'Pharmacy',a:13},{n:'Kid\'s Shampoo & Conditioner',c:'Pharmacy',a:13},{n:'Kid\'s Culturelle Probiotics',c:'Pharmacy',a:13},{n:'Frozen Meatballs',c:'Pharmacy',a:13},{n:'Alcohol Wipes',c:'Pharmacy',a:13},{n:'Act Mouthwash',c:'Pharmacy',a:13},{n:'Bubble Bath',c:'Pharmacy',a:13},{n:'Q-tips',c:'Pharmacy',a:13},{n:'Tooth Brush',c:'Pharmacy',a:13},{n:'Shaving Cream',c:'Pharmacy',a:13},{n:'Hair Ties',c:'Pharmacy',a:13},{n:'Loratadine Allergy Medicine',c:'Pharmacy',a:13},{n:'Morning Face Wash',c:'Pharmacy',a:13},{n:'Deodorant',c:'Pharmacy',a:13},{n:'Body Wash',c:'Pharmacy',a:13},{n:'Vick\'s Vapor Rub Stick',c:'Pharmacy',a:13},{n:'Philips Fiber Gummies',c:'Pharmacy',a:13},{n:'Adult Probiotics',c:'Pharmacy',a:13},{n:'Kid\'s Vitamins',c:'Pharmacy',a:13},{n:'Chrissy Allergy Medicine',c:'Pharmacy',a:13},{n:'Chapstick',c:'Pharmacy',a:13},{n:'Kid\'s Allergy Medicine',c:'Pharmacy',a:13},{n:'Clear Care Contact Solution',c:'Pharmacy',a:13},{n:'Band Aids',c:'Pharmacy',a:13},{n:'Hair Brush',c:'Pharmacy',a:13},{n:'Men\'s Vitamins',c:'Pharmacy',a:13},{n:'Women\'s 50+ One a Day',c:'Pharmacy',a:13},{n:'Safety Pins',c:'Pharmacy',a:13},{n:'Tylenol',c:'Pharmacy',a:13},{n:'Detangler',c:'Pharmacy',a:13},{n:'Mouthwash - Crest Pro Health',c:'Pharmacy',a:13},{n:'Adult Fiber Medicine',c:'Pharmacy',a:13},
+    {n:'Brown Rice',c:'Rice',a:2},{n:'White Rice',c:'Rice',a:2},{n:'Instant Rice (White)',c:'Rice',a:2},{n:'Instant Rice (Brown)',c:'Rice',a:2},{n:'Basmati Rice',c:'Rice',a:2},{n:'Long Grain and Wild Rice Blend',c:'Rice',a:2},{n:'Pearled Couscous',c:'Rice',a:2},
+    {n:'Seltzer',c:'Seltzer & Water',a:8},{n:'Soda',c:'Soda',a:8},{n:'Water',c:'Seltzer & Water',a:8},{n:'Root Beer',c:'Soda',a:8},
+    {n:'Beef Broth',c:'Soup',a:2},{n:'Chicken Broth',c:'Soup',a:2},{n:'Beef Stock',c:'Soup',a:2},{n:'Chicken Stock',c:'Soup',a:2},{n:'Chicken Bullion',c:'Soup',a:2},{n:'Beef Bullion',c:'Soup',a:2},{n:'Ramen Noodles',c:'Soup',a:2},{n:'Soup (Generic)',c:'Soup',a:2},{n:'Chicken Noodle Soup',c:'Soup',a:2},{n:'Condensed Cream of Mushroom Soup',c:'Soup',a:2},{n:'Condensed Cream of Chicken Soup',c:'Soup',a:2},
+    {n:'Chili Powder',c:'Spices',a:3},{n:'Dried Parsley',c:'Spices',a:3},{n:'Salt',c:'Spices',a:3},{n:'Black Pepper',c:'Spices',a:3},{n:'Dried Oregano',c:'Spices',a:3},{n:'Fennel Seeds',c:'Spices',a:3},{n:'Red Pepper Flakes',c:'Spices',a:3},{n:'Cumin',c:'Spices',a:3},{n:'Sea Salt',c:'Spices',a:3},{n:'Bay Leaves',c:'Spices',a:3},{n:'Thyme',c:'Spices',a:3},{n:'Sage',c:'Spices',a:3},{n:'Paprika',c:'Spices',a:3},{n:'Nutmeg',c:'Spices',a:3},{n:'Italian Seasoning',c:'Spices',a:3},{n:'Kosher Salt',c:'Spices',a:3},{n:'Rosemary Sprigs',c:'Vegetables',a:0.1},
+    {n:'Stuffing',c:'Stuffing',a:3},
+    {n:'Honey',c:'Syrup',a:6},{n:'Maple Syrup',c:'Syrup',a:6},
+    {n:'Black Tea',c:'Tea',a:7},
+    {n:'Tissues',c:'Tissues',a:10},{n:'Toilet Paper',c:'Tissues',a:10},{n:'Dixie Cups (small)',c:'Tissues',a:9},
+    {n:'Broccoli',c:'Vegetables',a:0.1},{n:'Asparagus',c:'Vegetables',a:0.1},{n:'Mushrooms, Whole',c:'Vegetables',a:0.1},{n:'Mushrooms, Sliced',c:'Vegetables',a:0.1},{n:'Mushrooms',c:'Vegetables',a:0.1},{n:'Shiitake Mushrooms',c:'Vegetables',a:0.1},{n:'Green Beans',c:'Vegetables',a:0.1},{n:'50/50 Salad Mix',c:'Vegetables',a:0.1},{n:'Baby Spinach',c:'Vegetables',a:0.1},{n:'Baby Crisp Greens',c:'Vegetables',a:0.1},{n:'Arugula',c:'Vegetables',a:0.1},{n:'Carrots',c:'Vegetables',a:0.1},{n:'Baby Carrots',c:'Vegetables',a:0.1},{n:'Bagged Salad',c:'Vegetables',a:0.1},{n:'Cabbage',c:'Vegetables',a:0.1},{n:'Cauliflower',c:'Vegetables',a:0.1},{n:'Celery',c:'Vegetables',a:0.1},{n:'Cilantro',c:'Vegetables',a:0.1},{n:'Cole Slaw Mix',c:'Vegetables',a:0.1},{n:'Cucumber',c:'Vegetables',a:0.1},{n:'Baby Cucumber',c:'Vegetables',a:0.1},{n:'English Cucumber',c:'Vegetables',a:0.1},{n:'Garlic',c:'Vegetables',a:0.1},{n:'Fresh Ginger',c:'Vegetables',a:0.1},{n:'Green Onions',c:'Vegetables',a:0.1},{n:'Red Onions',c:'Vegetables',a:0.1},{n:'Yellow Onions',c:'Vegetables',a:0.1},{n:'Sweet Onions',c:'Vegetables',a:0.1},{n:'Avocado',c:'Vegetables',a:0.1},{n:'Russet Potato',c:'Vegetables',a:0.1},{n:'Red Potato',c:'Vegetables',a:0.1},{n:'Yellow Squash',c:'Vegetables',a:0.1},{n:'Zucchini',c:'Vegetables',a:0.1},{n:'Romaine Lettuce',c:'Vegetables',a:0.1},{n:'Sweet Potato',c:'Vegetables',a:0.1},{n:'Red Bell Pepper',c:'Vegetables',a:0.1},{n:'Yellow Bell Pepper',c:'Vegetables',a:0.1},{n:'Green Bell Pepper',c:'Vegetables',a:0.1},{n:'Orange Bell Pepper',c:'Vegetables',a:0.1},{n:'Tomato',c:'Vegetables',a:0.1},{n:'Cherry Tomato',c:'Vegetables',a:0.1},{n:'Shredded Carrots',c:'Vegetables',a:0.1},{n:'Corn on the Cob',c:'Vegetables',a:0.1},{n:'Sandwich Lettuce',c:'Vegetables',a:0.1},{n:'Shredded Lettuce',c:'Vegetables',a:0.1},{n:'Mini Multicolor Peppers',c:'Vegetables',a:0.1},{n:'Fresh Dill',c:'Vegetables',a:0.1},{n:'Shallot',c:'Vegetables',a:0.1},{n:'Thyme Sprigs',c:'Vegetables',a:0.1},{n:'Yukon Potato',c:'Vegetables',a:0.1},{n:'Baby Potatoes',c:'Vegetables',a:0.1},{n:'Avocado',c:'Vegetables',a:0.1},
+    {n:'Poop Bags',c:'Dog Supplies',a:12},{n:'Wholesomes Sensitive Skin Dog Food',c:'Dog Supplies',a:12},{n:'Greenies',c:'Dog Supplies',a:12},{n:'Beer',c:'Beer & Wine',a:1},{n:'Gluten Free Mac & Cheese',c:'Prepared Meals',a:2},{n:'Bear Fruit Snacks',c:'Energy Bars',a:6},
+  ];
+  const existing = new Set((_itemLibrary || []).map(i => (i.displayName || i.name || '').toLowerCase().trim()));
+  let added = 0;
+  CSV_ITEMS.forEach(row => {
+    if (!row.n) return;
+    const key = row.n.toLowerCase().trim();
+    if (existing.has(key)) return;
+    const section = CAT_TO_SECTION[row.c] || 'Other';
+    const id = 'csv_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7);
+    const item = { id, displayName: row.n, sortName: row.n, category: row.c, section, aisle: row.a };
+    if (window.saveLibItem) window.saveLibItem(item);
+    existing.add(key);
+    added++;
+  });
+  alert(`Import complete — ${added} new items added to your Item Library.`);
 }
 
 function toggleNamingGuide() {
