@@ -2061,15 +2061,25 @@
       <div class="grocery-actions">
         <button class="grocery-btn" onclick="backToEventList()">← Back</button>
         <button class="grocery-btn" onclick="openEventDishPicker()">+ Add Recipe</button>
-        <button class="grocery-btn" onclick="addEventCustomDish()">+ Custom Item</button>
         <button class="grocery-btn" onclick="reviewEventForGrocery()">🛒 Add to Grocery List</button>
         <button class="grocery-btn danger" onclick="deleteCurrentEvent()">Delete</button>
       </div>
     </div>
 
     <div id="event-dishes-container" style="margin-top:0.5rem">
-      <p class="event-empty" id="event-dishes-empty">No dishes yet — add recipes or custom items above.</p>
+      <p class="event-empty" id="event-dishes-empty">No dishes yet — add a recipe above or search items below.</p>
       <div id="event-dishes-list"></div>
+      <div class="add-item-row" style="margin-top:0.6rem">
+        <div class="autocomplete-wrap" style="flex:1;position:relative">
+          <input type="text" id="event-item-input" class="add-input" style="width:100%"
+            placeholder="Search items (hot dogs, buns...)"
+            oninput="eventItemAutocomplete(this.value)"
+            onkeydown="handleEventItemKey(event)"
+            autocomplete="off">
+          <div class="autocomplete-dropdown" id="event-item-suggestions"></div>
+        </div>
+        <button class="add-btn" onclick="addEventItem()">+</button>
+      </div>
     </div>
 
     <div id="event-guests-container">
@@ -3507,6 +3517,7 @@ window.addEventGuest = addEventGuest;
 window.removeEventGuest = removeEventGuest;
 window.addEventContribution = addEventContribution;
 window.removeEventContribution = removeEventContribution;
+window.addEventItem = addEventItem;
 window.removeFromPlan = removeFromPlan;
 window.closeReviewModal = closeReviewModal;
 window.closeReviewDirect = closeReviewDirect;
@@ -4406,7 +4417,7 @@ function addReviewedItems() {
       updateItem(existing.id, { sources });
       existing.sources = sources;
     } else {
-      const section = sectionFromLibrary(ing.name);
+      const section = ing.section || sectionFromLibrary(ing.name);
       const tag = isEvent ? 'event' : 'meal';
       const newItem = { id: generateId(), name: ing.name, baseIngredient: ing.name, section, tag, checked: false, sources: [source] };
       saveItem(newItem);
@@ -4545,16 +4556,21 @@ function openEventDishPicker() {
   filterPicker('');
 }
 
-function addEventCustomDish() {
-  saveCurrentEventMeta();
-  const name = prompt('Custom item name (e.g. "Dinner rolls — 3 bags"):');
-  if (!name || !name.trim()) return;
+function addEventItem() {
+  const input = document.getElementById('event-item-input');
+  const name = (input.value || '').trim();
+  if (!name) return;
+  const section = input.dataset.section || sectionFromLibrary(name);
   const evt = eventsCache[_currentEventId];
   if (!evt) return;
   if (!evt.dishes) evt.dishes = [];
-  const dish = { id: 'dish_' + Date.now(), type: 'custom', title: name.trim(), servings: 0 };
+  const dish = { id: 'dish_' + Date.now(), type: 'custom', title: name, section, servings: 0 };
   evt.dishes.push(dish);
   set(ref(db, _eventsBasePath + '/' + _currentEventId + '/dishes'), evt.dishes);
+  input.value = '';
+  delete input.dataset.section;
+  const d = document.getElementById('event-item-suggestions');
+  if (d) d.classList.remove('open');
   renderEventDishes();
 }
 
@@ -4599,7 +4615,7 @@ function reviewEventForGrocery() {
     } else if (dish.type === 'custom') {
       const key = dish.title.toLowerCase().trim();
       if (!ingredientMap[key]) {
-        ingredientMap[key] = { name: dish.title, amount: 0, unit: '', eventName: evt.name || 'Event', checked: false };
+        ingredientMap[key] = { name: dish.title, amount: 0, unit: '', section: dish.section, eventName: evt.name || 'Event', checked: false };
       }
     }
   });
@@ -6038,13 +6054,81 @@ function handleGroceryKey(e) {
   }
 }
 
-// Close dropdown when clicking anywhere outside
+// Close dropdowns when clicking anywhere outside
 document.addEventListener('click', e => {
   if (!e.target.closest('.autocomplete-wrap')) {
     const d = document.getElementById('grocery-suggestions');
     if (d) d.classList.remove('open');
+    const d2 = document.getElementById('event-item-suggestions');
+    if (d2) d2.classList.remove('open');
   }
 });
+
+let _evtAcIndex = -1;
+
+function eventItemAutocomplete(query) {
+  const dropdown = document.getElementById('event-item-suggestions');
+  _evtAcIndex = -1;
+  const q = query.trim().toLowerCase();
+  if (!q) { dropdown.classList.remove('open'); return; }
+  const lib = window._itemLibrary || [];
+  const matches = lib.filter(item => {
+    const name = (item.displayName || item.sortName || '').toLowerCase();
+    return name.includes(q) || (item.sortName || '').toLowerCase().includes(q);
+  }).slice(0, 50);
+  if (matches.length === 0) {
+    dropdown.innerHTML = `<div class="autocomplete-empty">Not in library — press + to add as typed</div>`;
+  } else {
+    dropdown.innerHTML = matches.map((item, i) => `
+      <div class="autocomplete-item" data-index="${i}"
+        onmousedown="selectEventItem('${escAc(item.displayName || item.sortName)}','${escAc(item.storeSection || 'Other')}')"
+        onmouseover="_evtAcIndex=${i};document.querySelectorAll('#event-item-suggestions .autocomplete-item').forEach((el,j)=>el.classList.toggle('active',j===${i}))">
+        <span class="autocomplete-name">${item.displayName || item.sortName}</span>
+        <span class="autocomplete-section">${item.storeSection || ''}</span>
+      </div>`).join('');
+  }
+  dropdown.classList.add('open');
+}
+
+function selectEventItem(name, section) {
+  const input = document.getElementById('event-item-input');
+  if (!input) return;
+  input.value = name;
+  input.dataset.section = section;
+  document.getElementById('event-item-suggestions').classList.remove('open');
+  _evtAcIndex = -1;
+  input.focus();
+}
+
+function handleEventItemKey(e) {
+  const dropdown = document.getElementById('event-item-suggestions');
+  const items = dropdown.querySelectorAll('.autocomplete-item');
+  if (!dropdown.classList.contains('open') || items.length === 0) {
+    if (e.key === 'Enter') { if (window.addEventItem) window.addEventItem(); }
+    return;
+  }
+  if (e.key === 'ArrowDown') {
+    e.preventDefault();
+    _evtAcIndex = Math.min(_evtAcIndex + 1, items.length - 1);
+    items.forEach((el, i) => el.classList.toggle('active', i === _evtAcIndex));
+    if (items[_evtAcIndex]) items[_evtAcIndex].scrollIntoView({ block: 'nearest' });
+  } else if (e.key === 'ArrowUp') {
+    e.preventDefault();
+    _evtAcIndex = Math.max(_evtAcIndex - 1, 0);
+    items.forEach((el, i) => el.classList.toggle('active', i === _evtAcIndex));
+    if (items[_evtAcIndex]) items[_evtAcIndex].scrollIntoView({ block: 'nearest' });
+  } else if (e.key === 'Enter') {
+    e.preventDefault();
+    if (_evtAcIndex >= 0 && items[_evtAcIndex]) {
+      items[_evtAcIndex].dispatchEvent(new MouseEvent('mousedown'));
+    } else {
+      dropdown.classList.remove('open');
+      if (window.addEventItem) window.addEventItem();
+    }
+  } else if (e.key === 'Escape') {
+    dropdown.classList.remove('open');
+  }
+}
 
 function importItemsFromFile(input) {
   const file = input.files[0];
