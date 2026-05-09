@@ -183,7 +183,12 @@
     text-transform: uppercase; letter-spacing: 0.1em;
     padding: 0.5rem 0; margin-bottom: 0.9rem;
     border-bottom: 2px solid var(--accent-light);
+    cursor: pointer; user-select: none;
   }
+  .recipe-section-header:hover { color: var(--accent); }
+  .recipe-section-toggle { margin-left: auto; font-size: 0.7rem; color: var(--text-muted); transition: transform 0.15s; }
+  .recipe-section.collapsed .recipe-section-toggle { transform: rotate(-90deg); }
+  .recipe-section.collapsed .recipe-section-body { display: none; }
   .recipe-section-count {
     font-size: 0.7rem; font-weight: 500; color: var(--text-muted);
     text-transform: none; letter-spacing: 0;
@@ -3263,6 +3268,19 @@ const COURSE_SECTION_LABELS = {
   snack: '🍎 Snacks', breakfast: '🍳 Breakfast',
 };
 
+const _recipeCollapsed = new Set(JSON.parse(localStorage.getItem('recipeCollapsedSections') || '[]'));
+
+function toggleRecipeSection(course) {
+  if (_recipeCollapsed.has(course)) {
+    _recipeCollapsed.delete(course);
+  } else {
+    _recipeCollapsed.add(course);
+  }
+  localStorage.setItem('recipeCollapsedSections', JSON.stringify([..._recipeCollapsed]));
+  const sec = document.getElementById('recipe-section-' + course);
+  if (sec) sec.classList.toggle('collapsed', _recipeCollapsed.has(course));
+}
+
 function renderGroupedGrid(containerId, list) {
   const el = document.getElementById(containerId);
   if (!el) return;
@@ -3280,18 +3298,28 @@ function renderGroupedGrid(containerId, list) {
   COURSE_SECTION_ORDER.forEach(course => {
     const group = grouped[course];
     if (!group || group.length === 0) return;
-    html += `<div class="recipe-section">
-      <div class="recipe-section-header">
+    const collapsed = _recipeCollapsed.has(course);
+    html += `<div class="recipe-section${collapsed ? ' collapsed' : ''}" id="recipe-section-${course}">
+      <div class="recipe-section-header" onclick="toggleRecipeSection('${course}')">
         ${COURSE_SECTION_LABELS[course]}
         <span class="recipe-section-count">${group.length} recipe${group.length !== 1 ? 's' : ''}</span>
+        <span class="recipe-section-toggle">▼</span>
       </div>
-      <div class="recipe-section-grid">${group.map(recipeCardHTML).join('')}</div>
+      <div class="recipe-section-body">
+        <div class="recipe-section-grid">${group.map(recipeCardHTML).join('')}</div>
+      </div>
     </div>`;
   });
   if (uncategorized.length > 0) {
-    html += `<div class="recipe-section">
-      <div class="recipe-section-header">Other <span class="recipe-section-count">${uncategorized.length} recipe${uncategorized.length !== 1 ? 's' : ''}</span></div>
-      <div class="recipe-section-grid">${uncategorized.map(recipeCardHTML).join('')}</div>
+    const collapsed = _recipeCollapsed.has('other');
+    html += `<div class="recipe-section${collapsed ? ' collapsed' : ''}" id="recipe-section-other">
+      <div class="recipe-section-header" onclick="toggleRecipeSection('other')">
+        Other <span class="recipe-section-count">${uncategorized.length} recipe${uncategorized.length !== 1 ? 's' : ''}</span>
+        <span class="recipe-section-toggle">▼</span>
+      </div>
+      <div class="recipe-section-body">
+        <div class="recipe-section-grid">${uncategorized.map(recipeCardHTML).join('')}</div>
+      </div>
     </div>`;
   }
   el.innerHTML = html;
@@ -3311,6 +3339,52 @@ function renderRecipes(list) {
     renderGrid('grid-all', list);
   }
   document.getElementById('no-results').style.display = list.length === 0 ? 'block' : 'none';
+}
+
+async function autoTagCourses() {
+  const VEGETABLE_WORDS = /\b(green beans|broccoli|asparagus|zucchini|carrots?|cauliflower|spinach|kale|brussels sprouts?|roasted veg|saut[eé]ed veg|glazed|vegetable side|steamed|stir.?fried veg)\b/i;
+  const STARCH_WORDS = /\b(mashed potato|roasted potato|rice|pasta|noodles?|mac (and|&|n) cheese|macaroni|quinoa|couscous|bread|rolls?|biscuits?|grits|polenta|orzo|farro)\b/i;
+  const SOUP_WORDS = /\b(soup|stew|chili|chowder|bisque|broth|chili)\b/i;
+  const SALAD_WORDS = /\b(salad|slaw|coleslaw)\b/i;
+  const SIDE_WORDS = /\b(side dish|applesauce|baked beans|corn|succotash|relish|salsa|dip|hummus)\b/i;
+  const BREAKFAST_WORDS = /\b(breakfast|pancake|waffle|egg|omelette|omelet|frittata|quiche|oatmeal|granola|smoothie bowl|french toast)\b/i;
+  const SNACK_WORDS = /\b(snack|dip|hummus|guacamole|trail mix|energy balls?|bites?)\b/i;
+
+  function inferCourse(r) {
+    const text = (r.title + ' ' + (r.desc || '')).toLowerCase();
+    if (SOUP_WORDS.test(text)) return 'soup';
+    if (SALAD_WORDS.test(text)) return 'salad';
+    if (BREAKFAST_WORDS.test(text)) return 'breakfast';
+    if (SNACK_WORDS.test(text)) return 'snack';
+    if (VEGETABLE_WORDS.test(text)) return 'vegetable';
+    if (STARCH_WORDS.test(text)) return 'starch';
+    if (SIDE_WORDS.test(text)) return 'side';
+    return 'main';
+  }
+
+  const untagged = userRecipes.filter(r => !r.course);
+  if (untagged.length === 0) {
+    alert('All recipes already have a course assigned!');
+    return;
+  }
+
+  const proposals = untagged.map(r => ({ r, suggested: inferCourse(r) }));
+  const preview = proposals.map(({ r, suggested }) =>
+    `  ${r.title}  →  ${suggested}`
+  ).join('\n');
+
+  const confirmed = confirm(
+    `Auto-tag ${proposals.length} untagged recipes?\n\nProposed tags:\n${preview}\n\nYou can edit any individually after. Continue?`
+  );
+  if (!confirmed) return;
+
+  let updated = 0;
+  for (const { r, suggested } of proposals) {
+    await set(ref(db, `userRecipes/${r.id}/course`), suggested);
+    updated++;
+  }
+  alert(`Done! Tagged ${updated} recipes. The page will reload to show the changes.`);
+  location.reload();
 }
 
 async function migrateHardcodedRecipes(showStatus) {
@@ -3723,6 +3797,8 @@ window.saveNewRecipe = saveNewRecipe;
 window.discardRecipePreview = discardRecipePreview;
 window.resetUploader = resetUploader;
 window.toggleSection = toggleSection;
+window.toggleRecipeSection = toggleRecipeSection;
+window.autoTagCourses = autoTagCourses;
 window.calcNutritionForCurrent = calcNutritionForCurrent;
 window.openActivityPicker = openActivityPicker;
 window.addActivityPreset = addActivityPreset;
