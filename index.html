@@ -1783,6 +1783,41 @@
 
   /* ── NEW GROCERY ITEM FIELDS ──────────────────────────────────────── */
   .item-tag.adhoc { background: #EDE8F5; color: #6B4FA0; }
+  .item-tag.event { background: #D6F0EC; color: #1A6B5C; }
+
+  /* EVENT PLANNER */
+  .event-card {
+    background: var(--warm-white);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1rem 1.2rem;
+    margin-bottom: 0.7rem;
+    cursor: pointer;
+    transition: border-color 0.15s;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .event-card:hover { border-color: var(--accent); }
+  .event-card-name { font-family: 'Playfair Display', serif; font-size: 1.05rem; color: var(--brown); margin-bottom: 0.2rem; }
+  .event-card-meta { font-size: 0.78rem; color: var(--text-muted); }
+  .event-dish-row {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.8rem 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .event-dish-row:last-child { border-bottom: none; }
+  .event-dish-title { flex: 1; font-size: 0.92rem; color: var(--brown); }
+  .event-dish-custom-row {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px dashed var(--border);
+  }
+  .event-empty { text-align: center; color: var(--text-muted); padding: 2rem 1rem; font-size: 0.9rem; }
   .item-qty {
     font-size: 0.68rem;
     font-weight: 600;
@@ -1874,6 +1909,7 @@
 <nav id="nav">
   <button class="active" onclick="showWeek('grocery', this)">🛒 Grocery List</button>
   <button onclick="showWeek('planner', this)">📅 Meal Planner</button>
+  <button onclick="showWeek('events', this)">🎉 Events</button>
   <button onclick="showWeek('upload', this)">➕ Add Recipe</button>
   <button onclick="showWeek('menu', this)">🍽️ Menu Scanner</button>
   <button onclick="showWeek('all', this)">All Recipes</button>
@@ -1987,6 +2023,50 @@
     </div>
   </div>
 </div>
+<!-- EVENT PLANNER -->
+<div class="week-section" id="section-events">
+
+  <!-- List view -->
+  <div id="events-list-view">
+    <div class="grocery-header">
+      <div>
+        <p class="week-label">🎉 Event Planner</p>
+        <p class="week-meta">Plan parties and holidays — saves year to year</p>
+      </div>
+      <div class="grocery-actions">
+        <button class="grocery-btn" onclick="createEvent()">+ New Event</button>
+      </div>
+    </div>
+    <div id="events-list-container"><p class="event-empty">No events yet — tap + New Event to get started.</p></div>
+  </div>
+
+  <!-- Detail view -->
+  <div id="events-detail-view" style="display:none">
+    <div class="grocery-header" style="flex-wrap:wrap;gap:0.8rem">
+      <div style="flex:1;min-width:200px">
+        <input type="text" id="event-name-input" class="add-input"
+          placeholder="Event name (e.g. Thanksgiving)"
+          style="font-family:'Playfair Display',serif;font-size:1.05rem;width:100%;margin-bottom:0.5rem"
+          onblur="saveCurrentEventMeta()">
+        <input type="date" id="event-date-input" class="add-input"
+          style="font-size:0.85rem;max-width:200px" onblur="saveCurrentEventMeta()">
+      </div>
+      <div class="grocery-actions">
+        <button class="grocery-btn" onclick="backToEventList()">← Back</button>
+        <button class="grocery-btn" onclick="openEventDishPicker()">+ Add Recipe</button>
+        <button class="grocery-btn" onclick="addEventCustomDish()">+ Custom Item</button>
+        <button class="grocery-btn" onclick="reviewEventForGrocery()">🛒 Add to Grocery List</button>
+        <button class="grocery-btn danger" onclick="deleteCurrentEvent()">Delete</button>
+      </div>
+    </div>
+
+    <div id="event-dishes-container" style="margin-top:0.5rem">
+      <p class="event-empty" id="event-dishes-empty">No dishes yet — add recipes or custom items above.</p>
+      <div id="event-dishes-list"></div>
+    </div>
+  </div>
+</div>
+
 <!-- PRODUCE GUIDE -->
 <div class="week-section" id="section-produce">
   <p class="week-label">🌿 Produce Guide</p>
@@ -3053,6 +3133,7 @@ function showWeek(week, btn) {
   if (week === 'all') renderGrid('grid-all', userRecipes);
   if (week === 'grocery') renderGrocery();
   if (week === 'planner') renderPlanner();
+  if (week === 'events') renderEvents();
   if (week === 'produce') renderProduce();
   if (week === 'upload') resetUploader();
   if (week === 'items') { showWeek('grocery', document.querySelector('nav button')); if(window.toggleItemLib) window.toggleItemLib(); return; }
@@ -3377,6 +3458,16 @@ window.closePickerModal = closePickerModal;
 window.closePickerDirect = closePickerDirect;
 window.reviewGroceries = reviewGroceries;
 window.addReviewedItems = addReviewedItems;
+window.createEvent = createEvent;
+window.openEvent = openEvent;
+window.backToEventList = backToEventList;
+window.saveCurrentEventMeta = saveCurrentEventMeta;
+window.openEventDishPicker = openEventDishPicker;
+window.addEventCustomDish = addEventCustomDish;
+window.updateEventDishServings = updateEventDishServings;
+window.removeEventDish = removeEventDish;
+window.deleteCurrentEvent = deleteCurrentEvent;
+window.reviewEventForGrocery = reviewEventForGrocery;
 window.removeFromPlan = removeFromPlan;
 window.closeReviewModal = closeReviewModal;
 window.closeReviewDirect = closeReviewDirect;
@@ -4088,6 +4179,7 @@ function filterPicker(query) {
 }
 
 function assignRecipe(id) {
+  if (_eventPickerMode) { assignRecipeToEvent(id); return; }
   const weekKey = currentWeekKey();
   const plan = getMealPlan(weekKey);
   plan[pickerTargetDay] = id;
@@ -4260,24 +4352,215 @@ function addReviewedItems() {
   const checkboxes = document.querySelectorAll('#review-list input[type="checkbox"]');
   const toAdd = reviewIngredients.filter((_, i) => checkboxes[i]?.checked);
   if (toAdd.length === 0) { alert('No items selected!'); return; }
-  const localBatch = {}; // track items added this batch before Firebase syncs back
+  const localBatch = {};
+  const isEvent = _reviewingForEvent;
+  _reviewingForEvent = false;
   toAdd.forEach(ing => {
     const ingKey = ing.name.toLowerCase().trim();
     const qtyStr = ing.amount ? `${formatAmount(ing.amount,1,1)}${ing.unit ? ' ' + ing.unit : ''}` : '';
-    const source = { recipe: ing.recipeName || '', qty: qtyStr };
+    const source = isEvent
+      ? { recipe: ing.eventName || 'Event', qty: qtyStr }
+      : { recipe: ing.recipeName || '', qty: qtyStr };
     const existing = findExistingGroceryItem(ing.name, localBatch);
     if (existing) {
       const sources = existing.sources ? [...existing.sources, source] : [source];
       updateItem(existing.id, { sources });
-      existing.sources = sources; // keep local ref current for rest of batch
+      existing.sources = sources;
     } else {
       const section = sectionFromLibrary(ing.name);
-      const newItem = { id: generateId(), name: ing.name, baseIngredient: ing.name, section, tag: 'meal', checked: false, sources: [source] };
+      const tag = isEvent ? 'event' : 'meal';
+      const newItem = { id: generateId(), name: ing.name, baseIngredient: ing.name, section, tag, checked: false, sources: [source] };
       saveItem(newItem);
       localBatch[ingKey] = newItem;
     }
   });
   closeReviewDirect();
+}
+
+// ─── EVENT PLANNER ───────────────────────────────────────────────
+let _currentEventId = null;
+let _eventPickerMode = false;
+let _reviewingForEvent = false;
+
+function renderEvents() {
+  const container = document.getElementById('events-list-container');
+  if (!container) return;
+  document.getElementById('events-list-view').style.display = 'block';
+  document.getElementById('events-detail-view').style.display = 'none';
+  const events = Object.values(eventsCache).sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+  if (events.length === 0) {
+    container.innerHTML = '<p class="event-empty">No events yet — tap + New Event to get started.</p>';
+    return;
+  }
+  container.innerHTML = events.map(evt => {
+    const dishes = evt.dishes || [];
+    const dateStr = evt.date ? new Date(evt.date + 'T12:00:00').toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : 'No date set';
+    return `<div class="event-card" onclick="openEvent('${evt.id}')">
+      <div>
+        <div class="event-card-name">${evt.name || 'Unnamed Event'}</div>
+        <div class="event-card-meta">${dateStr} · ${dishes.length} dish${dishes.length !== 1 ? 'es' : ''}</div>
+      </div>
+      <span style="color:var(--text-muted);font-size:1.3rem">›</span>
+    </div>`;
+  }).join('');
+}
+
+function createEvent() {
+  const id = 'evt_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6);
+  const evt = { id, name: '', date: '', dishes: [], createdAt: Date.now() };
+  set(ref(db, _eventsBasePath + '/' + id), evt);
+  eventsCache[id] = evt;
+  openEvent(id);
+}
+
+function openEvent(id) {
+  _currentEventId = id;
+  const evt = eventsCache[id];
+  if (!evt) return;
+  document.getElementById('events-list-view').style.display = 'none';
+  document.getElementById('events-detail-view').style.display = 'block';
+  document.getElementById('event-name-input').value = evt.name || '';
+  document.getElementById('event-date-input').value = evt.date || '';
+  renderEventDishes();
+}
+
+function backToEventList() {
+  saveCurrentEventMeta();
+  _currentEventId = null;
+  renderEvents();
+}
+
+function saveCurrentEventMeta() {
+  if (!_currentEventId) return;
+  const name = (document.getElementById('event-name-input').value || '').trim();
+  const date = document.getElementById('event-date-input').value || '';
+  set(ref(db, _eventsBasePath + '/' + _currentEventId + '/name'), name);
+  set(ref(db, _eventsBasePath + '/' + _currentEventId + '/date'), date);
+  if (eventsCache[_currentEventId]) {
+    eventsCache[_currentEventId].name = name;
+    eventsCache[_currentEventId].date = date;
+  }
+}
+
+function renderEventDishes() {
+  const evt = eventsCache[_currentEventId];
+  const dishes = evt ? (evt.dishes || []) : [];
+  const empty = document.getElementById('event-dishes-empty');
+  const list = document.getElementById('event-dishes-list');
+  if (!list) return;
+  empty.style.display = dishes.length === 0 ? 'block' : 'none';
+  list.innerHTML = dishes.map((dish, i) => `
+    <div class="event-dish-row">
+      <span class="event-dish-title">${dish.title}${dish.type === 'custom' ? ' <span style="font-size:0.7rem;color:var(--text-muted)">(custom)</span>' : ''}</span>
+      ${dish.type === 'recipe' ? `
+        <label style="font-size:0.75rem;color:var(--text-muted);white-space:nowrap">Serves</label>
+        <input type="number" class="add-input" style="width:60px;text-align:center;padding:0.35rem" value="${dish.servings || 4}" min="1" max="200"
+          onchange="updateEventDishServings(${i}, this.value)">
+      ` : ''}
+      <button class="delete-item" onclick="removeEventDish(${i})">✕</button>
+    </div>`).join('');
+}
+
+function updateEventDishServings(index, value) {
+  const evt = eventsCache[_currentEventId];
+  if (!evt || !evt.dishes[index]) return;
+  evt.dishes[index].servings = parseInt(value) || 4;
+  set(ref(db, _eventsBasePath + '/' + _currentEventId + '/dishes'), evt.dishes);
+}
+
+function removeEventDish(index) {
+  const evt = eventsCache[_currentEventId];
+  if (!evt) return;
+  evt.dishes.splice(index, 1);
+  set(ref(db, _eventsBasePath + '/' + _currentEventId + '/dishes'), evt.dishes.length ? evt.dishes : []);
+  renderEventDishes();
+}
+
+function deleteCurrentEvent() {
+  if (!_currentEventId) return;
+  const evt = eventsCache[_currentEventId];
+  const name = evt ? (evt.name || 'this event') : 'this event';
+  if (!confirm(`Delete "${name}"? This can't be undone.`)) return;
+  remove(ref(db, _eventsBasePath + '/' + _currentEventId));
+  delete eventsCache[_currentEventId];
+  backToEventList();
+}
+
+function openEventDishPicker() {
+  saveCurrentEventMeta();
+  _eventPickerMode = true;
+  pickerTargetDay = '__event__';
+  document.getElementById('picker-modal').classList.add('open');
+  document.body.style.overflow = 'hidden';
+  filterPicker('');
+}
+
+function addEventCustomDish() {
+  saveCurrentEventMeta();
+  const name = prompt('Custom item name (e.g. "Dinner rolls — 3 bags"):');
+  if (!name || !name.trim()) return;
+  const evt = eventsCache[_currentEventId];
+  if (!evt) return;
+  if (!evt.dishes) evt.dishes = [];
+  const dish = { id: 'dish_' + Date.now(), type: 'custom', title: name.trim(), servings: 0 };
+  evt.dishes.push(dish);
+  set(ref(db, _eventsBasePath + '/' + _currentEventId + '/dishes'), evt.dishes);
+  renderEventDishes();
+}
+
+function assignRecipeToEvent(recipeId) {
+  const recipe = userRecipes.find(r => String(r.id) === String(recipeId));
+  if (!recipe || !_currentEventId) return;
+  const evt = eventsCache[_currentEventId];
+  if (!evt) return;
+  if (!evt.dishes) evt.dishes = [];
+  const dish = { id: 'dish_' + Date.now(), type: 'recipe', recipeId: String(recipeId), title: recipe.title, servings: recipe.servings || 4 };
+  evt.dishes.push(dish);
+  set(ref(db, _eventsBasePath + '/' + _currentEventId + '/dishes'), evt.dishes);
+  document.getElementById('picker-modal').classList.remove('open');
+  document.body.style.overflow = '';
+  _eventPickerMode = false;
+  renderEventDishes();
+}
+
+function reviewEventForGrocery() {
+  saveCurrentEventMeta();
+  const evt = eventsCache[_currentEventId];
+  if (!evt || !(evt.dishes || []).some(d => d.type === 'recipe')) {
+    alert('Add at least one recipe dish to generate a grocery list.');
+    return;
+  }
+  const ingredientMap = {};
+  (evt.dishes || []).forEach(dish => {
+    if (dish.type !== 'recipe') return;
+    const recipe = userRecipes.find(r => String(r.id) === String(dish.recipeId));
+    if (!recipe) return;
+    const scale = (dish.servings || 4) / (recipe.servings || 4);
+    recipe.ingredients.forEach(ing => {
+      const key = ing.name.toLowerCase().trim();
+      const isPantry = PANTRY_STAPLES.some(p => key.includes(p));
+      if (isPantry) return;
+      if (ingredientMap[key]) {
+        ingredientMap[key].amount += (ing.amount || 0) * scale;
+      } else {
+        ingredientMap[key] = { ...ing, amount: (ing.amount || 0) * scale, eventName: evt.name || 'Event', checked: false };
+      }
+    });
+  });
+  reviewIngredients = Object.values(ingredientMap);
+  const listHTML = reviewIngredients.length === 0
+    ? '<p style="color:var(--text-muted)">All ingredients are pantry staples!</p>'
+    : reviewIngredients.map((ing, i) => `
+      <div class="review-item">
+        <input type="checkbox" id="ri${i}">
+        <label for="ri${i}" style="flex:1;cursor:pointer">${ing.name}${ing.amount ? ` — <strong>${formatAmount(ing.amount, 1, 1)} ${ing.unit || ''}</strong>` : ''}</label>
+      </div>`).join('');
+  document.getElementById('review-list').innerHTML = listHTML;
+  document.querySelector('#review-content .modal-title').textContent = evt.name || 'Event';
+  document.querySelector('#review-content .modal-desc').textContent = 'Check the items you need, then tap Add to Grocery List';
+  _reviewingForEvent = true;
+  document.getElementById('review-modal').classList.add('open');
+  document.body.style.overflow = 'hidden';
 }
 
 function sectionFromLibrary(name) {
@@ -4362,10 +4645,12 @@ onValue(recipesRef, (snapshot) => {
 const _listBasePath = IS_DEV ? 'dev/groceryList' : 'groceryList';
 const _mealPlansBasePath = IS_DEV ? 'dev/mealPlans' : 'mealPlans';
 const _staplesBasePath2 = IS_DEV ? 'dev/staples' : 'staples';
+const _eventsBasePath = IS_DEV ? 'dev/events' : 'events';
 const listRef = ref(db, _listBasePath);
 const itemLibRef = ref(db, 'itemLibrary'); // shared — test against real recipes/library
 const mealPlansRef = ref(db, _mealPlansBasePath);
 const staplesRef2 = ref(db, _staplesBasePath2);
+const eventsRef = ref(db, _eventsBasePath);
 
 if (IS_DEV) {
   const banner = document.createElement('div');
@@ -4428,6 +4713,14 @@ function migrateMealPlansFromLocalStorage() {
   } catch(e) { /* ignore */ }
 }
 migrateMealPlansFromLocalStorage();
+
+// ─── EVENTS FIREBASE ─────────────────────────────────────────────
+let eventsCache = {};
+onValue(eventsRef, (snapshot) => {
+  eventsCache = snapshot.val() || {};
+  const eventsSection = document.getElementById('section-events');
+  if (eventsSection && eventsSection.classList.contains('active')) renderEvents();
+});
 
 // ─── ITEM LIBRARY FIREBASE ───────────────────────────────────────
 onValue(itemLibRef, (snapshot) => {
@@ -4792,7 +5085,7 @@ function renderGrocery() {
     items.forEach(item => {
       const checkedClass = item.checked ? 'checked' : '';
       const checkmark = item.checked ? '✓' : '';
-      const tagLabel = item.tag === 'meal' ? 'meal' : item.tag === 'adhoc' ? 'added' : 'staple';
+      const tagLabel = item.tag === 'meal' ? 'meal' : item.tag === 'event' ? 'event' : item.tag === 'adhoc' ? 'added' : 'staple';
       // Combine quantities from all recipe sources
       let displayQty = '';
       let showQtyInSources = false;
