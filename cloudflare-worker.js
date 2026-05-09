@@ -96,22 +96,22 @@ Return ONLY the JSON object, no other text, no markdown.`;
 
 // ── Menu scanner via Claude ──────────────────────────────────────────
 async function scanMenu(images, anthropicKey) {
-  const prompt = `You are a nutrition-aware restaurant guide helping someone managing fatty liver disease. Their goals: lower refined carbs, liver-friendly choices (low added sugar, not deep-fried), and protein-forward meals.
+  const prompt = `You are helping someone pick the best available option from a restaurant menu. They are managing fatty liver disease and prefer lower refined carbs and protein-forward meals — but they are eating out and want a real, enjoyable meal, not a lecture.
 
-The images above show pages of a restaurant menu. Recommend exactly 5 items, ranked best-to-worst fit.
+The images show pages of a restaurant menu. Pick exactly 5 items ranked from best to least bad fit for their goals.
 
-Critical rules:
-- No more than 2 of the 5 picks may be salads. Salads with sweet dressings, dried fruit, croutons, or candied nuts are often worse than a grilled protein — only include a salad if it is protein-forward with a simple dressing.
-- Spread picks across DIFFERENT dish types — e.g. a grilled protein, a fish dish, a lettuce-wrap or bunless option, a veggie-forward plate, a soup. Variety matters.
-- Best picks: grilled/baked/braised proteins (fish, chicken, lean beef), dishes with non-starchy vegetables, broth-based soups.
-- Avoid: pasta, white rice bowls, fried items, sandwiches/burgers on bread (unless you note "ask for no bun"), heavy cream sauces.
-- If a burger or sandwich is the best available option, include it and note "ask for no bun" or "lettuce wrap".
-- Be honest — if the menu is mostly unhealthy, say so in the note for lower-ranked picks.
+STRICT rules:
+- ONLY recommend items you can actually see printed on the menu in these images. Do not invent items, do not suggest items from memory of what this chain "usually" has, and do not suggest items you are not certain are on this specific menu.
+- Do NOT suggest modifications like "ask for no bun", "get it bunless", or "lettuce wrap" unless the menu explicitly lists those as options.
+- If all options are indulgent, that is fine — just rank them from best to least bad and be honest in the notes. Do not pretend a healthier option exists when it doesn't.
+- Favor: grilled/baked proteins, dishes with vegetables, broth-based soups, items without heavy cream sauces or thick breading.
+- Avoid recommending the same dish type more than twice (e.g. no more than 2 burgers, no more than 2 salads).
+- Notes should be practical and honest — not preachy. Max 12 words per note.
 
 Return ONLY a JSON object:
 {
   "picks": [
-    { "name": "Exact menu item name", "note": "One sentence, max 12 words, on why this is a good pick" },
+    { "name": "Exact menu item name as printed", "note": "One honest sentence, max 12 words" },
     { "name": "...", "note": "..." }
   ]
 }
