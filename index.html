@@ -238,6 +238,13 @@
   .tag-beef { background: #F5E6DC; color: #8B4513; }
   .tag-chicken { background: #FFF3DC; color: #8B6914; }
   .tag-lowsodium { background: var(--green-light); color: var(--green); }
+  .course-badge {
+    display: inline-block; font-size: 0.62rem; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.07em;
+    color: var(--accent); background: #FFF0E8;
+    border: 1px solid var(--accent-light); border-radius: 50px;
+    padding: 0.1rem 0.55rem; margin-bottom: 0.25rem;
+  }
 
   /* RECIPE DETAIL MODAL */
   .modal-overlay {
@@ -1980,9 +1987,19 @@
       <button class="recipe-filter-btn" onclick="setRecipeFilter('time','lowslow',this)">🔥 Low & Slow</button>
     </div>
     <div class="filter-row">
+      <span class="filter-row-label">Course</span>
+      <button class="recipe-filter-btn active" onclick="setRecipeFilter('course','all',this)">All</button>
+      <button class="recipe-filter-btn" onclick="setRecipeFilter('course','main',this)">🍖 Main</button>
+      <button class="recipe-filter-btn" onclick="setRecipeFilter('course','side',this)">🥗 Side Dish</button>
+      <button class="recipe-filter-btn" onclick="setRecipeFilter('course','vegetable',this)">🥦 Vegetable</button>
+      <button class="recipe-filter-btn" onclick="setRecipeFilter('course','starch',this)">🍚 Starch</button>
+      <button class="recipe-filter-btn" onclick="setRecipeFilter('course','soup',this)">🥣 Soup</button>
+    </div>
+    <div class="filter-row">
       <span class="filter-row-label">Health</span>
       <button class="recipe-filter-btn active" onclick="setRecipeFilter('health','all',this)">All</button>
       <button class="recipe-filter-btn" onclick="setRecipeFilter('health','lowsodium',this)">💚 Low Sodium</button>
+      <button class="recipe-filter-btn" onclick="setRecipeFilter('health','lowsugar',this)">🍬 Low Sugar</button>
       <button class="recipe-filter-btn" onclick="setRecipeFilter('health','kidapproved',this)">⭐ Kid Friendly</button>
     </div>
     <div class="filter-row">
@@ -2581,9 +2598,13 @@
             <input type="number" id="edit-servings" min="1" max="50">
           </div>
           <div class="preview-field" style="flex:2;min-width:200px">
-            <label>Tags</label>
-            <div id="edit-tags-pills" class="tag-pill-container"></div>
+            <label>Course</label>
+            <div id="edit-course-pills" class="tag-pill-group" style="flex-wrap:wrap;gap:0.35rem;padding:0.3rem 0"></div>
           </div>
+        </div>
+        <div class="preview-field">
+          <label>Tags</label>
+          <div id="edit-tags-pills" class="tag-pill-container"></div>
         </div>
         <div class="preview-field">
           <label>Ingredients (one per line: name, amount unit)</label>
@@ -3148,9 +3169,51 @@ function formatAmount(amount, base, current) {
   return scaled.toFixed(1).replace(/\.0$/, '');
 }
 
+const COURSE_LABELS = { main: 'Main', side: 'Side Dish', vegetable: 'Vegetable', starch: 'Starch', soup: 'Soup', salad: 'Salad', snack: 'Snack', breakfast: 'Breakfast' };
+const COURSE_OPTIONS = [
+  { key: 'main', label: '🍖 Main' }, { key: 'side', label: '🥗 Side Dish' },
+  { key: 'vegetable', label: '🥦 Vegetable' }, { key: 'starch', label: '🍚 Starch' },
+  { key: 'soup', label: '🥣 Soup' }, { key: 'salad', label: '🥙 Salad' },
+  { key: 'snack', label: '🍎 Snack' }, { key: 'breakfast', label: '🍳 Breakfast' },
+];
+
+function renderCoursePills(containerId, selected) {
+  const container = document.getElementById(containerId);
+  if (!container) return;
+  container.innerHTML = COURSE_OPTIONS.map(c =>
+    `<button type="button" class="tag-pill-toggle course-pill${selected === c.key ? ' active' : ''}"
+      data-course="${c.key}" onclick="selectCoursePill(this)">${c.label}</button>`
+  ).join('');
+}
+
+function selectCoursePill(btn) {
+  const wasActive = btn.classList.contains('active');
+  document.querySelectorAll('#edit-course-pills .course-pill').forEach(b => b.classList.remove('active'));
+  if (!wasActive) btn.classList.add('active');
+}
+
+function getCourseFromPills() {
+  const active = document.querySelector('#edit-course-pills .course-pill.active');
+  return active ? active.dataset.course : '';
+}
+
 function getTagHTML(tags) {
-  const map = { quick: ['tag-quick','⚡ Quick'], beef: ['tag-beef','🥩 Beef'], chicken: ['tag-chicken','🍗 Chicken'], lowsodium: ['tag-lowsodium','💚 Low Sodium'], pork: ['tag-beef','🥩 Pork'], special: ['tag-chicken','🌟 Special'], veggie: ['tag-lowsodium','🥦 Veggie'], slowcooker: ['tag-quick','🍲 Slow Cooker'], lowslow: ['tag-beef','🔥 Low & Slow'] };
-  return tags.map(t => map[t] ? `<span class="tag ${map[t][0]}">${map[t][1]}</span>` : '').join('');
+  const map = {
+    quick:         ['tag-quick',    '⚡ Quick'],
+    beef:          ['tag-beef',     '🥩 Beef'],
+    chicken:       ['tag-chicken',  '🍗 Chicken'],
+    pork:          ['tag-beef',     '🥩 Pork'],
+    veggie:        ['tag-lowsodium','🥦 Veggie'],
+    seafood:       ['tag-chicken',  '🐟 Seafood'],
+    lowsodium:     ['tag-lowsodium','💚 Low Sodium'],
+    lowsugar:      ['tag-lowsodium','🍬 Low Sugar'],
+    kidapproved:   ['tag-quick',    '⭐ Kid Friendly'],
+    slowcooker:    ['tag-quick',    '🍲 Slow Cooker'],
+    lowslow:       ['tag-beef',     '🔥 Low & Slow'],
+    special:       ['tag-chicken',  '🌟 Special'],
+    makeahead:     ['tag-quick',    '📦 Make Ahead'],
+  };
+  return (tags || []).map(t => map[t] ? `<span class="tag ${map[t][0]}">${map[t][1]}</span>` : '').join('');
 }
 
 function renderGrid(containerId, list) {
@@ -3158,6 +3221,7 @@ function renderGrid(containerId, list) {
   if (!el) return;
   el.innerHTML = list.map(r => `
     <div class="recipe-card" onclick="openRecipe('${r.id}')">
+      ${r.course ? `<div class="course-badge">${COURSE_LABELS[r.course] || r.course}</div>` : ''}
       <div class="card-title">${r.title}</div>
       <div class="card-desc">${r.desc}</div>
       <div class="card-tags">${getTagHTML(r.tags)}</div>
@@ -3242,7 +3306,9 @@ function openRecipe(id) {
   currentRecipe = r;
   baseServings = r.servings;
   currentServings = r.servings;
-  document.getElementById('mDay').textContent = getTagsText(r.tags);
+  const _courseLabel = r.course ? (COURSE_LABELS[r.course] || r.course) : '';
+  const _tagText = getTagsText(r.tags);
+  document.getElementById('mDay').textContent = [_courseLabel, _tagText].filter(Boolean).join(' · ');
   document.getElementById('mTitle').textContent = r.title;
   document.getElementById('mDesc').textContent = r.desc;
   document.getElementById('servingsNum').textContent = currentServings;
@@ -3275,6 +3341,7 @@ function editRecipe() {
   document.getElementById('edit-title').value = r.title || '';
   document.getElementById('edit-desc').value = r.desc || '';
   document.getElementById('edit-servings').value = r.servings || 4;
+  renderCoursePills('edit-course-pills', r.course || '');
   renderTagPills('edit-tags-pills', r.tags || []);
   document.getElementById('edit-ingredients').value = (r.ingredients || []).map(i => {
     const parts = [i.name];
@@ -3299,6 +3366,7 @@ function saveEditedRecipe() {
   const title = document.getElementById('edit-title').value.trim();
   if (!title) { alert('Please enter a recipe title.'); return; }
 
+  const course = getCourseFromPills();
   const tags = getTagsFromPills('edit-tags-pills');
   const ingLines = document.getElementById('edit-ingredients').value.split('\n').filter(l => l.trim());
   const ingredients = ingLines.map(line => {
@@ -3324,6 +3392,7 @@ function saveEditedRecipe() {
     title,
     desc: document.getElementById('edit-desc').value.trim(),
     servings: parseInt(document.getElementById('edit-servings').value) || 4,
+    course,
     tags,
     ingredients,
     steps,
@@ -3339,7 +3408,8 @@ function saveEditedRecipe() {
   // Refresh view mode
   document.getElementById('mTitle').textContent = updated.title;
   document.getElementById('mDesc').textContent = updated.desc;
-  document.getElementById('mDay').textContent = getTagsText(updated.tags);
+  const _updCourse = updated.course ? (COURSE_LABELS[updated.course] || updated.course) : '';
+  document.getElementById('mDay').textContent = [_updCourse, getTagsText(updated.tags)].filter(Boolean).join(' · ');
   document.getElementById('servingsNum').textContent = currentServings;
   renderIngredients();
   document.getElementById('mSteps').innerHTML = updated.steps.map((s,i) => `
@@ -3404,6 +3474,7 @@ const ALL_TAGS = [
   { key: 'slowcooker',    label: '🍲 Slow Cooker',      group: 'Time' },
   { key: 'lowslow',       label: '🔥 Low & Slow',       group: 'Time' },
   { key: 'lowsodium',     label: '💚 Low Sodium',       group: 'Diet' },
+  { key: 'lowsugar',      label: '🍬 Low Sugar',        group: 'Diet' },
   { key: 'highfiber',     label: '🌾 High Fiber',       group: 'Diet' },
   { key: 'healthy',       label: '🥗 Healthy',          group: 'Diet' },
   { key: 'kidapproved',   label: '⭐ Kid Friendly',     group: 'Diet' },
@@ -3449,7 +3520,7 @@ function getTagsFromPills(containerId) {
 }
 
 // ─── RECIPE FILTERS ──────────────────────────────────────────────
-const activeRecipeFilters = { protein: 'all', time: 'all', health: 'all', tags: 'all' };
+const activeRecipeFilters = { protein: 'all', time: 'all', health: 'all', tags: 'all', course: 'all' };
 
 function setRecipeFilter(type, value, btn) {
   // If clicking the already-active non-all button, reset to all
@@ -3493,9 +3564,16 @@ function applyRecipeFilters() {
     list = list.filter(r => r.tags.includes('lowslow'));
   }
 
+  // Course filter
+  if (activeRecipeFilters.course !== 'all') {
+    list = list.filter(r => r.course === activeRecipeFilters.course);
+  }
+
   // Health filter
   if (activeRecipeFilters.health === 'lowsodium') {
     list = list.filter(r => r.tags.includes('lowsodium'));
+  } else if (activeRecipeFilters.health === 'lowsugar') {
+    list = list.filter(r => r.tags.includes('lowsugar'));
   } else if (activeRecipeFilters.health === 'kidapproved') {
     list = list.filter(r => r.tags.includes('kidapproved'));
   }
@@ -3558,6 +3636,7 @@ window.closeReviewModal = closeReviewModal;
 window.closeReviewDirect = closeReviewDirect;
 window.setRecipeFilter = setRecipeFilter;
 window.toggleTagPill = toggleTagPill;
+window.selectCoursePill = selectCoursePill;
 window.parseRecipeText = parseRecipeText;
 window.handleRecipeDrop = handleRecipeDrop;
 window.handleRecipeFile = handleRecipeFile;

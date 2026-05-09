@@ -2,6 +2,7 @@ const PARSE_PROMPT = `Parse this recipe and return ONLY a valid JSON object with
 {
   "title": "Recipe Title",
   "desc": "One sentence description of the dish",
+  "course": "main",
   "tags": ["beef"],
   "servings": 4,
   "ingredients": [
@@ -14,7 +15,8 @@ const PARSE_PROMPT = `Parse this recipe and return ONLY a valid JSON object with
 }
 
 Rules:
-- tags must only use these values: beef, chicken, pork, veggie, quick, lowsodium, slowcooker, kidapproved, special, seafood
+- course must be one of: main, side, vegetable, starch, soup, salad, snack, breakfast
+- tags must only use these values: beef, chicken, pork, veggie, quick, lowsodium, lowsugar, slowcooker, kidapproved, special, seafood
 - amount must be a number (use 0 if no amount specified)
 - unit can be empty string if no unit
 - Return ONLY the JSON object, absolutely nothing else`;
