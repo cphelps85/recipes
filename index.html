@@ -2034,7 +2034,7 @@
         <p class="week-meta">Plan parties and holidays — saves year to year</p>
       </div>
       <div class="grocery-actions">
-        <button class="grocery-btn" onclick="if(typeof createEvent==='function'){createEvent();}else{alert('Module not loaded — createEvent missing');}">+ New Event</button>
+        <button class="grocery-btn" onclick="createNewEvent()">+ New Event</button>
       </div>
     </div>
     <div id="events-list-container"><p class="event-empty">No events yet — tap + New Event to get started.</p></div>
@@ -3458,7 +3458,7 @@ window.closePickerModal = closePickerModal;
 window.closePickerDirect = closePickerDirect;
 window.reviewGroceries = reviewGroceries;
 window.addReviewedItems = addReviewedItems;
-window.createEvent = createEvent;
+window.createNewEvent = createNewEvent;
 window.openEvent = openEvent;
 window.backToEventList = backToEventList;
 window.saveCurrentEventMeta = saveCurrentEventMeta;
@@ -4405,21 +4405,17 @@ function renderEvents() {
   }).join('');
 }
 
-function createEvent() {
-  try {
-    const id = 'evt_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6);
-    const evt = { id, name: '', date: '', dishes: [], createdAt: Date.now() };
-    set(ref(db, _eventsBasePath + '/' + id), evt);
-    eventsCache[id] = evt;
-    _currentEventId = id;
-    document.getElementById('events-list-view').style.display = 'none';
-    document.getElementById('events-detail-view').style.display = 'block';
-    document.getElementById('event-name-input').value = '';
-    document.getElementById('event-date-input').value = '';
-    renderEventDishes();
-  } catch(e) {
-    alert('Event creation error: ' + e.message);
-  }
+function createNewEvent() {
+  const id = 'evt_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6);
+  const evt = { id, name: '', date: '', dishes: [], createdAt: Date.now() };
+  set(ref(db, _eventsBasePath + '/' + id), evt);
+  eventsCache[id] = evt;
+  _currentEventId = id;
+  document.getElementById('events-list-view').style.display = 'none';
+  document.getElementById('events-detail-view').style.display = 'block';
+  document.getElementById('event-name-input').value = '';
+  document.getElementById('event-date-input').value = '';
+  renderEventDishes();
 }
 
 function openEvent(id) {
