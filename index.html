@@ -2131,6 +2131,13 @@
         <span>👥 Guest List</span>
         <span id="event-guest-total" style="font-size:0.8rem;font-weight:500;text-transform:none;letter-spacing:0;color:var(--brown)"></span>
       </div>
+      <div id="event-guests-header" style="display:none;font-size:0.65rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;padding:0.4rem 0 0.1rem;display:flex;gap:0.4rem;align-items:center;flex-wrap:wrap">
+        <span style="flex:2;min-width:80px">Name</span>
+        <span style="width:62px;text-align:center">Adults</span>
+        <span style="width:52px;text-align:center">Kids</span>
+        <span style="flex:2;min-width:80px">Bringing</span>
+        <span style="width:24px"></span>
+      </div>
       <div id="event-guests-list"></div>
       <div class="event-add-row" style="flex-wrap:wrap;gap:0.4rem;margin-top:0.3rem">
         <input type="text" id="guest-name-input" class="add-input" placeholder="Name (e.g. The Rougiers)" style="flex:2;min-width:120px"
@@ -4744,6 +4751,8 @@ function renderEventGuests() {
   const list = document.getElementById('event-guests-list');
   if (!list) return;
   updateEventGuestSummary();
+  const header = document.getElementById('event-guests-header');
+  if (header) header.style.display = guests.length > 0 ? 'flex' : 'none';
   list.innerHTML = guests.map((g, i) => `
     <div class="event-guest-edit-row">
       <input type="text" class="add-input" placeholder="Name" style="flex:2;min-width:80px"
