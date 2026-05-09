@@ -1818,6 +1818,13 @@
     border-top: 1px dashed var(--border);
   }
   .event-empty { text-align: center; color: var(--text-muted); padding: 2rem 1rem; font-size: 0.9rem; }
+  .event-section-label {
+    display: flex; align-items: center; justify-content: space-between;
+    font-size: 0.75rem; font-weight: 700; color: var(--text-muted);
+    text-transform: uppercase; letter-spacing: 0.06em;
+    padding: 1rem 0 0.3rem; border-top: 1px solid var(--border); margin-top: 0.8rem;
+  }
+  .event-add-row { display: flex; gap: 0.5rem; align-items: center; padding: 0.4rem 0 0.6rem; }
   .item-qty {
     font-size: 0.68rem;
     font-weight: 600;
@@ -2063,6 +2070,34 @@
     <div id="event-dishes-container" style="margin-top:0.5rem">
       <p class="event-empty" id="event-dishes-empty">No dishes yet — add recipes or custom items above.</p>
       <div id="event-dishes-list"></div>
+    </div>
+
+    <div id="event-guests-container">
+      <div class="event-section-label">
+        <span>👥 Guest List</span>
+        <span id="event-guest-total" style="font-size:0.8rem;font-weight:500;text-transform:none;letter-spacing:0;color:var(--brown)"></span>
+      </div>
+      <div id="event-guests-list"></div>
+      <div class="event-add-row">
+        <input type="text" id="guest-name-input" class="add-input" placeholder="Name (e.g. The Rougiers)" style="flex:2;min-width:0"
+          onkeydown="if(event.key==='Enter') addEventGuest()">
+        <input type="number" id="guest-count-input" class="add-input" placeholder="+N" min="1" max="99" style="width:55px;text-align:center"
+          onkeydown="if(event.key==='Enter') addEventGuest()">
+        <button class="grocery-btn" onclick="addEventGuest()">Add</button>
+      </div>
+    </div>
+
+    <div id="event-contributions-container">
+      <div class="event-section-label">
+        <span>🤝 They're Bringing</span>
+        <span style="font-size:0.7rem;font-weight:400;text-transform:none;letter-spacing:0">not on your grocery list</span>
+      </div>
+      <div id="event-contributions-list"></div>
+      <div class="event-add-row">
+        <input type="text" id="contribution-input" class="add-input" placeholder="e.g. Maria — potato salad" style="flex:1;min-width:0"
+          onkeydown="if(event.key==='Enter') addEventContribution()">
+        <button class="grocery-btn" onclick="addEventContribution()">Add</button>
+      </div>
     </div>
   </div>
 </div>
@@ -3468,6 +3503,10 @@ window.updateEventDishServings = updateEventDishServings;
 window.removeEventDish = removeEventDish;
 window.deleteCurrentEvent = deleteCurrentEvent;
 window.reviewEventForGrocery = reviewEventForGrocery;
+window.addEventGuest = addEventGuest;
+window.removeEventGuest = removeEventGuest;
+window.addEventContribution = addEventContribution;
+window.removeEventContribution = removeEventContribution;
 window.removeFromPlan = removeFromPlan;
 window.closeReviewModal = closeReviewModal;
 window.closeReviewDirect = closeReviewDirect;
@@ -4394,11 +4433,13 @@ function renderEvents() {
   }
   container.innerHTML = events.map(evt => {
     const dishes = evt.dishes || [];
+    const guestTotal = (evt.guests || []).reduce((sum, g) => sum + (g.count || 1), 0);
     const dateStr = evt.date ? new Date(evt.date + 'T12:00:00').toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : 'No date set';
+    const guestStr = guestTotal > 0 ? ` · ${guestTotal} guests` : '';
     return `<div class="event-card" onclick="openEvent('${evt.id}')">
       <div>
         <div class="event-card-name">${evt.name || 'Unnamed Event'}</div>
-        <div class="event-card-meta">${dateStr} · ${dishes.length} dish${dishes.length !== 1 ? 'es' : ''}</div>
+        <div class="event-card-meta">${dateStr} · ${dishes.length} dish${dishes.length !== 1 ? 'es' : ''}${guestStr}</div>
       </div>
       <span style="color:var(--text-muted);font-size:1.3rem">›</span>
     </div>`;
@@ -4407,7 +4448,7 @@ function renderEvents() {
 
 function createNewEvent() {
   const id = 'evt_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6);
-  const evt = { id, name: '', date: '', dishes: [], createdAt: Date.now() };
+  const evt = { id, name: '', date: '', dishes: [], guests: [], contributions: [], createdAt: Date.now() };
   set(ref(db, _eventsBasePath + '/' + id), evt);
   eventsCache[id] = evt;
   _currentEventId = id;
@@ -4416,6 +4457,8 @@ function createNewEvent() {
   document.getElementById('event-name-input').value = '';
   document.getElementById('event-date-input').value = '';
   renderEventDishes();
+  renderEventGuests();
+  renderEventContributions();
 }
 
 function openEvent(id) {
@@ -4427,6 +4470,8 @@ function openEvent(id) {
   document.getElementById('event-name-input').value = evt.name || '';
   document.getElementById('event-date-input').value = evt.date || '';
   renderEventDishes();
+  renderEventGuests();
+  renderEventContributions();
 }
 
 function backToEventList() {
@@ -4531,26 +4576,32 @@ function assignRecipeToEvent(recipeId) {
 function reviewEventForGrocery() {
   saveCurrentEventMeta();
   const evt = eventsCache[_currentEventId];
-  if (!evt || !(evt.dishes || []).some(d => d.type === 'recipe')) {
-    alert('Add at least one recipe dish to generate a grocery list.');
+  if (!evt || !(evt.dishes || []).length) {
+    alert('Add at least one dish or custom item first.');
     return;
   }
   const ingredientMap = {};
   (evt.dishes || []).forEach(dish => {
-    if (dish.type !== 'recipe') return;
-    const recipe = userRecipes.find(r => String(r.id) === String(dish.recipeId));
-    if (!recipe) return;
-    const scale = (dish.servings || 4) / (recipe.servings || 4);
-    recipe.ingredients.forEach(ing => {
-      const key = ing.name.toLowerCase().trim();
-      const isPantry = PANTRY_STAPLES.some(p => key.includes(p));
-      if (isPantry) return;
-      if (ingredientMap[key]) {
-        ingredientMap[key].amount += (ing.amount || 0) * scale;
-      } else {
-        ingredientMap[key] = { ...ing, amount: (ing.amount || 0) * scale, eventName: evt.name || 'Event', checked: false };
+    if (dish.type === 'recipe') {
+      const recipe = userRecipes.find(r => String(r.id) === String(dish.recipeId));
+      if (!recipe) return;
+      const scale = (dish.servings || 4) / (recipe.servings || 4);
+      recipe.ingredients.forEach(ing => {
+        const key = ing.name.toLowerCase().trim();
+        const isPantry = PANTRY_STAPLES.some(p => key.includes(p));
+        if (isPantry) return;
+        if (ingredientMap[key]) {
+          ingredientMap[key].amount += (ing.amount || 0) * scale;
+        } else {
+          ingredientMap[key] = { ...ing, amount: (ing.amount || 0) * scale, eventName: evt.name || 'Event', checked: false };
+        }
+      });
+    } else if (dish.type === 'custom') {
+      const key = dish.title.toLowerCase().trim();
+      if (!ingredientMap[key]) {
+        ingredientMap[key] = { name: dish.title, amount: 0, unit: '', eventName: evt.name || 'Event', checked: false };
       }
-    });
+    }
   });
   reviewIngredients = Object.values(ingredientMap);
   const listHTML = reviewIngredients.length === 0
@@ -4566,6 +4617,75 @@ function reviewEventForGrocery() {
   _reviewingForEvent = true;
   document.getElementById('review-modal').classList.add('open');
   document.body.style.overflow = 'hidden';
+}
+
+function renderEventGuests() {
+  const evt = eventsCache[_currentEventId];
+  const guests = evt ? (evt.guests || []) : [];
+  const list = document.getElementById('event-guests-list');
+  if (!list) return;
+  const total = guests.reduce((sum, g) => sum + (g.count || 1), 0);
+  const totalEl = document.getElementById('event-guest-total');
+  if (totalEl) totalEl.textContent = total > 0 ? `${total} guests` : '';
+  list.innerHTML = guests.map((g, i) => `
+    <div class="event-dish-row">
+      <span class="event-dish-title">${g.name} <span style="color:var(--text-muted)">+${g.count}</span></span>
+      <button class="delete-item" onclick="removeEventGuest(${i})">✕</button>
+    </div>`).join('');
+}
+
+function addEventGuest() {
+  const name = (document.getElementById('guest-name-input').value || '').trim();
+  const count = parseInt(document.getElementById('guest-count-input').value) || 1;
+  if (!name) return;
+  const evt = eventsCache[_currentEventId];
+  if (!evt) return;
+  if (!evt.guests) evt.guests = [];
+  evt.guests.push({ id: 'g_' + Date.now(), name, count });
+  set(ref(db, _eventsBasePath + '/' + _currentEventId + '/guests'), evt.guests);
+  document.getElementById('guest-name-input').value = '';
+  document.getElementById('guest-count-input').value = '';
+  renderEventGuests();
+}
+
+function removeEventGuest(index) {
+  const evt = eventsCache[_currentEventId];
+  if (!evt || !evt.guests) return;
+  evt.guests.splice(index, 1);
+  set(ref(db, _eventsBasePath + '/' + _currentEventId + '/guests'), evt.guests.length ? evt.guests : []);
+  renderEventGuests();
+}
+
+function renderEventContributions() {
+  const evt = eventsCache[_currentEventId];
+  const contributions = evt ? (evt.contributions || []) : [];
+  const list = document.getElementById('event-contributions-list');
+  if (!list) return;
+  list.innerHTML = contributions.map((c, i) => `
+    <div class="event-dish-row">
+      <span class="event-dish-title">${c.item}</span>
+      <button class="delete-item" onclick="removeEventContribution(${i})">✕</button>
+    </div>`).join('');
+}
+
+function addEventContribution() {
+  const item = (document.getElementById('contribution-input').value || '').trim();
+  if (!item) return;
+  const evt = eventsCache[_currentEventId];
+  if (!evt) return;
+  if (!evt.contributions) evt.contributions = [];
+  evt.contributions.push({ id: 'c_' + Date.now(), item });
+  set(ref(db, _eventsBasePath + '/' + _currentEventId + '/contributions'), evt.contributions);
+  document.getElementById('contribution-input').value = '';
+  renderEventContributions();
+}
+
+function removeEventContribution(index) {
+  const evt = eventsCache[_currentEventId];
+  if (!evt || !evt.contributions) return;
+  evt.contributions.splice(index, 1);
+  set(ref(db, _eventsBasePath + '/' + _currentEventId + '/contributions'), evt.contributions.length ? evt.contributions : []);
+  renderEventContributions();
 }
 
 function sectionFromLibrary(name) {
