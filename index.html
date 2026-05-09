@@ -1843,6 +1843,12 @@
   .event-shop-row:last-child { border-bottom: none; }
   .event-shop-name { flex: 1; font-size: 0.9rem; color: var(--brown); }
   .event-shop-qty { font-size: 0.82rem; color: var(--text-muted); white-space: nowrap; }
+  .event-guest-edit-row {
+    display: flex; align-items: center; gap: 0.4rem;
+    padding: 0.4rem 0; border-bottom: 1px solid var(--border); flex-wrap: wrap;
+  }
+  .event-guest-edit-row:last-child { border-bottom: none; }
+  .event-guest-bringing { font-size: 0.75rem; color: var(--text-muted); font-style: italic; }
   .item-qty {
     font-size: 0.68rem;
     font-weight: 600;
@@ -2126,28 +2132,14 @@
         <span id="event-guest-total" style="font-size:0.8rem;font-weight:500;text-transform:none;letter-spacing:0;color:var(--brown)"></span>
       </div>
       <div id="event-guests-list"></div>
-      <div class="event-add-row" style="flex-wrap:wrap;gap:0.4rem">
+      <div class="event-add-row" style="flex-wrap:wrap;gap:0.4rem;margin-top:0.3rem">
         <input type="text" id="guest-name-input" class="add-input" placeholder="Name (e.g. The Rougiers)" style="flex:2;min-width:120px"
           onkeydown="if(event.key==='Enter') addEventGuest()">
         <input type="number" id="guest-adults-input" class="add-input" placeholder="adults" min="0" max="99" style="width:68px;text-align:center"
           onkeydown="if(event.key==='Enter') addEventGuest()">
         <input type="number" id="guest-kids-input" class="add-input" placeholder="kids" min="0" max="99" style="width:58px;text-align:center"
           onkeydown="if(event.key==='Enter') addEventGuest()">
-        <button class="grocery-btn" onclick="addEventGuest()">Add</button>
-      </div>
-    </div>
-
-    <!-- Contributions -->
-    <div id="event-contributions-container">
-      <div class="event-section-label">
-        <span>🤝 They're Bringing</span>
-        <span style="font-size:0.7rem;font-weight:400;text-transform:none;letter-spacing:0">not on your shopping list</span>
-      </div>
-      <div id="event-contributions-list"></div>
-      <div class="event-add-row">
-        <input type="text" id="contribution-input" class="add-input" placeholder="e.g. Maria — potato salad" style="flex:1;min-width:0"
-          onkeydown="if(event.key==='Enter') addEventContribution()">
-        <button class="grocery-btn" onclick="addEventContribution()">Add</button>
+        <button class="grocery-btn" onclick="addEventGuest()">Add Guest</button>
       </div>
     </div>
   </div>
@@ -3557,8 +3549,7 @@ window.removeEventRecipe = removeEventRecipe;
 window.removeEventItem = removeEventItem;
 window.addEventGuest = addEventGuest;
 window.removeEventGuest = removeEventGuest;
-window.addEventContribution = addEventContribution;
-window.removeEventContribution = removeEventContribution;
+window.updateEventGuest = updateEventGuest;
 window.addEventItem = addEventItem;
 window.removeFromPlan = removeFromPlan;
 window.closeReviewModal = closeReviewModal;
@@ -4538,7 +4529,6 @@ function createNewEvent() {
   renderEventRecipes();
   renderEventItems();
   renderEventGuests();
-  renderEventContributions();
 }
 
 function openEvent(id) {
@@ -4552,7 +4542,6 @@ function openEvent(id) {
   renderEventRecipes();
   renderEventItems();
   renderEventGuests();
-  renderEventContributions();
 }
 
 function backToEventList() {
@@ -4726,11 +4715,9 @@ function portEventToGrocery() {
   showWeek('grocery', document.querySelector('nav button'));
 }
 
-function renderEventGuests() {
+function updateEventGuestSummary() {
   const evt = eventsCache[_currentEventId];
   const guests = evt ? (evt.guests || []) : [];
-  const list = document.getElementById('event-guests-list');
-  if (!list) return;
   const totalAdults = guests.reduce((sum, g) => sum + (g.adults ?? g.count ?? 0), 0);
   const totalKids = guests.reduce((sum, g) => sum + (g.kids || 0), 0);
   const totalAll = totalAdults + totalKids;
@@ -4749,17 +4736,30 @@ function renderEventGuests() {
       banner.style.display = 'none';
     }
   }
-  list.innerHTML = guests.map((g, i) => {
-    const adults = g.adults ?? g.count ?? 0;
-    const kids = g.kids || 0;
-    const countParts = [];
-    if (adults > 0) countParts.push(`${adults} adult${adults !== 1 ? 's' : ''}`);
-    if (kids > 0) countParts.push(`${kids} kid${kids !== 1 ? 's' : ''}`);
-    return `<div class="event-dish-row">
-      <span class="event-dish-title">${g.name}${countParts.length ? ' <span style="color:var(--text-muted);font-size:0.8rem">(' + countParts.join(', ') + ')</span>' : ''}</span>
+}
+
+function renderEventGuests() {
+  const evt = eventsCache[_currentEventId];
+  const guests = evt ? (evt.guests || []) : [];
+  const list = document.getElementById('event-guests-list');
+  if (!list) return;
+  updateEventGuestSummary();
+  list.innerHTML = guests.map((g, i) => `
+    <div class="event-guest-edit-row">
+      <input type="text" class="add-input" placeholder="Name" style="flex:2;min-width:80px"
+        value="${(g.name || '').replace(/"/g, '&quot;')}"
+        onblur="updateEventGuest(${i}, 'name', this.value)">
+      <input type="number" class="add-input" placeholder="adults" min="0" max="99" style="width:62px;text-align:center"
+        value="${g.adults ?? g.count ?? 0}"
+        onchange="updateEventGuest(${i}, 'adults', this.value)">
+      <input type="number" class="add-input" placeholder="kids" min="0" max="99" style="width:52px;text-align:center"
+        value="${g.kids || 0}"
+        onchange="updateEventGuest(${i}, 'kids', this.value)">
+      <input type="text" class="add-input" placeholder="bringing..." style="flex:2;min-width:80px"
+        value="${(g.bringing || '').replace(/"/g, '&quot;')}"
+        onblur="updateEventGuest(${i}, 'bringing', this.value)">
       <button class="delete-item" onclick="removeEventGuest(${i})">✕</button>
-    </div>`;
-  }).join('');
+    </div>`).join('');
 }
 
 function addEventGuest() {
@@ -4770,12 +4770,24 @@ function addEventGuest() {
   const evt = eventsCache[_currentEventId];
   if (!evt) return;
   if (!evt.guests) evt.guests = [];
-  evt.guests.push({ id: 'g_' + Date.now(), name, adults, kids });
+  evt.guests.push({ id: 'g_' + Date.now(), name, adults, kids, bringing: '' });
   set(ref(db, _eventsBasePath + '/' + _currentEventId + '/guests'), evt.guests);
   document.getElementById('guest-name-input').value = '';
   document.getElementById('guest-adults-input').value = '';
   document.getElementById('guest-kids-input').value = '';
   renderEventGuests();
+}
+
+function updateEventGuest(index, field, value) {
+  const evt = eventsCache[_currentEventId];
+  if (!evt || !evt.guests || !evt.guests[index]) return;
+  if (field === 'adults' || field === 'kids') {
+    evt.guests[index][field] = parseInt(value) || 0;
+    updateEventGuestSummary();
+  } else {
+    evt.guests[index][field] = (value || '').trim();
+  }
+  set(ref(db, _eventsBasePath + '/' + _currentEventId + '/guests'), evt.guests);
 }
 
 function removeEventGuest(index) {
@@ -4784,38 +4796,6 @@ function removeEventGuest(index) {
   evt.guests.splice(index, 1);
   set(ref(db, _eventsBasePath + '/' + _currentEventId + '/guests'), evt.guests.length ? evt.guests : []);
   renderEventGuests();
-}
-
-function renderEventContributions() {
-  const evt = eventsCache[_currentEventId];
-  const contributions = evt ? (evt.contributions || []) : [];
-  const list = document.getElementById('event-contributions-list');
-  if (!list) return;
-  list.innerHTML = contributions.map((c, i) => `
-    <div class="event-dish-row">
-      <span class="event-dish-title">${c.item}</span>
-      <button class="delete-item" onclick="removeEventContribution(${i})">✕</button>
-    </div>`).join('');
-}
-
-function addEventContribution() {
-  const item = (document.getElementById('contribution-input').value || '').trim();
-  if (!item) return;
-  const evt = eventsCache[_currentEventId];
-  if (!evt) return;
-  if (!evt.contributions) evt.contributions = [];
-  evt.contributions.push({ id: 'c_' + Date.now(), item });
-  set(ref(db, _eventsBasePath + '/' + _currentEventId + '/contributions'), evt.contributions);
-  document.getElementById('contribution-input').value = '';
-  renderEventContributions();
-}
-
-function removeEventContribution(index) {
-  const evt = eventsCache[_currentEventId];
-  if (!evt || !evt.contributions) return;
-  evt.contributions.splice(index, 1);
-  set(ref(db, _eventsBasePath + '/' + _currentEventId + '/contributions'), evt.contributions.length ? evt.contributions : []);
-  renderEventContributions();
 }
 
 function sectionFromLibrary(name) {
