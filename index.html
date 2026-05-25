@@ -2609,6 +2609,7 @@
       <div id="mViewActions">
         <button class="print-btn" onclick="window.print()">Print Recipe</button>
         <button class="nutrition-calc-btn" id="mNutritionBtn" onclick="calcNutritionForCurrent()">⚗️ Calculate Nutrition</button>
+        <button id="mAddToListBtn" onclick="addRecipeToGrocery(currentRecipe && currentRecipe.id, this)" style="width:100%;margin-top:0.75rem;padding:0.65rem 1rem;background:var(--green);color:#fff;border:none;border-radius:10px;font-size:0.95rem;font-weight:600;cursor:pointer;">🛒 Add Ingredients to Shopping List</button>
         <div style="display:flex;gap:0.75rem;margin-top:0.75rem">
           <button class="edit-recipe-btn" onclick="editRecipe()">✏️ Edit Recipe</button>
           <button class="delete-recipe-btn" onclick="deleteRecipeConfirm()">🗑 Delete Recipe</button>
@@ -4637,9 +4638,10 @@ function addRecipeToGrocery(recipeId, btn) {
     }
   });
   if (btn) {
-    btn.textContent = '✓ Added';
+    const origText = btn.textContent;
+    btn.textContent = '✓ Added to List';
     btn.classList.add('added');
-    setTimeout(() => { btn.textContent = '+ Add to List'; btn.classList.remove('added'); }, 2500);
+    setTimeout(() => { btn.textContent = origText; btn.classList.remove('added'); }, 2500);
   }
 }
 
