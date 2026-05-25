@@ -2609,7 +2609,7 @@
       <div id="mViewActions">
         <button class="print-btn" onclick="window.print()">Print Recipe</button>
         <button class="nutrition-calc-btn" id="mNutritionBtn" onclick="calcNutritionForCurrent()">⚗️ Calculate Nutrition</button>
-        <button id="mAddToListBtn" onclick="addRecipeToGrocery(currentRecipe && currentRecipe.id, this)" style="width:100%;margin-top:0.75rem;padding:0.65rem 1rem;background:var(--green);color:#fff;border:none;border-radius:10px;font-size:0.95rem;font-weight:600;cursor:pointer;">🛒 Add Ingredients to Shopping List</button>
+        <button id="mAddToListBtn" onclick="addCurrentRecipeToGrocery(this)" style="width:100%;margin-top:0.75rem;padding:0.65rem 1rem;background:var(--green);color:#fff;border:none;border-radius:10px;font-size:0.95rem;font-weight:600;cursor:pointer;">🛒 Add Ingredients to Shopping List</button>
         <div style="display:flex;gap:0.75rem;margin-top:0.75rem">
           <button class="edit-recipe-btn" onclick="editRecipe()">✏️ Edit Recipe</button>
           <button class="delete-recipe-btn" onclick="deleteRecipeConfirm()">🗑 Delete Recipe</button>
@@ -3822,6 +3822,11 @@ function openRecipe(id) {
   document.getElementById('mEditForm').style.display = 'none';
   document.getElementById('modal').classList.add('open');
   document.body.style.overflow = 'hidden';
+}
+
+function addCurrentRecipeToGrocery(btn) {
+  if (!currentRecipe) return;
+  addRecipeToGrocery(currentRecipe.id, btn);
 }
 
 function editRecipe() {
