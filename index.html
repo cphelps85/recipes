@@ -3106,7 +3106,7 @@ const recipes = [
     notes: 'This is a great Wednesday meal — fast, fun, and done in under 30 minutes. Don\'t forget your Hannaford to-go pickup at 6:30pm! Place your order by Wednesday morning at the latest.',
   },
   {
-    id: 19, week: 'extras', day: 'Any Night',
+    id: 19, week: 'extras', day: 'Any Night', course: 'main',
     title: 'Build-Your-Own Taco Bar',
     desc: 'Everyone builds their own — kids keep it simple, adults load up. Zero complaints, zero short-order cooking.',
     tags: ['quick', 'beef', 'chicken'],
@@ -3131,7 +3131,7 @@ const recipes = [
     notes: 'Kids: shell + cheese + maybe meat. Adults: load it up. Using rotisserie chicken makes this a true 10-minute no-cook dinner.',
   },
   {
-    id: 20, week: 'extras', day: 'Any Night',
+    id: 20, week: 'extras', day: 'Any Night', course: 'main',
     title: 'Build-Your-Own Nacho Bar',
     desc: 'Chips and cheese for the kids, fully loaded nachos for the adults. Sheet pan, 10 minutes.',
     tags: ['quick', 'beef'],
@@ -3156,7 +3156,7 @@ const recipes = [
     notes: 'Kids: chips + melted cheese (+ maybe plain meat). Adults: fully loaded. One sheet pan, one oven trip. Using rotisserie chicken skips the cooking step entirely.',
   },
   {
-    id: 21, week: 'extras', day: 'Any Night',
+    id: 21, week: 'extras', day: 'Any Night', course: 'main',
     title: 'Quesadilla Night',
     desc: 'Kids get plain cheese, adults get a loaded quesadilla. One pan, ten minutes.',
     tags: ['quick', 'chicken'],
@@ -3180,7 +3180,7 @@ const recipes = [
     notes: 'Kids: plain cheese. Adults: chicken + peppers + cheese + salsa. Leftover taco meat from another night works great here instead of chicken.',
   },
   {
-    id: 22, week: 'extras', day: 'Any Night',
+    id: 22, week: 'extras', day: 'Any Night', course: 'breakfast',
     title: 'Breakfast for Dinner',
     desc: 'Kids love it, it\'s fast, and it\'s genuinely nutritious. Eggs, toast, fruit — dinner is done in 15 minutes.',
     tags: ['quick', 'veggie'],
@@ -3204,7 +3204,7 @@ const recipes = [
     notes: 'Kids: eggs + cheese + toast + fruit. Adults: same eggs on an avocado toast situation. 15 minutes total. Protein, carbs, fruit. That is a real dinner.',
   },
   {
-    id: 23, week: 'extras', day: 'Any Night',
+    id: 23, week: 'extras', day: 'Any Night', course: 'snack',
     title: 'Snack Board Dinner',
     desc: 'No cooking. Set out good things, everyone grazes. Call it a charcuterie board and it suddenly feels fancy.',
     tags: ['quick'],
@@ -3229,7 +3229,7 @@ const recipes = [
     notes: 'Keep these ingredients stocked at all times. This is your 5-minute fallback on the worst nights and it is genuinely nutritious.',
   },
   {
-    id: 24, week: 'extras', day: 'Any Night',
+    id: 24, week: 'extras', day: 'Any Night', course: 'main',
     title: 'PB&J Dinner',
     desc: 'Own it. PB&J with apple slices and string cheese is a real dinner. Adults get a grown-up version.',
     tags: ['quick'],
@@ -3251,7 +3251,7 @@ const recipes = [
     notes: 'Kids: PB&J + apple + string cheese. Adults: peanut butter toast with banana and honey. On your worst nights this is dinner and that is okay.',
   },
   {
-    id: 25, week: 'extras', day: 'Any Night',
+    id: 25, week: 'extras', day: 'Any Night', course: 'main',
     title: 'Buttered Noodles → Garlic Olive Oil Pasta',
     desc: 'Kids get buttered noodles from the same pot. Adults get an easy garlic pasta. One cook, two dinners.',
     tags: ['quick', 'veggie'],
@@ -3276,7 +3276,7 @@ const recipes = [
     notes: 'Kids: butter + parmesan. Adults: garlic olive oil + spinach + parmesan. Pull the kids\' portions first, then the adult sauce comes together in 3 minutes in the same pot.',
   },
   {
-    id: 26, week: 'extras', day: 'Any Night',
+    id: 26, week: 'extras', day: 'Any Night', course: 'salad',
     title: 'Rotisserie Chicken — Kids\' Plate & Adult Chopped Salad',
     desc: 'Buy a rotisserie chicken. Kids get plain strips and sides, adults get a big hearty salad. Zero cooking.',
     tags: ['quick', 'chicken', 'lowsodium'],
@@ -3303,7 +3303,7 @@ const recipes = [
     notes: 'Kids: plain chicken + crackers + fruit. Adults: this salad with chickpeas and a full portion of chicken is a genuinely filling dinner, not a side salad. Total time: 10 minutes. Zero cooking.',
   },
   {
-    id: 27, week: 'extras', day: 'Any Night',
+    id: 27, week: 'extras', day: 'Any Night', course: 'main',
     title: 'French Bread Pizza',
     desc: 'Kids get plain cheese, adults get loaded. Faster than delivery and everyone actually eats it.',
     tags: ['quick', 'beef'],
@@ -3721,13 +3721,15 @@ async function splitCoupledRecipes(apply = false) {
 
 async function migrateHardcodedRecipes(showStatus) {
   try {
-    const snap = await get(ref(db, 'userRecipes/_migrated'));
-    if (snap.val() === true) return;
+    const snap = await get(ref(db, 'userRecipes'));
+    const existing = snap.val() || {};
+    const missing = recipes.filter(r => !existing[r.id]);
+    if (missing.length === 0) return;
     if (showStatus) {
       const el = document.getElementById('migration-status');
       if (el) el.style.display = 'block';
     }
-    for (const r of recipes) {
+    for (const r of missing) {
       await set(ref(db, 'userRecipes/' + r.id), r);
     }
     await set(ref(db, 'userRecipes/_migrated'), true);
