@@ -3900,7 +3900,26 @@ function openRecipe(id) {
 
 function addCurrentRecipeToGrocery(btn) {
   if (!currentRecipe) return;
-  addRecipeToGrocery(currentRecipe.id, btn);
+  const recipe = currentRecipe;
+  const scale = currentServings / (recipe.servings || 4);
+  reviewIngredients = recipe.ingredients
+    .filter(ing => !PANTRY_STAPLES.some(p => ing.name.toLowerCase().includes(p)))
+    .map(ing => ({ ...ing, amount: (ing.amount || 0) * scale, section: sectionFromLibrary(ing.name), recipeName: recipe.title }));
+  const listHTML = reviewIngredients.length === 0
+    ? '<p style="color:var(--text-muted)">All ingredients are pantry staples!</p>'
+    : reviewIngredients.map((ing, i) => `
+      <div class="review-item">
+        <input type="checkbox" id="ri${i}" checked>
+        <label for="ri${i}" style="flex:1;cursor:pointer">${ing.name}${ing.amount ? ` — <strong>${formatAmount(ing.amount, 1, 1)} ${ing.unit || ''}</strong>` : ''}</label>
+      </div>`).join('');
+  document.getElementById('review-list').innerHTML = listHTML;
+  document.querySelector('#review-content .modal-title').textContent = recipe.title;
+  document.querySelector('#review-content .modal-desc').textContent = 'Uncheck anything you already have';
+  const addBtn = document.getElementById('review-add-btn');
+  if (addBtn) addBtn.textContent = 'Add Checked Items to Shopping List';
+  _reviewingEventIngredients = false;
+  document.getElementById('review-modal').classList.add('open');
+  document.body.style.overflow = 'hidden';
 }
 
 function editRecipe() {
