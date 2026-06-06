@@ -5746,6 +5746,66 @@ async function fixLibrarySections() {
 }
 window.fixLibrarySections = fixLibrarySections;
 
+// ── console utility: fixItemCategories() ───────────────────────────────────
+// Run once to apply verified category corrections and display-name renames.
+async function fixItemCategories() {
+  const FIXES = {
+    // display name (lowercase) → { category, displayName (optional rename) }
+    'dinosaur chicken nuggets':  { category: 'Frozen Poultry' },
+    'frozen chicken tenders':    { category: 'Frozen Poultry' },
+    'fish sticks':               { category: 'Frozen Fish' },
+    'french fries':              { category: 'Frozen Potatoes' },
+    'frozen biscuits':           { category: 'Frozen Bread' },
+    'frozen bread sticks':       { category: 'Frozen Bread' },
+    'frozen garlic knots':       { category: 'Frozen Bread' },
+    'frozen rolls':              { category: 'Frozen Bread' },
+    'frozen soft pretzels':      { category: 'Frozen Bread' },
+    'frozen pancakes':           { category: 'Frozen Breakfast' },
+    'frozen lasagna':            { category: 'Frozen Dinners' },
+    'tv dinner':                 { category: 'Frozen Entrees' },
+    'frozen pizza':              { category: 'Frozen Pizza' },
+    'frozen corn on the cob':    { category: 'Frozen Vegetable' },
+    'ice cream':                 { category: 'Frozen Novelties' },
+    'ice cream drumsticks':      { category: 'Ice Cream' },
+    'black tea':                 { category: 'Tea' },
+    'dixie cups (small)':        { category: 'Napkins' },
+    'black eyed peas':           { category: 'Mexican' },
+    'instant maple oatmeal':     { category: 'Hot Cereal' },
+    'unsweetened wheat germ':    { category: 'Cereal' },
+    'gluten free mac & cheese':  { category: 'Prepared Meals' },
+    'pepperoni':                 { category: 'Canned Tomatoes' },
+    // Kidney bean rename + category confirm
+    'red kidney beans':          { category: 'Beans',            displayName: 'Dried Red Kidney Beans', sortName: 'Red Kidney Beans, Dried' },
+    'red kidney beans (canned)': { category: 'Canned Vegetables', displayName: 'Canned Red Kidney Beans', sortName: 'Red Kidney Beans, Canned' },
+  };
+
+  const libRef = ref(db, 'itemLibrary');
+  const snap = await get(libRef);
+  if (!snap.exists()) { console.log('No library items found.'); return; }
+  const data = snap.val();
+  const updates = {};
+  let fixed = 0;
+
+  Object.entries(data).forEach(([key, item]) => {
+    const nameKey = (item.displayName || '').toLowerCase().trim();
+    const fix = FIXES[nameKey];
+    if (!fix) return;
+    const newSection = CAT_TO_SECTION[fix.category] || fix.category;
+    updates[`itemLibrary/${key}/category`]     = fix.category;
+    updates[`itemLibrary/${key}/storeSection`] = newSection;
+    updates[`itemLibrary/${key}/section`]      = newSection;
+    if (fix.displayName) updates[`itemLibrary/${key}/displayName`] = fix.displayName;
+    if (fix.sortName)    updates[`itemLibrary/${key}/sortName`]    = fix.sortName;
+    fixed++;
+    console.log(`  ✓ ${item.displayName}${fix.displayName ? ' → ' + fix.displayName : ''} → ${fix.category}`);
+  });
+
+  if (fixed === 0) { console.log('No matching items found — already up to date?'); return; }
+  await update(ref(db), updates);
+  console.log(`\nDone — fixed ${fixed} items. Reload the page to see changes.`);
+}
+window.fixItemCategories = fixItemCategories;
+
 // ─── GROCERY DATA ───────────────────────────────────────────────
 const STAPLES = [
   { section: 'Bread', name: 'Item Whole Grain White', tag: 'staple' },
