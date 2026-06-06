@@ -2313,6 +2313,7 @@
       </div>
       <div class="grocery-actions">
         <button class="grocery-btn" onclick="openItemEditor(null)">+ Add Item</button>
+        <button class="grocery-btn" onclick="exportItemLibraryCSV()">⬇️ Export CSV</button>
         <button class="grocery-btn" onclick="document.getElementById('xlsxImport').click()">📥 Import XLSX</button>
         <button class="grocery-btn" onclick="importFromSpreadsheet()">📋 Import from Spreadsheet</button>
         <button class="grocery-btn" onclick="toggleNamingGuide()" id="guide-toggle-btn">📖 Naming Guide</button>
@@ -2363,7 +2364,6 @@
             <th>Sort Name</th>
             <th>Display Name</th>
             <th>Category</th>
-            <th>Store Section</th>
             <th>Brand (optional)</th>
             <th></th>
           </tr>
@@ -2635,12 +2635,6 @@
         <div class="item-field">
           <label>Category <span style="color:var(--accent)">*</span></label>
           <select id="item-edit-category" onchange="syncStoreSection()">
-            <option value="">— select —</option>
-          </select>
-        </div>
-        <div class="item-field">
-          <label>Store Section</label>
-          <select id="item-edit-section">
             <option value="">— select —</option>
           </select>
         </div>
@@ -5543,7 +5537,7 @@ function sectionFromLibrary(name) {
   }
   // 3. Ingredient name is contained in library item name
   if (!match) match = lib.find(i => (i.displayName || '').toLowerCase().includes(n));
-  return match ? (match.storeSection || match.section || guessSectionFromIngredient(name)) : guessSectionFromIngredient(name);
+  return match ? (match.category || match.storeSection || match.section || guessSectionFromIngredient(name)) : guessSectionFromIngredient(name);
 }
 
 function guessSectionFromIngredient(name) {
@@ -6694,28 +6688,16 @@ function populateItemDropdowns() {
       sel.appendChild(o);
     });
   });
-  const secSel = document.getElementById('item-edit-section');
-  if (secSel && !secSel.querySelector('option[value="Bakery & Deli"]')) {
-    STORE_SECTIONS.forEach(s => {
-      const o = document.createElement('option');
-      o.value = s; o.textContent = s;
-      secSel.appendChild(o);
-    });
-  }
 }
 
-function syncStoreSection() {
-  const cat = document.getElementById('item-edit-category').value;
-  const secSel = document.getElementById('item-edit-section');
-  if (cat && CAT_TO_SECTION[cat]) secSel.value = CAT_TO_SECTION[cat];
-}
+function syncStoreSection() { /* no-op: category is the section */ }
 
 function renderItemLib() {
   const tbody = document.getElementById('item-lib-tbody');
   const countEl = document.getElementById('item-lib-count');
   if (!tbody) return;
   if (_itemLibFiltered.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;color:var(--text-muted);padding:2rem;font-size:0.9rem">
+    tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;color:var(--text-muted);padding:2rem;font-size:0.9rem">
       ${_itemLibrary.length === 0
         ? 'No items yet — click <strong>+ Add Item</strong> to get started.'
         : 'No items match your search.'}
@@ -6729,7 +6711,6 @@ function renderItemLib() {
       <td><strong>${escHtml(item.sortName || item.displayName)}</strong></td>
       <td>${escHtml(item.displayName)}</td>
       <td>${escHtml(item.category || '')}</td>
-      <td>${escHtml(item.storeSection || '')}</td>
       <td>${item.brand ? `<span class="item-brand">${escHtml(item.brand)}</span>` : '<span style="color:var(--border)">—</span>'}</td>
       <td>
         <div class="item-actions">
@@ -6776,7 +6757,6 @@ function openItemEditor(itemId) {
   document.getElementById('item-edit-sort').value = item ? (item.sortName || '') : '';
   document.getElementById('item-edit-display').value = item ? (item.displayName || '') : '';
   document.getElementById('item-edit-category').value = item ? (item.category || '') : '';
-  document.getElementById('item-edit-section').value = item ? (item.storeSection || '') : '';
   document.getElementById('item-edit-brand').value = item ? (item.brand || '') : '';
   document.getElementById('item-modal').classList.add('open');
   document.body.style.overflow = 'hidden';
@@ -6796,23 +6776,23 @@ function saveItemEdit() {
   const sortName    = document.getElementById('item-edit-sort').value.trim();
   const displayName = document.getElementById('item-edit-display').value.trim();
   const category    = document.getElementById('item-edit-category').value;
-  const storeSection= document.getElementById('item-edit-section').value;
   const brand       = document.getElementById('item-edit-brand').value.trim();
   const existingId  = document.getElementById('item-edit-id').value;
 
   if (!displayName) { alert('Display Name is required.'); return; }
   if (!category)    { alert('Please select a Category.'); return; }
 
+  const section = CAT_TO_SECTION[category] || category;
   const id = existingId || 'lib_' + Date.now() + '_' + Math.random().toString(36).substr(2,5);
   const itemData = {
     id,
     sortName:     sortName || displayName,
     displayName,
     category,
-    storeSection: storeSection || CAT_TO_SECTION[category] || 'Other',
+    storeSection: section,
+    section,
     brand:        brand || ''
   };
-  // saveLibItem is defined in the Firebase module and exposed on window
   if (window.saveLibItem) window.saveLibItem(itemData);
   closeItemModal();
 }
@@ -6902,6 +6882,38 @@ function importFromSpreadsheet() {
   alert(`Import complete — ${added} new items added to your Item Library.`);
 }
 
+function exportItemLibraryCSV() {
+  if (!_itemLibrary || _itemLibrary.length === 0) {
+    alert('Item library is empty or still loading — try again in a moment.');
+    return;
+  }
+  const rows = [['Sort Name','Display Name','Category','Brand']];
+  const sorted = [..._itemLibrary].sort((a, b) =>
+    (a.sortName || a.displayName || '').localeCompare(b.sortName || b.displayName || '')
+  );
+  sorted.forEach(item => {
+    const escape = v => {
+      const s = (v || '').toString();
+      return s.includes(',') || s.includes('"') || s.includes('\n')
+        ? `"${s.replace(/"/g, '""')}"` : s;
+    };
+    rows.push([
+      escape(item.sortName || item.displayName),
+      escape(item.displayName),
+      escape(item.category || item.storeSection || ''),
+      escape(item.brand || '')
+    ]);
+  });
+  const csv = rows.map(r => r.join(',')).join('\n');
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'item-library.csv';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 function toggleNamingGuide() {
   const guide = document.getElementById('naming-guide');
   const btn   = document.getElementById('guide-toggle-btn');
@@ -6932,10 +6944,10 @@ function groceryAutocomplete(query) {
   } else {
     dropdown.innerHTML = matches.map((item, i) => `
       <div class="autocomplete-item" data-index="${i}"
-        onmousedown="selectGrocerySuggestion('${escAc(item.displayName || item.sortName)}','${escAc(item.storeSection || 'Other')}','${escAc(item.brand || '')}')"
+        onmousedown="selectGrocerySuggestion('${escAc(item.displayName || item.sortName)}','${escAc(item.category || item.storeSection || 'Other')}','${escAc(item.brand || '')}')"
         onmouseover="setAcActive(${i})">
         <span class="autocomplete-name">${item.displayName || item.sortName}</span>
-        <span class="autocomplete-section">${item.storeSection || ''}</span>
+        <span class="autocomplete-section">${item.category || item.storeSection || ''}</span>
       </div>
     `).join('');
   }
@@ -7021,10 +7033,10 @@ function eventItemAutocomplete(query) {
   } else {
     dropdown.innerHTML = matches.map((item, i) => `
       <div class="autocomplete-item" data-index="${i}"
-        onmousedown="selectEventItem('${escAc(item.displayName || item.sortName)}','${escAc(item.storeSection || 'Other')}')"
+        onmousedown="selectEventItem('${escAc(item.displayName || item.sortName)}','${escAc(item.category || item.storeSection || 'Other')}')"
         onmouseover="_evtAcIndex=${i};document.querySelectorAll('#event-item-suggestions .autocomplete-item').forEach((el,j)=>el.classList.toggle('active',j===${i}))">
         <span class="autocomplete-name">${item.displayName || item.sortName}</span>
-        <span class="autocomplete-section">${item.storeSection || ''}</span>
+        <span class="autocomplete-section">${item.category || item.storeSection || ''}</span>
       </div>`).join('');
   }
   dropdown.classList.add('open');
