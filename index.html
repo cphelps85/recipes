@@ -5725,6 +5725,33 @@ function _firebaseDeleteLibItem(id) {
 window.saveLibItem = saveLibItem;
 window._firebaseDeleteLibItem = _firebaseDeleteLibItem;
 
+// ── console utility: fixLibrarySections() ──────────────────────────────────
+// Run once in the browser console after deploying the new section names.
+// Updates every Firebase library item so its section matches its category
+// (old names like 'Produce', 'Canned Goods', 'Beverages' → specific category).
+async function fixLibrarySections() {
+  const libRef = ref(db, 'itemLibrary');
+  const snap = await get(libRef);
+  if (!snap.exists()) { console.log('No library items found.'); return; }
+  const data = snap.val();
+  const updates = {};
+  let fixed = 0;
+  Object.entries(data).forEach(([key, item]) => {
+    const cat = item.category || '';
+    const newSection = CAT_TO_SECTION[cat] || cat || 'Other';
+    const oldSection = item.storeSection || item.section || '';
+    if (oldSection !== newSection) {
+      updates[`itemLibrary/${key}/storeSection`] = newSection;
+      updates[`itemLibrary/${key}/section`] = newSection;
+      fixed++;
+    }
+  });
+  if (fixed === 0) { console.log('All library sections are already up to date!'); return; }
+  await update(ref(db), updates);
+  console.log(`Fixed ${fixed} items. Reload the page to see changes.`);
+}
+window.fixLibrarySections = fixLibrarySections;
+
 // ─── GROCERY DATA ───────────────────────────────────────────────
 const STAPLES = [
   { section: 'Bread', name: 'Item Whole Grain White', tag: 'staple' },
@@ -6869,34 +6896,6 @@ function importFromSpreadsheet() {
   });
   alert(`Import complete — ${added} new items added to your Item Library.`);
 }
-
-// ── console utility: fixLibrarySections() ──────────────────────────────────
-// Run this once in the browser console after deploying the new section names.
-// It updates every Firebase library item so its storeSection matches its category
-// (old consolidated names like 'Produce', 'Canned Goods', 'Beverages' etc. become
-// the specific category name — e.g. 'Vegetables', 'Canned Tomatoes', 'Soda').
-window.fixLibrarySections = async function() {
-  const { ref: fbRef, update: fbUpdate, get } = await import('https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js');
-  const libRef = fbRef(db, 'itemLibrary');
-  const snap = await get(libRef);
-  if (!snap.exists()) { console.log('No library items found.'); return; }
-  const data = snap.val();
-  const updates = {};
-  let fixed = 0;
-  Object.entries(data).forEach(([key, item]) => {
-    const cat = item.category || '';
-    const newSection = CAT_TO_SECTION[cat] || cat || 'Other';
-    const oldSection = item.storeSection || item.section || '';
-    if (oldSection !== newSection) {
-      updates[`itemLibrary/${key}/storeSection`] = newSection;
-      updates[`itemLibrary/${key}/section`] = newSection;
-      fixed++;
-    }
-  });
-  if (fixed === 0) { console.log('All library sections are already up to date!'); return; }
-  await fbUpdate(fbRef(db), updates);
-  console.log(`Fixed ${fixed} items. Reload the page to see changes.`);
-};
 
 function toggleNamingGuide() {
   const guide = document.getElementById('naming-guide');
