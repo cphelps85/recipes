@@ -2086,7 +2086,13 @@
         <button class="special-meal-btn" onclick="assignSpecial('leftovers')">🍱 Leftovers</button>
         <button class="special-meal-btn" onclick="assignSpecialCustom()">✏️ Custom Note</button>
       </div>
-      <input id="picker-search" type="text" placeholder="Search recipes..." class="add-input" style="width:100%;margin-bottom:1rem;" oninput="filterPicker(this.value)">
+      <input id="picker-search" type="text" placeholder="Search recipes..." class="add-input" style="width:100%;margin-bottom:0.75rem;" oninput="filterPicker(this.value)">
+      <div id="picker-filter-row" style="display:flex;gap:0.4rem;flex-wrap:wrap;margin-bottom:0.75rem;">
+        <button class="recipe-filter-btn active" data-course="all" onclick="setPickerFilter('all',this)">All</button>
+        <button class="recipe-filter-btn" data-course="main" onclick="setPickerFilter('main',this)">🍖 Main</button>
+        <button class="recipe-filter-btn" data-course="side" onclick="setPickerFilter('side',this)">🥗 Side</button>
+        <button class="recipe-filter-btn" data-course="vegetable" onclick="setPickerFilter('vegetable',this)">🥦 Veggie</button>
+      </div>
       <div id="picker-list"></div>
     </div>
   </div>
@@ -4126,7 +4132,7 @@ function setRecipeFilter(type, value, btn) {
 
 function applyRecipeFilters() {
   const q = document.getElementById('searchInput').value.toLowerCase();
-  let list = recipes;
+  let list = userRecipes;
 
   // Text search
   if (q) list = list.filter(r =>
@@ -4194,6 +4200,7 @@ window.clearAll = clearAll;
 window.clearPlan = clearPlan;
 window.openPicker = openPicker;
 window.filterPicker = filterPicker;
+window.setPickerFilter = setPickerFilter;
 window.assignRecipe = assignRecipe;
 window.assignSpecial = assignSpecial;
 window.assignSpecialCustom = assignSpecialCustom;
@@ -4959,13 +4966,26 @@ function renderSlotHTML(recipeId, slotKey, slotIcon, slotLabel, day) {
 
 let pickerTargetSlot = 'main';
 
+let pickerCourseFilter = 'all';
+
+function setPickerFilter(course, btn) {
+  pickerCourseFilter = course;
+  document.querySelectorAll('#picker-filter-row .recipe-filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  filterPicker(document.getElementById('picker-search').value);
+}
+
 function openPicker(day, slot) {
   pickerTargetDay = day;
   pickerTargetSlot = slot || 'main';
+  pickerCourseFilter = slot || 'all';
   const slotLabels = { main: '🍖 Main', side: '🥗 Side', vegetable: '🥦 Vegetable' };
   document.getElementById('picker-day-label').textContent = day + (slot ? ' — ' + (slotLabels[slot] || slot) : '');
   const searchEl = document.getElementById('picker-search');
   if (searchEl) searchEl.value = '';
+  document.querySelectorAll('#picker-filter-row .recipe-filter-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.course === pickerCourseFilter);
+  });
   filterPicker('');
   document.getElementById('picker-modal').classList.add('open');
   document.body.style.overflow = 'hidden';
@@ -4974,7 +4994,9 @@ function openPicker(day, slot) {
 function filterPicker(query) {
   const q = query.toLowerCase();
   let filtered = q ? userRecipes.filter(r => r.title.toLowerCase().includes(q)) : [...userRecipes];
-  if (pickerTargetSlot && !_eventPickerMode) {
+  if (pickerCourseFilter !== 'all') {
+    filtered = filtered.filter(r => r.course === pickerCourseFilter);
+  } else if (pickerTargetSlot && !_eventPickerMode) {
     filtered.sort((a, b) => (b.course === pickerTargetSlot ? 1 : 0) - (a.course === pickerTargetSlot ? 1 : 0));
   }
   document.getElementById('picker-list').innerHTML = filtered.map(r => `
