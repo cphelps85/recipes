@@ -6118,7 +6118,12 @@ function renderGrocery() {
   const grouped = {};
   SECTION_ORDER.forEach(s => grouped[s] = []);
   groceryList.forEach(item => {
-    const s = grouped[item.section] !== undefined ? item.section : 'Other';
+    let s = item.section;
+    if (grouped[s] === undefined) {
+      // stale section name — re-resolve from library
+      s = sectionFromLibrary(item.name);
+    }
+    if (grouped[s] === undefined) s = 'Other';
     grouped[s].push(item);
   });
 
