@@ -1884,6 +1884,8 @@
   .event-shop-row:last-child { border-bottom: none; }
   .event-shop-name { flex: 1; font-size: 0.9rem; color: var(--brown); }
   .event-shop-qty { font-size: 0.82rem; color: var(--text-muted); white-space: nowrap; }
+  .event-shop-row.checked .event-shop-name { text-decoration: line-through; color: var(--text-muted); }
+  .event-shop-row.checked .grocery-checkbox { background: var(--green); border-color: var(--green); color: white; }
   .event-guest-edit-row {
     display: flex; align-items: flex-end; gap: 0.4rem;
     padding: 0.4rem 0; border-bottom: 1px solid var(--border); flex-wrap: wrap;
@@ -1931,6 +1933,7 @@
   }
   .note-btn:hover { opacity: 1; }
   .grocery-item:has(.item-note) .note-btn { opacity: 0.7; }
+  .event-shop-row:has(.item-note) .note-btn { opacity: 0.7; }
 
   /* ── MOVE / ADD-TO-LIST BUTTONS ON PLANNER DAYS ──────────────────── */
   .day-move, .day-add-list {
@@ -4221,6 +4224,9 @@ window.portEventToGrocery = portEventToGrocery;
 window.updateEventRecipeServings = updateEventRecipeServings;
 window.removeEventRecipe = removeEventRecipe;
 window.removeEventItem = removeEventItem;
+window.toggleEventItem = toggleEventItem;
+window.toggleEventSection = toggleEventSection;
+window.addNoteToEventItem = addNoteToEventItem;
 window.addEventGuest = addEventGuest;
 window.removeEventGuest = removeEventGuest;
 window.updateEventGuest = updateEventGuest;
@@ -5190,14 +5196,17 @@ function addReviewedItems() {
     if (evt) {
       if (!evt.items) evt.items = [];
       toAdd.forEach(ing => {
-        const qtyStr = ing.amount ? `${formatAmount(ing.amount,1,1)}${ing.unit ? ' ' + ing.unit : ''}` : '';
         const key = ing.name.toLowerCase().trim();
-        const existing = evt.items.find(i => i.name.toLowerCase().trim() === key);
-        if (existing) {
-          if (qtyStr && existing.qty !== qtyStr) existing.qty = [existing.qty, qtyStr].filter(Boolean).join(' + ');
-        } else {
-          evt.items.push({ id: 'item_' + Date.now() + '_' + Math.random().toString(36).slice(2,4), name: ing.name, qty: qtyStr, section: ing.section, fromRecipe: ing.fromRecipe || '' });
+        let item = evt.items.find(i => i.name.toLowerCase().trim() === key);
+        if (!item) {
+          item = { id: 'item_' + Date.now() + '_' + Math.random().toString(36).slice(2,4), name: ing.name, section: ing.section, checked: false, sources: [] };
+          evt.items.push(item);
         }
+        if (!item.sources) item.sources = [];
+        // Recipe-linked source: keep base amount + servings so it can rescale later
+        const src = { recipeId: ing.recipeId, recipeTitle: ing.fromRecipe || '', amount: ing.baseAmount || 0, unit: ing.unit || '', baseServings: ing.baseServings || 4 };
+        const srcIdx = item.sources.findIndex(s => s.recipeId === ing.recipeId);
+        if (srcIdx >= 0) item.sources[srcIdx] = src; else item.sources.push(src);
       });
       set(ref(db, _eventsBasePath + '/' + _currentEventId + '/items'), evt.items);
       renderEventItems();
@@ -5233,6 +5242,7 @@ let _currentEventId = null;
 let _eventPickerMode = false;
 let _reviewingForEvent = false;
 let _reviewingEventIngredients = false;
+const _collapsedEventSections = new Set();
 
 function renderEvents() {
   const container = document.getElementById('events-list-container');
@@ -5326,6 +5336,36 @@ function renderEventRecipes() {
     </div>`).join('');
 }
 
+// Combine an event item's sources into a display qty string, rescaling any
+// recipe-linked sources to that recipe's *current* servings in this event.
+function computeEventItemQty(item, evt) {
+  const sources = item.sources || [];
+  if (sources.length === 0) return item.qty || ''; // legacy items with a frozen qty string
+
+  const byUnit = {};
+  const extra = [];
+  sources.forEach(src => {
+    if (src.manual) {
+      if (src.qty) extra.push(src.qty);
+      return;
+    }
+    const rec = (evt.recipes || []).find(r => String(r.recipeId) === String(src.recipeId));
+    const servings = rec ? rec.servings : src.baseServings;
+    const scale = servings / (src.baseServings || 1);
+    const amt = (src.amount || 0) * scale;
+    if (!amt) return;
+    const unit = (src.unit || '').toLowerCase();
+    byUnit[unit] = (byUnit[unit] || 0) + amt;
+  });
+
+  const parts = Object.entries(byUnit).map(([unit, total]) => {
+    const formatted = formatAmount(total, 1, 1);
+    return unit ? `${formatted} ${unit}` : formatted;
+  });
+  parts.push(...extra);
+  return parts.join(' + ');
+}
+
 function renderEventItems() {
   const evt = eventsCache[_currentEventId];
   const items = evt ? (evt.items || []) : [];
@@ -5334,16 +5374,86 @@ function renderEventItems() {
   const countEl = document.getElementById('event-items-count');
   if (!list) return;
   empty.style.display = items.length === 0 ? 'block' : 'none';
-  if (countEl) countEl.textContent = items.length > 0 ? `${items.length} item${items.length !== 1 ? 's' : ''}` : '';
-  list.innerHTML = items.map((item, i) => `
-    <div class="event-shop-row">
-      <div style="flex:1;min-width:0">
-        <span class="event-shop-name">${item.name}</span>
-        ${item.fromRecipe ? `<div style="font-size:0.72rem;color:var(--text-muted)">from: ${item.fromRecipe}</div>` : ''}
+  const doneCount = items.filter(i => i.checked).length;
+  if (countEl) countEl.textContent = items.length > 0 ? `${doneCount}/${items.length} checked` : '';
+
+  // Group by section (same aisle-ordered sections as the main grocery list)
+  const grouped = {};
+  SECTION_ORDER.forEach(s => grouped[s] = []);
+  items.forEach(item => {
+    let s = item.section;
+    if (grouped[s] === undefined) s = sectionFromLibrary(item.name);
+    if (grouped[s] === undefined) s = 'Other';
+    if (grouped[s] === undefined) grouped[s] = [];
+    grouped[s].push(item);
+  });
+
+  let html = '';
+  SECTION_ORDER.forEach(section => {
+    const secItems = grouped[section];
+    if (!secItems || secItems.length === 0) return;
+    const allDone = secItems.every(i => i.checked);
+    const collapsed = _collapsedEventSections.has(section);
+    const escSection = section.replace(/'/g, "\\'");
+    html += `<div class="grocery-section ${collapsed ? 'collapsed' : ''}">
+      <div class="grocery-section-title ${allDone ? 'all-done' : ''}" onclick="toggleEventSection('${escSection}')">
+        ${section} <span style="font-size:0.7rem;opacity:0.7">(${secItems.filter(i => i.checked).length}/${secItems.length})</span>
+        <button class="section-toggle" onclick="event.stopPropagation();toggleEventSection('${escSection}')">▼</button>
       </div>
-      <span class="event-shop-qty">${item.qty || ''}</span>
-      <button class="delete-item" onclick="removeEventItem(${i})">✕</button>
-    </div>`).join('');
+      <div class="section-items">`;
+    secItems.forEach(item => {
+      const i = items.indexOf(item);
+      const qty = computeEventItemQty(item, evt);
+      const recipeNames = (item.sources || []).filter(s => !s.manual).map(s => s.recipeTitle).filter(Boolean);
+      const fromLabel = recipeNames.length ? recipeNames.join(' · ') : (item.fromRecipe || '');
+      const noteHtml = item.note ? `<div class="item-note">📝 ${item.note}</div>` : '';
+      html += `
+      <div class="event-shop-row ${item.checked ? 'checked' : ''}" id="eitem-${item.id}">
+        <div class="grocery-checkbox" onclick="toggleEventItem('${item.id}')">${item.checked ? '✓' : ''}</div>
+        <div style="flex:1;min-width:0">
+          <span class="event-shop-name">${item.name}</span>
+          ${fromLabel ? `<div style="font-size:0.72rem;color:var(--text-muted)">from: ${fromLabel}</div>` : ''}
+          ${noteHtml}
+        </div>
+        <span class="event-shop-qty">${qty}</span>
+        <button class="note-btn" onclick="addNoteToEventItem('${item.id}')" title="Add note">📝</button>
+        <button class="delete-item" onclick="removeEventItem(${i})">✕</button>
+      </div>`;
+    });
+    html += `</div></div>`;
+  });
+  list.innerHTML = html;
+}
+
+function toggleEventSection(section) {
+  if (_collapsedEventSections.has(section)) {
+    _collapsedEventSections.delete(section);
+  } else {
+    _collapsedEventSections.add(section);
+  }
+  renderEventItems();
+}
+
+function addNoteToEventItem(id) {
+  const evt = eventsCache[_currentEventId];
+  if (!evt || !evt.items) return;
+  const item = evt.items.find(i => i.id === id);
+  if (!item) return;
+  const note = prompt('Add a note (e.g. "get the big bag"):', item.note || '');
+  if (note === null) return;
+  item.note = note.trim();
+  set(ref(db, _eventsBasePath + '/' + _currentEventId + '/items'), evt.items);
+  renderEventItems();
+}
+
+function toggleEventItem(id) {
+  const evt = eventsCache[_currentEventId];
+  if (!evt || !evt.items) return;
+  const item = evt.items.find(i => i.id === id);
+  if (!item) return;
+  item.checked = !item.checked;
+  set(ref(db, _eventsBasePath + '/' + _currentEventId + '/items'), evt.items);
+  renderEventItems();
 }
 
 function updateEventRecipeServings(index, value) {
@@ -5351,13 +5461,24 @@ function updateEventRecipeServings(index, value) {
   if (!evt || !evt.recipes || !evt.recipes[index]) return;
   evt.recipes[index].servings = parseInt(value) || 4;
   set(ref(db, _eventsBasePath + '/' + _currentEventId + '/recipes'), evt.recipes);
+  renderEventItems();
 }
 
 function removeEventRecipe(index) {
   const evt = eventsCache[_currentEventId];
   if (!evt || !evt.recipes) return;
+  const removed = evt.recipes[index];
   evt.recipes.splice(index, 1);
   set(ref(db, _eventsBasePath + '/' + _currentEventId + '/recipes'), evt.recipes.length ? evt.recipes : []);
+  // Drop this recipe's contribution from shopping list items; remove items left with nothing else behind them
+  if (removed && evt.items && evt.items.length) {
+    evt.items.forEach(item => {
+      if (item.sources) item.sources = item.sources.filter(s => String(s.recipeId) !== String(removed.recipeId));
+    });
+    evt.items = evt.items.filter(item => (item.sources && item.sources.length) || item.qty);
+    set(ref(db, _eventsBasePath + '/' + _currentEventId + '/items'), evt.items.length ? evt.items : []);
+    renderEventItems();
+  }
   renderEventRecipes();
 }
 
@@ -5398,7 +5519,7 @@ function addEventItem() {
   const evt = eventsCache[_currentEventId];
   if (!evt) return;
   if (!evt.items) evt.items = [];
-  evt.items.push({ id: 'item_' + Date.now(), name, qty, section });
+  evt.items.push({ id: 'item_' + Date.now(), name, section, checked: false, sources: qty ? [{ manual: true, qty }] : [] });
   set(ref(db, _eventsBasePath + '/' + _currentEventId + '/items'), evt.items);
   input.value = '';
   if (qtyInput) qtyInput.value = '';
@@ -5425,10 +5546,20 @@ function assignRecipeToEvent(recipeId) {
     renderEventRecipes();
   }
   // Open ingredient checklist
-  const scale = servings / (recipe.servings || 4);
+  const baseServings = recipe.servings || 4;
+  const scale = servings / baseServings;
   reviewIngredients = recipe.ingredients
     .filter(ing => !PANTRY_STAPLES.some(p => ing.name.toLowerCase().includes(p)))
-    .map(ing => ({ ...ing, amount: (ing.amount || 0) * scale, section: sectionFromLibrary(ing.name), fromRecipe: recipe.title }));
+    .map(ing => ({
+      ...ing,
+      amount: (ing.amount || 0) * scale,
+      baseAmount: ing.amount || 0,
+      baseServings,
+      unit: ing.unit || '',
+      section: sectionFromLibrary(ing.name),
+      fromRecipe: recipe.title,
+      recipeId: String(recipeId)
+    }));
   const listHTML = reviewIngredients.length === 0
     ? '<p style="color:var(--text-muted)">All ingredients are pantry staples!</p>'
     : reviewIngredients.map((ing, i) => `
@@ -5454,7 +5585,7 @@ function portEventToGrocery() {
   const evtName = evt.name || 'Event';
   items.forEach(item => {
     const section = item.section || sectionFromLibrary(item.name);
-    const source = { recipe: evtName, qty: item.qty || '' };
+    const source = { recipe: evtName, qty: computeEventItemQty(item, evt) };
     const existing = findExistingGroceryItem(item.name, {});
     if (existing) {
       updateItem(existing.id, { sources: [...(existing.sources || []), source] });
