@@ -20,6 +20,15 @@
 - Quantities scale with `currentServings / recipe.servings`
 - `_reviewingEventIngredients = false` routes confirmed items to the main grocery list (not an event list)
 
+## Event Planner — Shopping List (as of Sept 2026)
+- Event items (`evt.items`) now carry a `sources` array instead of a frozen `qty` string, so quantities can rescale. Each recipe-linked source is `{ recipeId, recipeTitle, amount, unit, baseServings }` — `amount` is the ingredient amount at the recipe's *original* servings (`baseServings`), not pre-scaled. Manually-added items (via the search box) get `{ manual: true, qty }` instead.
+- `computeEventItemQty(item, evt)` is the single source of truth for displaying an item's quantity — it looks up the recipe's *current* servings from `evt.recipes` and rescales each source live. Always route new "show qty" or "port to grocery" code through this function rather than reading `item.qty` directly, or rescaling will silently break again.
+- Changing an event recipe's servings (`updateEventRecipeServings`) only updates `evt.recipes[i].servings` — it does NOT touch `evt.items`. This is intentional; quantities are derived at render time, not stored pre-scaled.
+- Removing a recipe from an event (`removeEventRecipe`) strips that recipe's `sources` entries from every item, then drops any item left with no sources and no legacy `qty`.
+- Old events created before this change may still have items in the legacy flat shape (`{ qty, fromRecipe }`, no `sources`). `computeEventItemQty` falls back to `item.qty` for these — they just won't rescale until re-added via the recipe checklist.
+- The event shopping list (`renderEventItems`) now mirrors the main grocery list: grouped/sorted by `SECTION_ORDER`, collapsible per section (tracked in its own `_collapsedEventSections` Set — separate from the main list's `_collapsedSections` so collapse state doesn't leak between the two), and supports per-item notes via `addNoteToEventItem` (same `.item-note`/`.note-btn` pattern as `addNoteToItem`).
+- Event items also gained `checked` (bool), toggled via `toggleEventItem` — same visual pattern as the main grocery list's `.grocery-item.checked`, but on `.event-shop-row.checked` since event items don't share the `.grocery-item` class.
+
 ## Verification
 - After multi-step changes (migrations, refactors, bulk edits), always run a verification step that checks the actual end state, not just that code executed without errors
 
