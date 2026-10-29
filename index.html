@@ -794,20 +794,28 @@
   }
 
   /* ── ITEM LIBRARY ─────────────────────────────────────────────── */
+  .item-lib-sticky {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background: var(--cream);
+    padding: 0.8rem 0 0.6rem;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 1.2rem;
+  }
   .item-lib-header {
     display: flex;
     justify-content: space-between;
     align-items: flex-start;
     flex-wrap: wrap;
     gap: 0.8rem;
-    margin-bottom: 1.2rem;
+    margin-bottom: 0.8rem;
   }
   .item-lib-controls {
     display: flex;
     gap: 0.5rem;
     flex-wrap: wrap;
     align-items: center;
-    margin-bottom: 1rem;
   }
   .item-lib-search {
     flex: 1;
@@ -1904,6 +1912,13 @@
     padding: 0.15rem 0.5rem;
     white-space: nowrap;
     flex-shrink: 0;
+    cursor: pointer;
+  }
+  .item-qty-empty {
+    color: var(--text-muted);
+    background: transparent;
+    border-style: dashed;
+    opacity: 0.7;
   }
   .item-brand-tag {
     display: inline-block;
@@ -2230,7 +2245,6 @@
     <div class="grocery-actions">
       <button class="grocery-btn" onclick="reviewStaples()">📋 Review Staples</button>
       <button class="grocery-btn" onclick="openManageStaples()">⚙️ Manage Staples</button>
-      <button class="grocery-btn" onclick="loadWeekList('week')">📅 Load This Week</button>
       <button class="grocery-btn danger" onclick="clearChecked()">Clear Done</button>
       <button class="grocery-btn danger" onclick="clearAll()">Clear All</button>
       <button class="grocery-btn" id="item-lib-toggle-btn" onclick="toggleItemLib()">📦 Item Library</button>
@@ -2316,19 +2330,31 @@
 
   <!-- Item Library (collapsible panel) -->
   <div id="section-items" style="display:none;margin-top:1.5rem">
-    <div class="item-lib-header">
-      <div>
-        <p class="week-label">📦 Item Library</p>
-        <p class="week-meta" id="item-lib-meta">Your master list of grocery items</p>
+    <div class="item-lib-sticky">
+      <div class="item-lib-header">
+        <div>
+          <p class="week-label">📦 Item Library</p>
+          <p class="week-meta" id="item-lib-meta">Your master list of grocery items</p>
+        </div>
+        <div class="grocery-actions">
+          <button class="grocery-btn" onclick="openItemEditor(null)">+ Add Item</button>
+          <button class="grocery-btn" onclick="exportItemLibraryCSV()">⬇️ Export CSV</button>
+          <button class="grocery-btn" onclick="document.getElementById('xlsxImport').click()">📥 Import XLSX</button>
+          <button class="grocery-btn" onclick="importFromSpreadsheet()">📋 Import from Spreadsheet</button>
+          <button class="grocery-btn" onclick="toggleNamingGuide()" id="guide-toggle-btn">📖 Naming Guide</button>
+          <button class="grocery-btn danger" onclick="toggleItemLib()">✕ Close</button>
+        </div>
+        <input type="file" id="xlsxImport" accept=".xlsx,.xls,.csv" style="display:none" onchange="importItemsFromFile(this)">
       </div>
-      <div class="grocery-actions">
-        <button class="grocery-btn" onclick="openItemEditor(null)">+ Add Item</button>
-        <button class="grocery-btn" onclick="exportItemLibraryCSV()">⬇️ Export CSV</button>
-        <button class="grocery-btn" onclick="document.getElementById('xlsxImport').click()">📥 Import XLSX</button>
-        <button class="grocery-btn" onclick="importFromSpreadsheet()">📋 Import from Spreadsheet</button>
-        <button class="grocery-btn" onclick="toggleNamingGuide()" id="guide-toggle-btn">📖 Naming Guide</button>
+
+      <!-- Search + filter row -->
+      <div class="item-lib-controls">
+        <input type="text" class="item-lib-search" id="itemLibSearch" placeholder="Search items..." oninput="filterItemLib()">
+        <select class="item-lib-cat-filter" id="itemLibCatFilter" onchange="filterItemLib()">
+          <option value="">All Categories</option>
+        </select>
+        <span class="item-lib-count" id="item-lib-count"></span>
       </div>
-      <input type="file" id="xlsxImport" accept=".xlsx,.xls,.csv" style="display:none" onchange="importItemsFromFile(this)">
     </div>
 
     <!-- Naming Guide (collapsible) -->
@@ -2355,15 +2381,6 @@
       <p style="font-size:0.72rem;color:var(--text-muted);margin-top:0.7rem">
         The <strong>Display Name</strong> can be written naturally (e.g. "Red Bell Pepper") — that's what appears on your shopping list. The Sort Name is just for filing order.
       </p>
-    </div>
-
-    <!-- Search + filter row -->
-    <div class="item-lib-controls">
-      <input type="text" class="item-lib-search" id="itemLibSearch" placeholder="Search items..." oninput="filterItemLib()">
-      <select class="item-lib-cat-filter" id="itemLibCatFilter" onchange="filterItemLib()">
-        <option value="">All Categories</option>
-      </select>
-      <span class="item-lib-count" id="item-lib-count"></span>
     </div>
 
     <!-- Table -->
@@ -4273,6 +4290,7 @@ window.closeManageStaples = closeManageStaples;
 window.addNewStaple = addNewStaple;
 window.deleteStaple = deleteStaple;
 window.addNoteToItem = addNoteToItem;
+window.editItemQty = editItemQty;
 
 // ─── ADD TO LIST FROM PLANNER ────────────────────────────────────
 function reviewRecipeForDay(day) {
@@ -4445,6 +4463,13 @@ function addNoteToItem(id) {
   if (!item) return;
   const note = prompt('Add a note (e.g. "Sale price $0.99/lb"):', item.note || '');
   if (note !== null) updateItem(id, { note: note.trim() });
+}
+
+function editItemQty(id) {
+  const item = groceryList.find(i => i.id === id);
+  if (!item) return;
+  const qty = prompt('Quantity (e.g. "2 lb"):', item.qty || '');
+  if (qty !== null) updateItem(id, { qty: qty.trim() });
 }
 
 // ─── RECIPE UPLOADER ─────────────────────────────────────────────
@@ -4763,10 +4788,11 @@ function toggleRecipeToGrocery(recipeId, checked) {
 }
 
 // ─── MEAL PLANNER ────────────────────────────────────────────────
-const DAYS = ['Saturday', 'Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
+const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 const PANTRY_STAPLES = ['minced garlic', 'garlic', 'olive oil', 'black pepper', 'salt', 'cumin', 'paprika', 'chili powder', 'onion powder', 'oregano', 'basil', 'parsley', 'rosemary', 'thyme', 'ginger', 'nutmeg', 'cinnamon', 'worcestershire', 'vegetable oil', 'butter', 'cooking spray'];
 
-// Each week stored by its Saturday date string: 'YYYY-MM-DD'
+// Legacy: weeks used to be stored by their Saturday date string: 'YYYY-MM-DD'.
+// Kept only so migrateMealPlansToSundayStart() can locate old-scheme data.
 function getSaturdayOf(date) {
   const d = new Date(date);
   const day = d.getDay(); // 0=Sun, 1=Mon, ..., 6=Sat
@@ -4775,8 +4801,14 @@ function getSaturdayOf(date) {
   d.setHours(0,0,0,0);
   return d;
 }
-// Keep old name as alias for any legacy data that used Monday keys
-function getMondayOf(date) { return getSaturdayOf(date); }
+// Each week is now stored by its Sunday date string: 'YYYY-MM-DD'
+function getSundayOf(date) {
+  const d = new Date(date);
+  const day = d.getDay(); // 0=Sun, 1=Mon, ..., 6=Sat
+  d.setDate(d.getDate() - day); // go back to most recent Sunday
+  d.setHours(0,0,0,0);
+  return d;
+}
 function dateKey(date) {
   return date.toISOString().slice(0,10);
 }
@@ -4786,7 +4818,7 @@ function allPlans() {
   return allPlansCache;
 }
 
-let currentPlanWeek = getSaturdayOf(new Date()); // Date object for current week's Saturday
+let currentPlanWeek = getSundayOf(new Date()); // Date object for current week's Sunday
 let pickerTargetDay = null;
 let reviewIngredients = [];
 
@@ -4816,16 +4848,16 @@ function plannerNextWeek() {
   renderPlanner();
 }
 function plannerGoToday() {
-  currentPlanWeek = getSaturdayOf(new Date());
+  currentPlanWeek = getSundayOf(new Date());
   renderPlanner();
 }
 
-function weekLabel(saturday) {
-  const today = getSaturdayOf(new Date());
-  const diff = Math.round((saturday - today) / (7*24*3600*1000));
+function weekLabel(sunday) {
+  const today = getSundayOf(new Date());
+  const diff = Math.round((sunday - today) / (7*24*3600*1000));
   const opts = { month: 'short', day: 'numeric' };
-  const fri = new Date(saturday); fri.setDate(fri.getDate() + 6);
-  const range = `${saturday.toLocaleDateString('en-US', opts)} – ${fri.toLocaleDateString('en-US', opts)}`;
+  const sat = new Date(sunday); sat.setDate(sat.getDate() + 6);
+  const range = `${sunday.toLocaleDateString('en-US', opts)} – ${sat.toLocaleDateString('en-US', opts)}`;
   if (diff === 0) return `This week · ${range}`;
   if (diff === -1) return `Last week · ${range}`;
   if (diff === 1) return `Next week · ${range}`;
@@ -4841,7 +4873,7 @@ function renderPlanner() {
 
   const weekKey = currentWeekKey();
   const mealPlan = getMealPlan(weekKey);
-  const today = getSaturdayOf(new Date());
+  const today = getSundayOf(new Date());
   const isCurrentWeek = dateKey(currentPlanWeek) === dateKey(today);
 
   if (label) label.textContent = weekLabel(currentPlanWeek);
@@ -5980,6 +6012,56 @@ async function fixItemCategories() {
 }
 window.fixItemCategories = fixItemCategories;
 
+// ── console utility: migrateMealPlansToSundayStart() ───────────────────────
+// Run once in the browser console after deploying the Sunday-start week change.
+// Weeks used to be keyed by their Saturday date (Sat–Fri span); they're now
+// keyed by their Sunday date (Sun–Sat span). This regroups every stored
+// week's day entries onto the correct new week key, without deleting the
+// old-keyed data (so nothing is lost if something looks off — just re-check).
+async function migrateMealPlansToSundayStart() {
+  const plansRef = ref(db, _mealPlansBasePath);
+  const snap = await get(plansRef);
+  if (!snap.exists()) { console.log('No meal plans found.'); return; }
+  const oldData = snap.val();
+  const oldKeys = Object.keys(oldData);
+  console.log(`Found ${oldKeys.length} stored week(s):`, oldKeys);
+
+  const newPlans = {};
+  oldKeys.forEach(oldKey => {
+    const oldPlan = oldData[oldKey] || {};
+    const oldSat = new Date(oldKey + 'T00:00:00');
+    if (isNaN(oldSat)) { console.warn(`Skipping unrecognized key "${oldKey}"`); return; }
+
+    // Sun–Fri of the old (Sat-start) week become the same days of the new
+    // week that starts the day after the old Saturday.
+    const newKeySunFri = dateKey(new Date(oldSat.getFullYear(), oldSat.getMonth(), oldSat.getDate() + 1));
+    ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday'].forEach(day => {
+      if (oldPlan[day] !== undefined) {
+        newPlans[newKeySunFri] = newPlans[newKeySunFri] || {};
+        newPlans[newKeySunFri][day] = oldPlan[day];
+      }
+    });
+
+    // The old week's Saturday is the trailing day of the new week that
+    // started 6 days earlier.
+    if (oldPlan['Saturday'] !== undefined) {
+      const newKeySat = dateKey(new Date(oldSat.getFullYear(), oldSat.getMonth(), oldSat.getDate() - 6));
+      newPlans[newKeySat] = newPlans[newKeySat] || {};
+      newPlans[newKeySat]['Saturday'] = oldPlan['Saturday'];
+    }
+  });
+
+  const newKeys = Object.keys(newPlans);
+  if (newKeys.length === 0) { console.log('Nothing to migrate.'); return; }
+  console.log(`Writing ${newKeys.length} new-scheme week(s):`, newKeys);
+  for (const key of newKeys) {
+    await set(ref(db, _mealPlansBasePath + '/' + key), newPlans[key]);
+  }
+  console.log('Done. Old-keyed data was left in place (unused, harmless) in case you need to double-check anything.');
+  console.log('Reload the page, then check the planner shows the right meals on the right days.');
+}
+window.migrateMealPlansToSundayStart = migrateMealPlansToSundayStart;
+
 // ─── GROCERY DATA ───────────────────────────────────────────────
 const STAPLES = [
   { section: 'Bread', name: 'Item Whole Grain White', tag: 'staple' },
@@ -6381,7 +6463,9 @@ function renderGrocery() {
       }
       // If user also typed a manual qty, tack it on
       if (item.qty) displayQty = displayQty ? `${displayQty} + ${item.qty}` : item.qty;
-      const qtyHtml = displayQty ? `<span class="item-qty">${displayQty}</span>` : '';
+      const qtyHtml = displayQty
+        ? `<span class="item-qty" onclick="editItemQty('${item.id}')" title="Edit quantity">${displayQty}</span>`
+        : `<span class="item-qty item-qty-empty" onclick="editItemQty('${item.id}')" title="Add quantity">+ qty</span>`;
       // Sources line: just recipe names unless units are mixed (then show breakdown)
       const sourcesHtml = item.sources && item.sources.length > 0
         ? `<div class="item-sources">from: ${item.sources.map(s =>
