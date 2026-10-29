@@ -1318,6 +1318,26 @@
   }
   .special-meal-btn:hover { background: var(--accent); color: white; border-color: var(--accent); }
   .day-recipe.special { color: var(--accent); font-style: normal; font-size: 0.85rem; }
+  .slot-item-row, .slot-note-row {
+    margin-bottom: 1rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--border);
+  }
+  .slot-note-label { font-size: 0.78rem; color: var(--text-muted); margin-bottom: 0.5rem; }
+  .quickpick-btn {
+    background: var(--cream);
+    border: 1.5px solid var(--border);
+    border-radius: 50px;
+    padding: 0.3rem 0.75rem;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.75rem;
+    color: var(--brown);
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .quickpick-btn:hover { background: var(--accent); color: white; border-color: var(--accent); }
+  #picker-item-results { display: flex; gap: 0.4rem; flex-wrap: wrap; margin-top: 0.6rem; max-height: 9rem; overflow-y: auto; }
+  .slot-note { font-style: italic; }
 
   /* ── + ADD TO LIST BUTTON ────────────────────────────────────────── */
   .add-to-list-btn {
@@ -2001,6 +2021,7 @@
 <nav id="nav">
   <button class="active" onclick="showWeek('grocery', this)">🛒 Grocery List</button>
   <button onclick="showWeek('planner', this)">📅 Meal Planner</button>
+  <button onclick="showWeek('costco', this)">🏬 Costco</button>
   <button onclick="showWeek('events', this)">🎉 Events</button>
   <button onclick="showWeek('upload', this)">➕ Add Recipe</button>
   <button onclick="showWeek('menu', this)">🍽️ Menu Scanner</button>
@@ -2104,6 +2125,19 @@
         <button class="special-meal-btn" onclick="assignSpecial('leftovers')">🍱 Leftovers</button>
         <button class="special-meal-btn" onclick="assignSpecialCustom()">✏️ Custom Note</button>
       </div>
+      <div class="slot-item-row">
+        <div class="slot-note-label">🏷️ Or pick an item from your library (e.g. frozen pizza):</div>
+        <input type="text" id="picker-item-search" class="add-input" style="width:100%" placeholder="Search item library..." oninput="filterPickerItems(this.value)">
+        <div id="picker-item-results"></div>
+      </div>
+      <div class="slot-note-row">
+        <div class="slot-note-label">✏️ Or write a quick note:</div>
+        <div style="display:flex;gap:0.4rem;">
+          <input type="text" id="picker-note-input" class="add-input" style="flex:1" placeholder="e.g. Rotisserie chicken from the store"
+            onkeydown="if(event.key==='Enter'){event.preventDefault();addSlotNote();}">
+          <button class="grocery-btn" onclick="addSlotNote()">📝 Add Note</button>
+        </div>
+      </div>
       <input id="picker-search" type="text" placeholder="Search recipes..." class="add-input" style="width:100%;margin-bottom:0.75rem;" oninput="filterPicker(this.value)">
       <div id="picker-filter-row" style="display:flex;gap:0.4rem;flex-wrap:wrap;margin-bottom:0.75rem;">
         <button class="recipe-filter-btn active" data-course="all" onclick="setPickerFilter('all',this)">All</button>
@@ -2131,6 +2165,29 @@
     </div>
   </div>
 </div>
+
+<!-- COSTCO LIST -->
+<div class="week-section" id="section-costco">
+  <div class="grocery-header">
+    <div>
+      <p class="week-label">🏬 Costco List</p>
+      <p class="week-meta" id="costco-count">Loading...</p>
+    </div>
+    <div class="grocery-actions">
+      <button class="grocery-btn" onclick="reviewCostcoList()">📋 Review Costco List</button>
+      <button class="grocery-btn" onclick="openManageCostcoList()">⚙️ Manage Costco List</button>
+      <button class="grocery-btn danger" onclick="clearCostcoChecked()">Clear Checked Items</button>
+      <button class="grocery-btn danger" onclick="clearCostcoAll()">Clear All</button>
+    </div>
+  </div>
+  <div class="add-item-row">
+    <input type="text" id="newCostcoTripInput" placeholder="Add an item for this trip..." class="add-input" style="width:100%" autocomplete="off"
+      onkeydown="if(event.key==='Enter'){event.preventDefault();addCostcoTripItem();}">
+    <button class="add-btn" onclick="addCostcoTripItem()">+</button>
+  </div>
+  <div id="costco-list-container"></div>
+</div>
+
 <!-- EVENT PLANNER -->
 <div class="week-section" id="section-events">
 
@@ -2538,6 +2595,22 @@
   </div>
 </div>
 
+<!-- COSTCO REVIEW MODAL -->
+<div class="modal-overlay" id="costco-review-modal" onclick="if(event.target===this)closeCostcoReview()">
+  <div class="modal" id="costco-review-content">
+    <div class="modal-header">
+      <div class="modal-day">Review</div>
+      <div class="modal-title">Costco Checklist</div>
+      <div class="modal-desc">Check off what you need this trip, then tap Add to List</div>
+      <button class="modal-close" onclick="closeCostcoReview()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div id="costco-review-list"></div>
+      <button class="print-btn" onclick="addReviewedCostcoItems()" style="width:100%;margin-top:1rem;">Add Checked Items to Grocery List</button>
+    </div>
+  </div>
+</div>
+
 <!-- MOVE MEAL PICKER MODAL -->
 <div class="modal-overlay" id="move-picker-modal" onclick="if(event.target===this)closeMovePicker()">
   <div class="modal" style="max-width:380px">
@@ -2629,6 +2702,91 @@
         <button class="add-btn" onclick="addNewStaple()">+</button>
       </div>
       <div id="manage-staples-list"></div>
+    </div>
+  </div>
+</div>
+
+<!-- MANAGE COSTCO LIST MODAL -->
+<div class="modal-overlay" id="manage-costco-modal" onclick="if(event.target===this)closeManageCostcoList()">
+  <div class="modal" style="max-width:560px">
+    <div class="modal-header">
+      <div class="modal-day">Settings</div>
+      <div class="modal-title">Manage Costco List</div>
+      <div class="modal-desc">Add or remove items from your master Costco catalog</div>
+      <button class="modal-close" onclick="closeManageCostcoList()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div style="display:flex;gap:0.5rem;margin-bottom:1rem">
+        <div class="autocomplete-wrap" style="flex:2;position:relative">
+          <input type="text" id="new-costco-lib-name" placeholder="Search item library..." class="add-input" style="width:100%" autocomplete="off"
+            oninput="costcoLibAutocomplete(this.value)"
+            onkeydown="handleCostcoLibKey(event)">
+          <div class="autocomplete-dropdown" id="costco-lib-suggestions"></div>
+        </div>
+        <select id="new-costco-lib-section" class="section-select" style="flex:1;max-width:180px">
+          <option value="Vegetables">Vegetables</option>
+          <option value="Fruit">Fruit</option>
+          <option value="Bakery & Deli">Bakery & Deli</option>
+          <option value="Beer & Wine">Beer & Wine</option>
+          <option value="Canned Tomatoes">Canned Tomatoes</option>
+          <option value="Pasta">Pasta</option>
+          <option value="Pasta Sauce">Pasta Sauce</option>
+          <option value="Mexican">Mexican</option>
+          <option value="Asian">Asian</option>
+          <option value="Beans">Beans</option>
+          <option value="Canned Meats">Canned Meats</option>
+          <option value="Condiments">Condiments</option>
+          <option value="Prepared Meals">Prepared Meals</option>
+          <option value="Rice">Rice</option>
+          <option value="Soup">Soup</option>
+          <option value="Canned Vegetables">Canned Vegetables</option>
+          <option value="Baking">Baking</option>
+          <option value="Canned Fruit">Canned Fruit</option>
+          <option value="Flour">Flour</option>
+          <option value="Oils/Shortening">Oils/Shortening</option>
+          <option value="Spices">Spices</option>
+          <option value="Stuffing">Stuffing</option>
+          <option value="Frozen Bread">Frozen Bread</option>
+          <option value="Frozen Breakfast">Frozen Breakfast</option>
+          <option value="Frozen Dinners">Frozen Dinners</option>
+          <option value="Frozen Entrees">Frozen Entrees</option>
+          <option value="Frozen Fish">Frozen Fish</option>
+          <option value="Frozen Potatoes">Frozen Potatoes</option>
+          <option value="Frozen Vegetable">Frozen Vegetable</option>
+          <option value="Frozen Novelties">Frozen Novelties</option>
+          <option value="Frozen Pizza">Frozen Pizza</option>
+          <option value="Frozen Poultry">Frozen Poultry</option>
+          <option value="Ice Cream">Ice Cream</option>
+          <option value="Cereal">Cereal</option>
+          <option value="Energy Bars">Energy Bars</option>
+          <option value="Hot Cereal">Hot Cereal</option>
+          <option value="Peanut Butter/Jelly">Peanut Butter/Jelly</option>
+          <option value="Rice Cakes">Rice Cakes</option>
+          <option value="Syrup">Syrup</option>
+          <option value="Coffee">Coffee</option>
+          <option value="Juice">Juice</option>
+          <option value="Tea">Tea</option>
+          <option value="Seltzer & Water">Seltzer & Water</option>
+          <option value="Soda">Soda</option>
+          <option value="Chips">Chips</option>
+          <option value="Crackers">Crackers</option>
+          <option value="Napkins">Napkins</option>
+          <option value="Tissues">Tissues</option>
+          <option value="Cleaning Supplies">Cleaning Supplies</option>
+          <option value="Dish Detergent">Dish Detergent</option>
+          <option value="Laundry Detergent">Laundry Detergent</option>
+          <option value="Stationary">Stationary</option>
+          <option value="Cat Supplies">Cat Supplies</option>
+          <option value="Dog Supplies">Dog Supplies</option>
+          <option value="Bread">Bread</option>
+          <option value="Dairy" selected>Dairy</option>
+          <option value="Pharmacy">Pharmacy</option>
+          <option value="Meat">Meat</option>
+          <option value="Other">Other</option>
+        </select>
+        <button class="add-btn" onclick="addNewCostcoLibItem()">+</button>
+      </div>
+      <div id="manage-costco-list"></div>
     </div>
   </div>
 </div>
@@ -3865,10 +4023,11 @@ function showWeek(week, btn) {
   btn.classList.add('active');
   document.getElementById('searchInput').value = '';
   document.getElementById('no-results').style.display = 'none';
-  document.querySelector('.search-bar').style.display = (week === 'grocery') ? 'none' : '';
+  document.querySelector('.search-bar').style.display = (week === 'grocery' || week === 'costco') ? 'none' : '';
   if (week === 'all') renderRecipes(userRecipes);
   if (week === 'grocery') renderGrocery();
   if (week === 'planner') renderPlanner();
+  if (week === 'costco') renderCostcoList();
   if (week === 'events') renderEvents();
   if (week === 'produce') renderProduce();
   if (week === 'upload') resetUploader();
@@ -4214,6 +4373,21 @@ window.loadWeekList = loadWeekList;
 window.addItem = addItem;
 window.toggleItem = toggleItem;
 window.deleteItem = deleteItem;
+window.addCostcoTripItem = addCostcoTripItem;
+window.toggleCostcoItem = toggleCostcoItem;
+window.deleteCostcoItem = deleteCostcoItem;
+window.clearCostcoChecked = clearCostcoChecked;
+window.clearCostcoAll = clearCostcoAll;
+window.openManageCostcoList = openManageCostcoList;
+window.closeManageCostcoList = closeManageCostcoList;
+window.addNewCostcoLibItem = addNewCostcoLibItem;
+window.deleteCostcoLibItem = deleteCostcoLibItem;
+window.costcoLibAutocomplete = costcoLibAutocomplete;
+window.selectCostcoLibSuggestion = selectCostcoLibSuggestion;
+window.handleCostcoLibKey = handleCostcoLibKey;
+window.reviewCostcoList = reviewCostcoList;
+window.addReviewedCostcoItems = addReviewedCostcoItems;
+window.closeCostcoReview = closeCostcoReview;
 window.undoDelete = undoDelete;
 window.clearChecked = clearChecked;
 window.clearAll = clearAll;
@@ -4222,6 +4396,9 @@ window.openPicker = openPicker;
 window.filterPicker = filterPicker;
 window.setPickerFilter = setPickerFilter;
 window.assignRecipe = assignRecipe;
+window.assignSlotNote = assignSlotNote;
+window.addSlotNote = addSlotNote;
+window.filterPickerItems = filterPickerItems;
 window.assignSpecial = assignSpecial;
 window.assignSpecialCustom = assignSpecialCustom;
 window.plannerPrevWeek = plannerPrevWeek;
@@ -4297,11 +4474,20 @@ function reviewRecipeForDay(day) {
   const weekKey = currentWeekKey();
   const mealVal = getMealPlan(weekKey)[day];
   const dayMeals = getDayMeals(mealVal);
-  const recipes = [dayMeals.main, dayMeals.side, dayMeals.vegetable]
-    .filter(Boolean)
+  const slotLabels = { main: 'Main', side: 'Side', vegetable: 'Vegetable' };
+  const slots = ['main', 'side', 'vegetable'];
+
+  const recipes = slots
+    .map(slot => dayMeals[slot])
+    .filter(v => v && !v.startsWith('note:'))
     .map(id => userRecipes.find(r => String(r.id) === String(id)))
     .filter(Boolean);
-  if (recipes.length === 0) { alert('No recipes planned for this day.'); return; }
+
+  const notes = slots
+    .filter(slot => typeof dayMeals[slot] === 'string' && dayMeals[slot].startsWith('note:'))
+    .map(slot => ({ name: dayMeals[slot].slice(5), recipeName: slotLabels[slot] }));
+
+  if (recipes.length === 0 && notes.length === 0) { alert('No recipes planned for this day.'); return; }
 
   const ingredientMap = {};
   recipes.forEach(recipe => {
@@ -4315,6 +4501,14 @@ function reviewRecipeForDay(day) {
         ingredientMap[key] = { ...ing, recipeName: recipe.title };
       }
     });
+  });
+  notes.forEach(note => {
+    const key = note.name.toLowerCase();
+    if (ingredientMap[key]) {
+      ingredientMap[key].recipeName += `, ${note.recipeName}`;
+    } else {
+      ingredientMap[key] = { name: note.name, amount: null, unit: '', recipeName: note.recipeName };
+    }
   });
 
   reviewIngredients = Object.values(ingredientMap).map(ing => {
@@ -4335,7 +4529,10 @@ function reviewRecipeForDay(day) {
       </div>`).join('');
 
   document.getElementById('review-list').innerHTML = listHTML;
-  document.querySelector('#review-content .modal-title').textContent = recipes.length > 1 ? `${day} — ${recipes.length} recipes` : recipes[0].title;
+  const totalPlanned = recipes.length + notes.length;
+  document.querySelector('#review-content .modal-title').textContent = totalPlanned > 1
+    ? `${day} — ${totalPlanned} items`
+    : (recipes[0] ? recipes[0].title : notes[0].name);
   document.querySelector('#review-content .modal-desc').textContent = 'Uncheck anything you already have';
   document.getElementById('review-modal').classList.add('open');
   document.body.style.overflow = 'hidden';
@@ -4986,6 +5183,14 @@ function getDayMeals(mealVal) {
 }
 
 function renderSlotHTML(recipeId, slotKey, slotIcon, slotLabel, day) {
+  if (typeof recipeId === 'string' && recipeId.startsWith('note:')) {
+    const noteText = recipeId.slice(5);
+    return `<div class="planner-slot has-recipe">
+      <span class="slot-icon">${slotIcon}</span>
+      <span class="slot-recipe slot-note" onclick="event.stopPropagation();openPicker('${day}','${slotKey}')">📝 ${noteText}</span>
+      <button class="slot-remove" onclick="event.stopPropagation();removeFromPlan(event,'${day}','${slotKey}')">✕</button>
+    </div>`;
+  }
   if (recipeId) {
     const recipe = userRecipes.find(r => String(r.id) === String(recipeId));
     if (recipe) {
@@ -5024,6 +5229,16 @@ function openPicker(day, slot) {
   document.querySelectorAll('#picker-filter-row .recipe-filter-btn').forEach(b => {
     b.classList.toggle('active', b.dataset.course === pickerCourseFilter);
   });
+  const noteRow = document.querySelector('.slot-note-row');
+  if (noteRow) noteRow.style.display = '';
+  const itemRow = document.querySelector('.slot-item-row');
+  if (itemRow) itemRow.style.display = '';
+  const noteInput = document.getElementById('picker-note-input');
+  if (noteInput) noteInput.value = '';
+  const itemSearchEl = document.getElementById('picker-item-search');
+  if (itemSearchEl) itemSearchEl.value = '';
+  const itemResults = document.getElementById('picker-item-results');
+  if (itemResults) itemResults.innerHTML = '';
   filterPicker('');
   document.getElementById('picker-modal').classList.add('open');
   document.body.style.overflow = 'hidden';
@@ -5045,6 +5260,24 @@ function filterPicker(query) {
   `).join('');
 }
 
+function filterPickerItems(query) {
+  const results = document.getElementById('picker-item-results');
+  if (!results) return;
+  const q = query.trim().toLowerCase();
+  if (!q) { results.innerHTML = ''; return; }
+  const library = window._itemLibrary || [];
+  const matches = library
+    .filter(item => {
+      const name = (item.displayName || item.sortName || '').toLowerCase();
+      const sort = (item.sortName || '').toLowerCase();
+      return name.includes(q) || sort.includes(q);
+    })
+    .slice(0, 30);
+  results.innerHTML = matches.length
+    ? matches.map(item => `<button class="quickpick-btn" onclick="assignSlotNote('${(item.displayName || item.sortName).replace(/'/g, "\\'")}')">${item.displayName || item.sortName}</button>`).join('')
+    : '<span class="slot-note-label">No matching items in your library.</span>';
+}
+
 function assignRecipe(id) {
   if (_eventPickerMode) { assignRecipeToEvent(id); return; }
   const weekKey = currentWeekKey();
@@ -5052,6 +5285,25 @@ function assignRecipe(id) {
   const dayMeals = getDayMeals(plan[pickerTargetDay]);
   plan[pickerTargetDay] = { main: dayMeals.main, side: dayMeals.side, vegetable: dayMeals.vegetable };
   plan[pickerTargetDay][pickerTargetSlot] = String(id);
+  setMealPlan(weekKey, plan);
+  closePickerDirect();
+  renderPlanner();
+}
+
+function addSlotNote() {
+  const input = document.getElementById('picker-note-input');
+  assignSlotNote(input ? input.value : '');
+}
+
+function assignSlotNote(text) {
+  if (_eventPickerMode) return;
+  const note = (text || '').trim();
+  if (!note) return;
+  const weekKey = currentWeekKey();
+  const plan = getMealPlan(weekKey);
+  const dayMeals = getDayMeals(plan[pickerTargetDay]);
+  plan[pickerTargetDay] = { main: dayMeals.main, side: dayMeals.side, vegetable: dayMeals.vegetable };
+  plan[pickerTargetDay][pickerTargetSlot] = 'note:' + note;
   setMealPlan(weekKey, plan);
   closePickerDirect();
   renderPlanner();
@@ -5537,6 +5789,10 @@ function openEventDishPicker() {
   saveCurrentEventMeta();
   _eventPickerMode = true;
   pickerTargetDay = '__event__';
+  const noteRow = document.querySelector('.slot-note-row');
+  if (noteRow) noteRow.style.display = 'none';
+  const itemRow = document.querySelector('.slot-item-row');
+  if (itemRow) itemRow.style.display = 'none';
   document.getElementById('picker-modal').classList.add('open');
   document.body.style.overflow = 'hidden';
   filterPicker('');
@@ -5833,11 +6089,15 @@ const _listBasePath = IS_DEV ? 'dev/groceryList' : 'groceryList';
 const _mealPlansBasePath = IS_DEV ? 'dev/mealPlans' : 'mealPlans';
 const _staplesBasePath2 = IS_DEV ? 'dev/staples' : 'staples';
 const _eventsBasePath = IS_DEV ? 'dev/events' : 'events';
+const _costcoBasePath = IS_DEV ? 'dev/costcoList' : 'costcoList';
+const _costcoLibraryBasePath = IS_DEV ? 'dev/costcoLibrary' : 'costcoLibrary';
 const listRef = ref(db, _listBasePath);
 const itemLibRef = ref(db, 'itemLibrary'); // shared — test against real recipes/library
 const mealPlansRef = ref(db, _mealPlansBasePath);
 const staplesRef2 = ref(db, _staplesBasePath2);
 const eventsRef = ref(db, _eventsBasePath);
+const costcoRef = ref(db, _costcoBasePath);
+const costcoLibraryRef = ref(db, _costcoLibraryBasePath);
 
 if (IS_DEV) {
   const banner = document.createElement('div');
@@ -5853,6 +6113,23 @@ onValue(staplesRef2, (snapshot) => {
   const data = snapshot.val();
   staplesCache = data ? Object.values(data).filter(Boolean) : [];
   renderManageStaplesList();
+});
+
+// ─── COSTCO LIST FIREBASE ─────────────────────────────────────────
+let costcoList = [];
+
+onValue(costcoRef, (snapshot) => {
+  const data = snapshot.val();
+  costcoList = data ? Object.values(data).filter(Boolean) : [];
+  renderCostcoList();
+});
+
+let costcoLibraryCache = [];
+
+onValue(costcoLibraryRef, (snapshot) => {
+  const data = snapshot.val();
+  costcoLibraryCache = data ? Object.values(data).filter(Boolean) : [];
+  renderManageCostcoList();
 });
 
 async function migrateStaplesToFirebase() {
@@ -6200,6 +6477,143 @@ function updateItem(id, changes) {
 
 function generateId() {
   return 'item_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5);
+}
+
+// ─── COSTCO TRIP LIST (this trip's working list, like the Grocery List) ──
+function renderCostcoList() {
+  const container = document.getElementById('costco-list-container');
+  const countEl = document.getElementById('costco-count');
+  if (!container) return;
+  const total = costcoList.length;
+  const done = costcoList.filter(i => i.checked).length;
+  if (countEl) countEl.textContent = total === 0 ? 'Your Costco list is empty' : `${done} of ${total} items checked off`;
+  if (total === 0) {
+    container.innerHTML = '<div class="empty-state"><p>Your Costco list is empty! Use 📋 Review Costco List or add an item above.</p></div>';
+    return;
+  }
+  const sorted = [...costcoList].sort((a, b) => a.name.localeCompare(b.name));
+  container.innerHTML = `<div class="grocery-section">${sorted.map(item => `
+    <div class="grocery-item ${item.checked ? 'checked' : ''}" id="costco-item-${item.id}">
+      <div class="grocery-checkbox" onclick="toggleCostcoItem('${item.id}')">${item.checked ? '✓' : ''}</div>
+      <div class="item-label-wrap"><span class="item-label">${item.name}</span></div>
+      <button class="delete-item" onclick="deleteCostcoItem('${item.id}')">✕</button>
+    </div>`).join('')}</div>`;
+}
+
+function addCostcoTripItem() {
+  const input = document.getElementById('newCostcoTripInput');
+  const name = input.value.trim();
+  if (!name) return;
+  const id = generateId();
+  set(ref(db, _costcoBasePath + '/' + id), { id, name, checked: false });
+  input.value = '';
+}
+
+function toggleCostcoItem(id) {
+  const item = costcoList.find(i => i.id === id);
+  if (item) update(ref(db, _costcoBasePath + '/' + id), { checked: !item.checked });
+}
+
+function deleteCostcoItem(id) {
+  remove(ref(db, _costcoBasePath + '/' + id));
+}
+
+function clearCostcoChecked() {
+  const checked = costcoList.filter(i => i.checked);
+  if (checked.length === 0) return;
+  if (confirm('Remove all checked items?')) {
+    checked.forEach(i => deleteCostcoItem(i.id));
+  }
+}
+
+function clearCostcoAll() {
+  if (costcoList.length === 0) return;
+  if (confirm('Clear the entire Costco list?')) {
+    set(costcoRef, null);
+  }
+}
+
+// ─── MANAGE COSTCO LIST (master catalog, like Manage Staples) ────
+function openManageCostcoList() {
+  renderManageCostcoList();
+  document.getElementById('new-costco-lib-name').value = '';
+  document.getElementById('manage-costco-modal').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeManageCostcoList() {
+  document.getElementById('manage-costco-modal').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+function renderManageCostcoList() {
+  const el = document.getElementById('manage-costco-list');
+  if (!el) return;
+  if (costcoLibraryCache.length === 0) {
+    el.innerHTML = '<p style="color:var(--text-muted);font-size:0.88rem;text-align:center;padding:1rem">No items yet — add one above.</p>';
+    return;
+  }
+  const sorted = [...costcoLibraryCache].sort((a, b) => a.name.localeCompare(b.name));
+  el.innerHTML = sorted.map(item => `
+    <div class="staple-manage-item">
+      <span class="staple-manage-name">${item.name}</span>
+      <span class="staple-manage-section">${item.section}</span>
+      <button class="staple-delete-btn" onclick="deleteCostcoLibItem('${item.id}')">✕</button>
+    </div>`).join('');
+}
+
+function addNewCostcoLibItem() {
+  const nameEl = document.getElementById('new-costco-lib-name');
+  const sectionEl = document.getElementById('new-costco-lib-section');
+  const name = nameEl.value.trim();
+  if (!name) { alert('Please enter an item name.'); return; }
+  const newLibItem = { id: 'cstc_' + Date.now(), name, section: sectionEl.value };
+  set(ref(db, _costcoLibraryBasePath + '/' + newLibItem.id), newLibItem);
+  nameEl.value = '';
+}
+
+function deleteCostcoLibItem(id) {
+  remove(ref(db, _costcoLibraryBasePath + '/' + id));
+}
+
+// ─── REVIEW COSTCO LIST (catalog → this trip's list, like Review Staples) ─
+let _costcoReviewList = [];
+
+function reviewCostcoList() {
+  _costcoReviewList = costcoLibraryCache.map(item => ({
+    ...item,
+    checked: !costcoList.some(g => g.name.toLowerCase() === item.name.toLowerCase())
+  }));
+  const listHTML = _costcoReviewList.length === 0
+    ? '<p style="color:var(--text-muted);font-size:0.9rem">Your Costco catalog is empty. Use ⚙️ Manage Costco List to add items.</p>'
+    : _costcoReviewList.map((item, i) => `
+      <div class="review-item">
+        <input type="checkbox" id="cr${i}" ${item.checked ? 'checked' : ''} onchange="_costcoReviewList[${i}].checked=this.checked">
+        <label for="cr${i}" style="flex:1;cursor:pointer;">${item.name}</label>
+        <span class="review-recipe-label">${item.section}</span>
+      </div>`).join('');
+  document.getElementById('costco-review-list').innerHTML = listHTML;
+  document.getElementById('costco-review-modal').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function addReviewedCostcoItems() {
+  const checkboxes = document.querySelectorAll('#costco-review-list input[type="checkbox"]');
+  const toAdd = _costcoReviewList.filter((_, i) => checkboxes[i]?.checked);
+  if (toAdd.length === 0) { alert('No items selected!'); return; }
+  toAdd.forEach(item => {
+    const exists = costcoList.some(g => g.name.toLowerCase() === item.name.toLowerCase());
+    if (!exists) {
+      const id = generateId();
+      set(ref(db, _costcoBasePath + '/' + id), { id, name: item.name, section: item.section, checked: false });
+    }
+  });
+  closeCostcoReview();
+}
+
+function closeCostcoReview() {
+  document.getElementById('costco-review-modal').classList.remove('open');
+  document.body.style.overflow = '';
 }
 
 // ─── GROCERY FUNCTIONS ────────────────────────────────────────────
@@ -7331,6 +7745,8 @@ document.addEventListener('click', e => {
     if (d) d.classList.remove('open');
     const d2 = document.getElementById('event-item-suggestions');
     if (d2) d2.classList.remove('open');
+    const d3 = document.getElementById('costco-lib-suggestions');
+    if (d3) d3.classList.remove('open');
   }
 });
 
@@ -7394,6 +7810,75 @@ function handleEventItemKey(e) {
     } else {
       dropdown.classList.remove('open');
       if (window.addEventItem) window.addEventItem();
+    }
+  } else if (e.key === 'Escape') {
+    dropdown.classList.remove('open');
+  }
+}
+
+let _costcoLibAcIndex = -1;
+
+function costcoLibAutocomplete(query) {
+  const dropdown = document.getElementById('costco-lib-suggestions');
+  _costcoLibAcIndex = -1;
+  const q = query.trim().toLowerCase();
+  if (!q) { dropdown.classList.remove('open'); return; }
+  const lib = window._itemLibrary || [];
+  const matches = lib.filter(item => {
+    const name = (item.displayName || item.sortName || '').toLowerCase();
+    return name.includes(q) || (item.sortName || '').toLowerCase().includes(q);
+  }).slice(0, 50);
+  if (matches.length === 0) {
+    dropdown.innerHTML = `<div class="autocomplete-empty">Not in library — press + to add as typed</div>`;
+  } else {
+    dropdown.innerHTML = matches.map((item, i) => `
+      <div class="autocomplete-item" data-index="${i}"
+        onmousedown="selectCostcoLibSuggestion('${escAc(item.displayName || item.sortName)}','${escAc(item.category || item.storeSection || 'Other')}')"
+        onmouseover="_costcoLibAcIndex=${i};document.querySelectorAll('#costco-lib-suggestions .autocomplete-item').forEach((el,j)=>el.classList.toggle('active',j===${i}))">
+        <span class="autocomplete-name">${item.displayName || item.sortName}</span>
+        <span class="autocomplete-section">${item.category || item.storeSection || ''}</span>
+      </div>`).join('');
+  }
+  dropdown.classList.add('open');
+}
+
+function selectCostcoLibSuggestion(name, section) {
+  const input = document.getElementById('new-costco-lib-name');
+  const secSel = document.getElementById('new-costco-lib-section');
+  input.value = name;
+  if (secSel) {
+    const opt = Array.from(secSel.options).find(o => o.value === section);
+    if (opt) secSel.value = section;
+  }
+  document.getElementById('costco-lib-suggestions').classList.remove('open');
+  _costcoLibAcIndex = -1;
+  input.focus();
+}
+
+function handleCostcoLibKey(e) {
+  const dropdown = document.getElementById('costco-lib-suggestions');
+  const items = dropdown.querySelectorAll('.autocomplete-item');
+  if (!dropdown.classList.contains('open') || items.length === 0) {
+    if (e.key === 'Enter') { e.preventDefault(); if (window.addNewCostcoLibItem) window.addNewCostcoLibItem(); }
+    return;
+  }
+  if (e.key === 'ArrowDown') {
+    e.preventDefault();
+    _costcoLibAcIndex = Math.min(_costcoLibAcIndex + 1, items.length - 1);
+    items.forEach((el, i) => el.classList.toggle('active', i === _costcoLibAcIndex));
+    if (items[_costcoLibAcIndex]) items[_costcoLibAcIndex].scrollIntoView({ block: 'nearest' });
+  } else if (e.key === 'ArrowUp') {
+    e.preventDefault();
+    _costcoLibAcIndex = Math.max(_costcoLibAcIndex - 1, 0);
+    items.forEach((el, i) => el.classList.toggle('active', i === _costcoLibAcIndex));
+    if (items[_costcoLibAcIndex]) items[_costcoLibAcIndex].scrollIntoView({ block: 'nearest' });
+  } else if (e.key === 'Enter') {
+    e.preventDefault();
+    if (_costcoLibAcIndex >= 0 && items[_costcoLibAcIndex]) {
+      items[_costcoLibAcIndex].dispatchEvent(new MouseEvent('mousedown'));
+    } else {
+      dropdown.classList.remove('open');
+      if (window.addNewCostcoLibItem) window.addNewCostcoLibItem();
     }
   } else if (e.key === 'Escape') {
     dropdown.classList.remove('open');
