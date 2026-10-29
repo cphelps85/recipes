@@ -1993,7 +1993,7 @@
   <button onclick="showWeek('produce', this)">🌿 Produce Guide</button>
 </nav>
 
-<div class="search-bar">
+<div class="search-bar" style="display:none">
   <input type="text" id="searchInput" placeholder="Search recipes..." oninput="searchRecipes()">
 </div>
 
@@ -3848,6 +3848,7 @@ function showWeek(week, btn) {
   btn.classList.add('active');
   document.getElementById('searchInput').value = '';
   document.getElementById('no-results').style.display = 'none';
+  document.querySelector('.search-bar').style.display = (week === 'grocery') ? 'none' : '';
   if (week === 'all') renderRecipes(userRecipes);
   if (week === 'grocery') renderGrocery();
   if (week === 'planner') renderPlanner();
