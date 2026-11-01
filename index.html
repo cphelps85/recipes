@@ -6491,13 +6491,45 @@ function renderCostcoList() {
     container.innerHTML = '<div class="empty-state"><p>Your Costco list is empty! Use 📋 Review Costco List or add an item above.</p></div>';
     return;
   }
-  const sorted = [...costcoList].sort((a, b) => a.name.localeCompare(b.name));
-  container.innerHTML = `<div class="grocery-section">${sorted.map(item => `
+  const sorted = sortCostcoItems(costcoList);
+  let html = '';
+  let currentSection = null;
+  sorted.forEach(item => {
+    const section = costcoItemSection(item);
+    if (section !== currentSection) {
+      if (currentSection !== null) html += '</div></div>';
+      const items = sorted.filter(i => costcoItemSection(i) === section);
+      const allDone = items.every(i => i.checked);
+      html += `<div class="grocery-section">
+        <div class="grocery-section-title ${allDone ? 'all-done' : ''}">
+          ${section} <span style="font-size:0.7rem;opacity:0.7">(${items.filter(i=>i.checked).length}/${items.length})</span>
+        </div>
+        <div class="section-items">`;
+      currentSection = section;
+    }
+    html += `
     <div class="grocery-item ${item.checked ? 'checked' : ''}" id="costco-item-${item.id}">
       <div class="grocery-checkbox" onclick="toggleCostcoItem('${item.id}')">${item.checked ? '✓' : ''}</div>
       <div class="item-label-wrap"><span class="item-label">${item.name}</span></div>
       <button class="delete-item" onclick="deleteCostcoItem('${item.id}')">✕</button>
-    </div>`).join('')}</div>`;
+    </div>`;
+  });
+  if (currentSection !== null) html += '</div></div>';
+  container.innerHTML = html;
+}
+
+// Category for a Costco item — falls back to the item library for items
+// added without a section (or with a stale one).
+function costcoItemSection(item) {
+  if (item.section && SECTION_ORDER.includes(item.section)) return item.section;
+  const s = sectionFromLibrary(item.name);
+  return SECTION_ORDER.includes(s) ? s : 'Other';
+}
+
+// Sort by category (A–Z), then item name (A–Z)
+function sortCostcoItems(list) {
+  return [...list].sort((a, b) =>
+    costcoItemSection(a).localeCompare(costcoItemSection(b)) || a.name.localeCompare(b.name));
 }
 
 function addCostcoTripItem() {
@@ -6505,7 +6537,7 @@ function addCostcoTripItem() {
   const name = input.value.trim();
   if (!name) return;
   const id = generateId();
-  set(ref(db, _costcoBasePath + '/' + id), { id, name, checked: false });
+  set(ref(db, _costcoBasePath + '/' + id), { id, name, section: sectionFromLibrary(name), checked: false });
   input.value = '';
 }
 
@@ -6553,11 +6585,11 @@ function renderManageCostcoList() {
     el.innerHTML = '<p style="color:var(--text-muted);font-size:0.88rem;text-align:center;padding:1rem">No items yet — add one above.</p>';
     return;
   }
-  const sorted = [...costcoLibraryCache].sort((a, b) => a.name.localeCompare(b.name));
+  const sorted = sortCostcoItems(costcoLibraryCache);
   el.innerHTML = sorted.map(item => `
     <div class="staple-manage-item">
       <span class="staple-manage-name">${item.name}</span>
-      <span class="staple-manage-section">${item.section}</span>
+      <span class="staple-manage-section">${costcoItemSection(item)}</span>
       <button class="staple-delete-btn" onclick="deleteCostcoLibItem('${item.id}')">✕</button>
     </div>`).join('');
 }
@@ -6580,9 +6612,10 @@ function deleteCostcoLibItem(id) {
 let _costcoReviewList = [];
 
 function reviewCostcoList() {
-  _costcoReviewList = costcoLibraryCache.map(item => ({
+  _costcoReviewList = sortCostcoItems(costcoLibraryCache).map(item => ({
     ...item,
-    checked: !costcoList.some(g => g.name.toLowerCase() === item.name.toLowerCase())
+    section: costcoItemSection(item),
+    checked: false
   }));
   const listHTML = _costcoReviewList.length === 0
     ? '<p style="color:var(--text-muted);font-size:0.9rem">Your Costco catalog is empty. Use ⚙️ Manage Costco List to add items.</p>'
