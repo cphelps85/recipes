@@ -2864,7 +2864,7 @@
         <input type="text" id="plan-task-label" placeholder="e.g. Start smoker, Brine turkey, Pick up turkey">
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.8rem">
-        <div class="item-field">
+        <div class="item-field" id="plan-task-day-wrap">
           <label>Day</label>
           <select id="plan-task-day" onchange="updatePlanTaskForm()"></select>
         </div>
@@ -2874,8 +2874,14 @@
             <option value="dinner">Before dinner</option>
             <option value="clock">At a set time</option>
             <option value="anytime">Anytime that day</option>
+            <option value="before">Right before another step</option>
           </select>
         </div>
+      </div>
+      <div class="item-field" id="plan-task-link-wrap">
+        <label>Finishes right when this step starts</label>
+        <select id="plan-task-link" onchange="updatePlanTaskForm()"></select>
+        <div class="field-hint">Linked steps move automatically — change how long the later step takes and this one shifts with it.</div>
       </div>
       <div class="item-field" id="plan-task-before-wrap">
         <label>Start how long before dinner?</label>
@@ -5916,6 +5922,7 @@ function removeEventRecipe(index) {
   if (planSteps.length && !confirm(`Remove "${removed.title}"? Its ${planSteps.length} cooking-plan step${planSteps.length !== 1 ? 's' : ''} will be removed too.\n\n(Tip: tap "Save as recipe's plan" first if you want to keep them for next time.)`)) return;
   evt.recipes.splice(index, 1);
   if (planSteps.length) {
+    planDetachDependents(evt, planSteps.map(t => t.id));
     evt.tasks = evt.tasks.filter(t => String(t.recipeId) !== String(removed.recipeId));
     savePlanTasks(_currentEventId);
   }
@@ -5948,7 +5955,9 @@ function deleteCurrentEvent() {
   if (!confirm(`Delete "${name}"? This can't be undone.`)) return;
   remove(ref(db, _eventsBasePath + '/' + _currentEventId));
   delete eventsCache[_currentEventId];
-  backToEventList();
+  // Don't go through backToEventList() — it re-saves name/date, which would recreate a ghost of the deleted event
+  _currentEventId = null;
+  renderEvents();
 }
 
 function openEventDishPicker() {
@@ -6221,16 +6230,31 @@ function planDinnerMin(evt) {
 
 // Resolve a task to { day (days before event), start, end } — start/end are minutes-of-day or null.
 // "Before dinner" offsets that reach past midnight roll back into earlier days.
-function planTaskTimes(task, evt) {
+function planTaskTimes(task, evt, _seen) {
   let day = parseInt(task.daysBefore) || 0;
   let start = null;
+  const dur = parseInt(task.durationMin) || 0;
+  if (task.anchor === 'before') {
+    // Linked step: ends exactly when its target step starts, so it moves whenever the target moves
+    const target = (evt.tasks || []).find(t => t.id === task.beforeTaskId && t.id !== task.id);
+    const seen = _seen || new Set();
+    if (target && !seen.has(target.id)) {
+      seen.add(task.id);
+      const tt = planTaskTimes(target, evt, seen);
+      day = tt.day;
+      if (tt.start != null) {
+        start = tt.start - dur;
+        while (start < 0) { start += 1440; day += 1; }
+      }
+    }
+    return { day, start, end: start != null ? start + dur : null };
+  }
   if (task.anchor === 'dinner') {
     start = planDinnerMin(evt) - (parseInt(task.minsBefore) || 0);
     while (start < 0) { start += 1440; day += 1; }
   } else if (task.anchor === 'clock') {
     start = planParseClock(task.clock);
   }
-  const dur = parseInt(task.durationMin) || 0;
   return { day, start, end: start != null ? start + dur : null };
 }
 
@@ -6245,6 +6269,34 @@ function planDayLabel(daysBefore, evt, short) {
   }
   if (daysBefore === 0) return short ? 'Day of' : 'Event day';
   return daysBefore === 1 ? (short ? '1 day before' : 'Day before') : `${daysBefore} days before`;
+}
+
+// Turn a task's computed time into a fixed (non-linked) timing
+function planFreezeTiming(task, evt) {
+  const tm = planTaskTimes(task, evt);
+  if (tm.start == null) return { anchor: 'anytime', daysBefore: tm.day, minsBefore: 0, clock: '', beforeTaskId: '' };
+  if (tm.day === 0) return { anchor: 'dinner', daysBefore: 0, minsBefore: planDinnerMin(evt) - tm.start, clock: '', beforeTaskId: '' };
+  const hh = String(Math.floor(tm.start / 60)).padStart(2, '0'), mm = String(tm.start % 60).padStart(2, '0');
+  return { anchor: 'clock', daysBefore: tm.day, minsBefore: 0, clock: hh + ':' + mm, beforeTaskId: '' };
+}
+
+// Before removing tasks, unlink anything chained to them so those steps keep their current times
+function planDetachDependents(evt, removedIds) {
+  const ids = new Set(removedIds);
+  let changed = true;
+  while (changed) {
+    changed = false;
+    (evt.tasks || []).forEach(t => {
+      if (!ids.has(t.id) && t.anchor === 'before' && ids.has(t.beforeTaskId)) { Object.assign(t, planFreezeTiming(t, evt)); changed = true; }
+    });
+  }
+}
+
+// True if task is (directly or through a chain) linked to happen before targetId
+function planLinksTo(task, targetId, evt, depth = 0) {
+  if (!task || task.anchor !== 'before' || depth > 50) return false;
+  if (task.beforeTaskId === targetId) return true;
+  return planLinksTo((evt.tasks || []).find(t => t.id === task.beforeTaskId), targetId, evt, depth + 1);
 }
 
 function planRecipeTitle(task, evt) {
@@ -6297,6 +6349,10 @@ function planRowHtml(x, evt, opts) {
   const { t, tm } = x;
   const chips = [];
   if (opts.showRecipe) { const rt = planRecipeTitle(t, evt); if (rt) chips.push(`<span class="plan-chip recipe">${planEsc(rt)}</span>`); }
+  if (t.anchor === 'before') {
+    const tgt = (evt.tasks || []).find(x => x.id === t.beforeTaskId);
+    if (tgt) chips.push(`<span class="plan-chip" title="Linked — moves when that step moves">🔗 right before “${planEsc(tgt.label)}”</span>`);
+  }
   if (t.equipment) chips.push(`<span class="plan-chip">🔥 ${planEsc(t.equipment)}</span>`);
   chips.push(`<span class="plan-chip who">👤 ${planEsc(t.assignee || 'You')}</span>`);
   if (t.passive) chips.push(`<span class="plan-chip passive">⏳ hands-off</span>`);
@@ -6454,6 +6510,18 @@ function openPlanTaskModal(taskId, recipeId) {
   daySel.innerHTML = [0, 1, 2, 3, 4, 5, 6].map(d => `<option value="${d}">${planEsc(planDayLabel(d, evt, false).split(' · ')[0])}${evt.date ? (d === 0 ? ' (day of)' : ` (${d} day${d > 1 ? 's' : ''} before)`) : ''}</option>`).join('');
   daySel.value = String(task ? (task.daysBefore || 0) : 0);
 
+  const selfId = task ? task.id : '';
+  const preRecipe = String(task ? (task.recipeId || '') : (recipeId ?? ''));
+  const candidates = planSortTasks((evt.tasks || []).filter(t => t.id !== selfId && !(selfId && planLinksTo(t, selfId, evt))), evt)
+    .sort((a, b) => (String(b.t.recipeId || '') === preRecipe) - (String(a.t.recipeId || '') === preRecipe));
+  document.getElementById('plan-task-link').innerHTML = candidates.length
+    ? candidates.map(({ t, tm }) => {
+        const rt = planRecipeTitle(t, evt);
+        const when = tm.start != null ? planDayLabel(tm.day, evt, true) + ' ' + planFmtClock(tm.start) : planDayLabel(tm.day, evt, true);
+        return '<option value="' + planEsc(t.id) + '">' + planEsc(t.label) + (rt && String(t.recipeId || '') !== preRecipe ? ' (' + planEsc(rt) + ')' : '') + ' — ' + planEsc(when) + '</option>';
+      }).join('')
+    : '<option value="">(add another step first)</option>';
+  if (task && task.beforeTaskId) document.getElementById('plan-task-link').value = task.beforeTaskId;
   document.getElementById('plan-task-id').value = task ? task.id : '';
   document.getElementById('plan-task-label').value = task ? task.label : '';
   document.getElementById('plan-task-anchor').value = task ? (task.anchor || 'dinner') : 'dinner';
@@ -6490,6 +6558,7 @@ function readPlanTaskForm() {
     anchor,
     minsBefore: anchor === 'dinner' ? num('plan-task-before-h') * 60 + num('plan-task-before-m') : 0,
     clock: anchor === 'clock' ? (document.getElementById('plan-task-clock').value || '') : '',
+    beforeTaskId: anchor === 'before' ? (document.getElementById('plan-task-link').value || '') : '',
     durationMin: num('plan-task-dur-h') * 60 + num('plan-task-dur-m'),
     equipment: (document.getElementById('plan-task-equipment').value || '').trim(),
     assignee: (document.getElementById('plan-task-assignee').value || '').trim(),
@@ -6501,12 +6570,16 @@ function updatePlanTaskForm() {
   const anchor = document.getElementById('plan-task-anchor').value;
   document.getElementById('plan-task-before-wrap').style.display = anchor === 'dinner' ? '' : 'none';
   document.getElementById('plan-task-clock-wrap').style.display = anchor === 'clock' ? '' : 'none';
+  document.getElementById('plan-task-link-wrap').style.display = anchor === 'before' ? '' : 'none';
+  document.getElementById('plan-task-day-wrap').style.display = anchor === 'before' ? 'none' : '';
   const evt = eventsCache[_currentEventId];
   const preview = document.getElementById('plan-task-preview');
   if (!evt || !preview) return;
   const f = readPlanTaskForm();
-  const tm = planTaskTimes(f, evt);
-  if (tm.start == null) {
+  const tm = planTaskTimes({ ...f, id: document.getElementById('plan-task-id').value || '__new__' }, evt);
+  if (anchor === 'before' && tm.start == null) {
+    preview.textContent = f.beforeTaskId ? '→ the linked step has no set time yet, so this one is “anytime” too' : '';
+  } else if (tm.start == null) {
     preview.textContent = anchor === 'clock' ? '' : `→ ${planDayLabel(tm.day, evt, false).split(' · ')[0]}, anytime`;
   } else {
     preview.textContent = `→ ${planDayLabel(tm.day, evt, false).split(' · ')[0]}, ${planFmtClock(tm.start)}${tm.end > tm.start ? ' – ' + planFmtClock(tm.end) : ''}`;
@@ -6519,6 +6592,8 @@ function savePlanTask() {
   const f = readPlanTaskForm();
   if (!f.label) { alert('Give the step a name (e.g. "Start smoker").'); return; }
   if (f.anchor === 'clock' && !f.clock) { alert('Pick a start time, or choose "Anytime that day".'); return; }
+  if (f.anchor === 'before' && !f.beforeTaskId) { alert('Pick which step this one comes right before.'); return; }
+  if (f.anchor === 'before') f.daysBefore = planTaskTimes({ ...f, id: document.getElementById('plan-task-id').value || '__new__' }, evt).day;
   const recipeId = document.getElementById('plan-task-recipe').value || null;
   const recipeTitle = recipeId ? (((evt.recipes || []).find(r => String(r.recipeId) === String(recipeId)) || {}).title || '') : '';
   if (!evt.tasks) evt.tasks = [];
@@ -6540,6 +6615,7 @@ function deletePlanTaskFromModal() {
   if (!evt || !id) return;
   const t = (evt.tasks || []).find(x => x.id === id);
   if (!t || !confirm(`Delete "${t.label}"?`)) return;
+  planDetachDependents(evt, [id]);
   evt.tasks = evt.tasks.filter(x => x.id !== id);
   savePlanTasks(_currentEventId);
   closePlanTaskModal();
@@ -6552,11 +6628,15 @@ function loadRecipePlan(recipeId) {
   const recipe = userRecipes.find(r => String(r.id) === String(recipeId));
   if (!evt || !recipe || !Array.isArray(recipe.prepPlan)) return;
   if (!evt.tasks) evt.tasks = [];
+  const newIds = recipe.prepPlan.map((s, i) => 'task_' + Date.now() + '_' + i + '_' + Math.random().toString(36).slice(2, 5));
   recipe.prepPlan.forEach((s, i) => {
+    const linked = s.anchor === 'before' && newIds[s.beforeIndex] && s.beforeIndex !== i;
     evt.tasks.push({
-      id: 'task_' + Date.now() + '_' + i + '_' + Math.random().toString(36).slice(2, 5),
+      id: newIds[i],
       recipeId: String(recipeId), recipeTitle: recipe.title,
-      label: s.label || '', daysBefore: s.daysBefore || 0, anchor: s.anchor || 'anytime',
+      label: s.label || '', daysBefore: s.daysBefore || 0,
+      anchor: linked ? 'before' : (s.anchor === 'before' ? 'anytime' : (s.anchor || 'anytime')),
+      beforeTaskId: linked ? newIds[s.beforeIndex] : '',
       minsBefore: s.minsBefore || 0, clock: s.clock || '', durationMin: s.durationMin || 0,
       equipment: s.equipment || '', assignee: '', passive: !!s.passive, done: false
     });
@@ -6573,10 +6653,16 @@ function saveRecipePlan(recipeId) {
   const mine = planSortTasks((evt.tasks || []).filter(t => String(t.recipeId) === String(recipeId)), evt).map(x => x.t);
   const had = Array.isArray(recipe.prepPlan) && recipe.prepPlan.length;
   if (!confirm(`${had ? 'Replace' : 'Save'} the plan on "${recipe.title}" with these ${mine.length} steps?\n\nNext time you add this recipe to an event, it can start from these steps. (Who's assigned isn't saved.)`)) return;
-  recipe.prepPlan = mine.map(t => ({
-    label: t.label, daysBefore: t.daysBefore || 0, anchor: t.anchor || 'anytime', minsBefore: t.minsBefore || 0,
-    clock: t.clock || '', durationMin: t.durationMin || 0, equipment: t.equipment || '', passive: !!t.passive
-  }));
+  recipe.prepPlan = mine.map(t => {
+    // Links to steps outside this recipe can't be saved on the recipe — store the current time instead
+    const idx = t.anchor === 'before' ? mine.findIndex(x => x.id === t.beforeTaskId) : -1;
+    const timing = t.anchor === 'before'
+      ? (idx >= 0 ? { anchor: 'before', beforeIndex: idx, daysBefore: t.daysBefore || 0, minsBefore: 0, clock: '' } : planFreezeTiming(t, evt))
+      : { anchor: t.anchor || 'anytime', daysBefore: t.daysBefore || 0, minsBefore: t.minsBefore || 0, clock: t.clock || '' };
+    const step = { label: t.label, durationMin: t.durationMin || 0, equipment: t.equipment || '', passive: !!t.passive, ...timing };
+    delete step.beforeTaskId;
+    return step;
+  });
   set(ref(db, 'userRecipes/' + recipe.id + '/prepPlan'), recipe.prepPlan);
   renderEventPlan();
 }

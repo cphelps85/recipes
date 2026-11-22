@@ -32,12 +32,14 @@
 
 ## Event Planner — Cooking Plan / Timeline (as of Nov 2026)
 - Recipe-first, backwards planning: pick event recipes → plan each recipe's steps ("By Recipe" view) → the "Master Plan" view merges every step by day and flags overlaps.
-- `evt.dinnerTime` ("HH:MM", default 16:30) and `evt.tasks[]`: `{ id, recipeId|null, recipeTitle, label, daysBefore, anchor: 'dinner'|'clock'|'anytime', minsBefore, clock, durationMin, equipment, assignee, passive, done }`. `recipeId: null` = "Other tasks" (errands, pick-ups).
+- `evt.dinnerTime` ("HH:MM", default 16:30) and `evt.tasks[]`: `{ id, recipeId|null, recipeTitle, label, daysBefore, anchor: 'dinner'|'clock'|'anytime'|'before', minsBefore, clock, beforeTaskId, durationMin, equipment, assignee, passive, done }`. `recipeId: null` = "Other tasks" (errands, pick-ups).
+- **Linked steps** (`anchor: 'before'`): the step ends exactly when `beforeTaskId` starts, so changing a later step's duration (or dinner time) shifts the whole chain. `planTaskTimes` resolves chains recursively with a cycle guard; the step editor hides steps that already link to the one being edited. Deleting a step (or removing its recipe) runs `planDetachDependents` first, freezing linked steps at their current time via `planFreezeTiming`. In `recipe.prepPlan`, links are stored as `beforeIndex` (index within the plan) and remapped to new ids by `loadRecipePlan`.
 - `planTaskTimes(task, evt)` is the single source of truth for when a task happens — 'dinner' tasks are stored as minutes-before-dinner so changing dinner time shifts them; offsets past midnight roll into earlier days. Never store computed clock times.
 - `findPlanConflicts(evt)` flags (a) the same exclusive equipment overlapping (anything not in `PLAN_SHARED_EQUIPMENT` — counter/stove/fridge/car are shareable) and (b) the same person on two overlapping hands-on tasks (`passive` = hands-off, still reserves equipment). Blank assignee = the planner ("You").
 - `recipe.prepPlan[]` is a reusable template (same shape minus id/recipeId/assignee/done). "Use saved plan" copies it into the event; "Save as recipe's plan" writes the event's steps back. Event edits do NOT auto-update the recipe — intentional.
 - Helper links: `?plan=<eventId>&who=<Name>` opens `#helper-view` (full-screen overlay) showing only that person's tasks with checkboxes; live via the `eventsRef` listener. No auth — anyone with the link can view/check.
 - `removeEventRecipe` confirms and removes that recipe's plan steps.
+- `deleteCurrentEvent` must NOT call `backToEventList()` — that re-saves name/date and recreates a ghost event node (no id). This caused an orphan "Labor Day Weekend" in prod.
 
 ## Verification
 - After multi-step changes (migrations, refactors, bulk edits), always run a verification step that checks the actual end state, not just that code executed without errors
