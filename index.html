@@ -5811,7 +5811,7 @@ function renderEventRecipes() {
   empty.style.display = recipes.length === 0 ? 'block' : 'none';
   list.innerHTML = recipes.map((r, i) => `
     <div class="event-recipe-card">
-      <span class="event-recipe-title">${r.title}</span>
+      <span class="event-recipe-title" style="cursor:pointer;text-decoration:underline;text-decoration-color:var(--accent-light);text-underline-offset:3px" onclick="openRecipe('${r.recipeId}')" title="View recipe">${r.title}</span>
       <label style="font-size:0.72rem;color:var(--text-muted)">serves</label>
       <input type="number" class="add-input" style="width:50px;text-align:center;padding:0.2rem 0.3rem;font-size:0.82rem"
         value="${r.servings || 4}" min="1" max="200" onchange="updateEventRecipeServings(${i}, this.value)">
@@ -6061,9 +6061,9 @@ function openEventRecipeChecklist(recipeId) {
   _reviewEventRecipeId = String(recipeId);
   _reviewEventServings = (evtRecipe && evtRecipe.servings) || baseServings;
   reviewIngredients = (recipe.ingredients || [])
-    .filter(ing => !PANTRY_STAPLES.some(p => ing.name.toLowerCase().includes(p)))
     .map(ing => ({
       ...ing,
+      pantry: PANTRY_STAPLES.some(p => ing.name.toLowerCase().includes(p)),
       amount: 0,
       baseAmount: ing.amount || 0,
       baseServings,
@@ -6094,8 +6094,8 @@ function renderEventReviewList() {
     ? '<p style="color:var(--text-muted)">All ingredients are pantry staples!</p>'
     : reviewIngredients.map((ing, i) => `
       <div class="review-item">
-        <input type="checkbox" id="ri${i}" ${prev.length ? (prev[i] ? 'checked' : '') : 'checked'}>
-        <label for="ri${i}" style="flex:1;cursor:pointer">${ing.name}${ing.amount ? ` — <strong>${formatAmount(ing.amount, 1, 1)} ${ing.unit || ''}</strong>` : ''}</label>
+        <input type="checkbox" id="ri${i}" ${prev.length ? (prev[i] ? 'checked' : '') : (ing.pantry ? '' : 'checked')}>
+        <label for="ri${i}" style="flex:1;cursor:pointer">${ing.name}${ing.amount ? ` — <strong>${formatAmount(ing.amount, 1, 1)} ${ing.unit || ''}</strong>` : ''}${ing.pantry ? ' <span style="font-size:0.72rem;color:var(--text-muted);font-style:italic">· pantry? check if you need it</span>' : ''}</label>
       </div>`).join('');
 }
 
