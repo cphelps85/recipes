@@ -2942,6 +2942,10 @@
           <datalist id="plan-assignee-list"></datalist>
         </div>
       </div>
+      <div class="item-field">
+        <label>Note <span style="color:var(--text-muted);font-weight:400;text-transform:none;letter-spacing:0">(optional — shows on the helper's page too)</span></label>
+        <textarea id="plan-task-note" rows="2" placeholder="e.g. Bring cash or check" style="width:100%;padding:0.6rem 0.8rem;border:1.5px solid var(--border);border-radius:8px;font-family:inherit;font-size:0.9rem;color:var(--brown);background:var(--cream);resize:vertical;outline:none"></textarea>
+      </div>
       <label style="display:flex;gap:0.5rem;align-items:flex-start;font-size:0.84rem;color:var(--brown);cursor:pointer">
         <input type="checkbox" id="plan-task-passive" style="margin-top:3px">
         <span><strong>Hands-off</strong> — the oven/smoker/fridge does the work, so whoever is assigned is free to do other things meanwhile. (Equipment is still reserved.)</span>
@@ -6403,6 +6407,7 @@ function planRowHtml(x, evt, opts) {
     <div class="plan-main" ${click}>
       <div class="plan-label">${planEsc(t.label)}</div>
       <div class="plan-chips">${chips.join('')}</div>
+      ${t.note ? `<div class="item-note" style="white-space:pre-line">📝 ${planEsc(t.note)}</div>` : ''}
     </div>
   </div>`;
 }
@@ -6619,6 +6624,7 @@ function openPlanTaskModal(taskId, recipeId) {
   document.getElementById('plan-task-equipment').value = task ? (task.equipment || '') : '';
   document.getElementById('plan-task-assignee').value = task ? (task.assignee || '') : '';
   document.getElementById('plan-task-passive').checked = !!(task && task.passive);
+  document.getElementById('plan-task-note').value = task ? (task.note || '') : '';
   document.getElementById('plan-task-title').textContent = task ? 'Edit Step' : 'Add Step';
   document.getElementById('plan-task-subtitle').textContent = 'Plan backwards from dinner';
   document.getElementById('plan-task-delete').style.display = task ? '' : 'none';
@@ -6648,7 +6654,8 @@ function readPlanTaskForm() {
     durationMin: anchor === 'window' ? 0 : num('plan-task-dur-h') * 60 + num('plan-task-dur-m'),
     equipment: (document.getElementById('plan-task-equipment').value || '').trim(),
     assignee: (document.getElementById('plan-task-assignee').value || '').trim(),
-    passive: document.getElementById('plan-task-passive').checked
+    passive: document.getElementById('plan-task-passive').checked,
+    note: (document.getElementById('plan-task-note').value || '').trim()
   };
 }
 
@@ -6730,7 +6737,7 @@ function loadRecipePlan(recipeId) {
       anchor: linked ? 'before' : (s.anchor === 'before' ? 'anytime' : (s.anchor || 'anytime')),
       beforeTaskId: linked ? newIds[s.beforeIndex] : '',
       minsBefore: s.minsBefore || 0, clock: s.clock || '', windowEnd: s.windowEnd || '', durationMin: s.durationMin || 0,
-      equipment: s.equipment || '', assignee: '', passive: !!s.passive, done: false
+      equipment: s.equipment || '', assignee: '', passive: !!s.passive, note: s.note || '', done: false
     });
   });
   savePlanTasks(_currentEventId);
@@ -6751,7 +6758,7 @@ function saveRecipePlan(recipeId) {
     const timing = t.anchor === 'before'
       ? (idx >= 0 ? { anchor: 'before', beforeIndex: idx, daysBefore: t.daysBefore || 0, minsBefore: 0, clock: '' } : planFreezeTiming(t, evt))
       : { anchor: t.anchor || 'anytime', daysBefore: t.daysBefore || 0, minsBefore: t.minsBefore || 0, clock: t.clock || '', ...(t.anchor === 'window' ? { windowEnd: t.windowEnd || '' } : {}) };
-    const step = { label: t.label, durationMin: t.durationMin || 0, equipment: t.equipment || '', passive: !!t.passive, ...timing };
+    const step = { label: t.label, durationMin: t.durationMin || 0, equipment: t.equipment || '', passive: !!t.passive, note: t.note || '', ...timing };
     delete step.beforeTaskId;
     return step;
   });
