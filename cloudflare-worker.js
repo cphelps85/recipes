@@ -18,6 +18,11 @@ Rules:
 - course must be one of: main, side, vegetable, starch, soup, salad, snack, breakfast
 - tags must only use these values: beef, chicken, pork, veggie, quick, lowsodium, lowsugar, slowcooker, kidapproved, special, seafood
 - amount must be a number (use 0 if no amount specified)
+- Convert fractions exactly, never round to one decimal place: 1/4 = 0.25, 1/3 = 0.333, 1/2 = 0.5, 2/3 = 0.667, 3/4 = 0.75, 1/8 = 0.125, 1 1/2 = 1.5
+- Never invent amounts. If the recipe gives no measurement (e.g. "salt and pepper to taste", "a pinch", "for serving"), use amount 0, unit "", and put the wording in the name, e.g. "Kosher salt (to taste)"
+- If a range is given (e.g. "1/2 - 1 cup", "10 to 12 leaves"), use the lower number and keep the range in the name, e.g. "Milk (1/2–1 cup)"
+- Keep preparation words in the name, e.g. "Yellow onion, diced", "Italian sausage, casings removed"
+- For whole items with no unit (onions, lemons, eggs), use unit "each"
 - unit can be empty string if no unit
 - Return ONLY the JSON object, absolutely nothing else`;
 

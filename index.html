@@ -4310,6 +4310,18 @@ function editRecipe() {
   document.querySelector('#modalContent .modal-body').scrollTop = 0;
 }
 
+// Parse one "Name, amount unit" line from the add/edit recipe forms.
+// Names can contain commas ("Onion, diced", "Sausage, casings removed"), so the amount is
+// read from after the LAST comma, and only if a number follows it; otherwise the whole
+// line is the name with no amount. (Splitting on the first comma used to save amount 0.)
+function parseIngredientLine(line) {
+  const lastComma = line.lastIndexOf(',');
+  const tail = lastComma >= 0 ? line.slice(lastComma + 1).trim() : '';
+  if (!/^\d/.test(tail)) return { name: line.trim(), amount: 0, unit: '' };
+  const rest = tail.split(/\s+/);
+  return { name: line.slice(0, lastComma).trim(), amount: parseFloat(rest[0]) || 0, unit: rest.slice(1).join(' ').trim() };
+}
+
 function cancelEdit() {
   document.getElementById('mViewActions').style.display = 'block';
   document.getElementById('mEditForm').style.display = 'none';
@@ -4322,14 +4334,7 @@ function saveEditedRecipe() {
   const course = getCourseFromPills();
   const tags = getTagsFromPills('edit-tags-pills');
   const ingLines = document.getElementById('edit-ingredients').value.split('\n').filter(l => l.trim());
-  const ingredients = ingLines.map(line => {
-    const parts = line.split(',');
-    const name = parts[0].trim();
-    const rest = (parts[1] || '').trim().split(' ');
-    const amount = parseFloat(rest[0]) || 0;
-    const unit = rest.slice(1).join(' ').trim();
-    return { name, amount, unit };
-  });
+  const ingredients = ingLines.map(parseIngredientLine);
   const stepLines = document.getElementById('edit-steps').value.split(/\n\n+/).filter(l => l.trim());
   const steps = stepLines.map(line => {
     const clean = line.replace(/^\d+\.\s*/, '');
@@ -5096,14 +5101,7 @@ function saveNewRecipe() {
 
   // Parse ingredients back from text area
   const ingLines = document.getElementById('prev-ingredients').value.split('\n').filter(l => l.trim());
-  const ingredients = ingLines.map(line => {
-    const parts = line.split(',');
-    const name = parts[0].trim();
-    const rest = (parts[1] || '').trim().split(' ');
-    const amount = parseFloat(rest[0]) || 0;
-    const unit = rest.slice(1).join(' ').trim();
-    return { name, amount, unit };
-  });
+  const ingredients = ingLines.map(parseIngredientLine);
 
   // Parse steps back from text area
   const stepLines = document.getElementById('prev-steps').value.split(/\n\n+/).filter(l => l.trim());

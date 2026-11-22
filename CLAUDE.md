@@ -44,6 +44,10 @@
 - `removeEventRecipe` confirms and removes that recipe's plan steps.
 - `deleteCurrentEvent` must NOT call `backToEventList()` — that re-saves name/date and recreates a ghost event node (no id). This caused an orphan "Labor Day Weekend" in prod.
 
+## Recipe Ingredient Parsing
+- The Add Recipe preview and Edit Recipe forms both serialize ingredients as "Name, amount unit" lines and parse them back with `parseIngredientLine`. Names often contain commas ("Onion, diced"), so it splits on the LAST comma and only treats the tail as an amount if it starts with a digit. Never reintroduce a first-comma split — it silently zeroed 75 ingredients across 21 recipes on Edit→Save.
+- The AI parse prompt lives in `cloudflare-worker.js` (`PARSE_PROMPT`) and is deployed by pasting into the Cloudflare dashboard (no wrangler config). Repo changes to it do nothing until redeployed.
+
 ## Verification
 - After multi-step changes (migrations, refactors, bulk edits), always run a verification step that checks the actual end state, not just that code executed without errors
 
