@@ -1922,6 +1922,44 @@
   .guest-col-label { display: none; font-size: 0.65rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.06em; padding-bottom: 2px; }
   .event-guest-edit-row:first-child .guest-col-label { display: block; }
   .event-guest-bringing { font-size: 0.75rem; color: var(--text-muted); font-style: italic; }
+
+  /* EVENT COOKING PLAN (timeline) */
+  .plan-toolbar { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; margin: 0.4rem 0 0.7rem; }
+  .plan-toolbar label { font-size: 0.78rem; color: var(--text-muted); }
+  .plan-tabs { display: inline-flex; border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+  .plan-tabs button { background: var(--warm-white); border: none; padding: 0.4rem 0.8rem; font-size: 0.8rem; color: var(--brown-mid); cursor: pointer; font-family: inherit; }
+  .plan-tabs button.active { background: var(--brown); color: var(--cream); }
+  .plan-card { background: var(--warm-white); border: 1px solid var(--border); border-radius: 12px; padding: 0.7rem 0.9rem; margin-bottom: 0.6rem; }
+  .plan-card-head { display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap; margin-bottom: 0.2rem; }
+  .plan-card-title { font-family: 'Playfair Display', serif; color: var(--brown); font-size: 0.98rem; flex: 1; min-width: 140px; }
+  .plan-small-btn { background: var(--cream); border: 1px solid var(--border); border-radius: 8px; padding: 0.25rem 0.6rem; font-size: 0.74rem; color: var(--brown-mid); cursor: pointer; font-family: inherit; }
+  .plan-small-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .plan-row { display: flex; gap: 0.6rem; align-items: flex-start; padding: 0.5rem 0.2rem; border-bottom: 1px solid var(--border); }
+  .plan-row:last-child { border-bottom: none; }
+  .plan-row.conflict { background: #FDF0E8; box-shadow: inset 3px 0 0 var(--accent); padding-left: 0.6rem; }
+  .plan-row.done .plan-label { text-decoration: line-through; color: var(--text-muted); }
+  .plan-when { width: 120px; flex-shrink: 0; font-size: 0.78rem; color: var(--brown-mid); font-weight: 600; line-height: 1.3; }
+  .plan-when small { display: block; font-weight: 400; color: var(--text-muted); }
+  .plan-main { flex: 1; min-width: 0; cursor: pointer; }
+  .plan-label { font-size: 0.9rem; color: var(--brown); }
+  .plan-chips { display: flex; gap: 0.3rem; flex-wrap: wrap; margin-top: 0.25rem; }
+  .plan-chip { font-size: 0.68rem; padding: 1px 7px; border-radius: 10px; background: var(--cream); border: 1px solid var(--border); color: var(--brown-mid); white-space: nowrap; }
+  .plan-chip.who { background: #E3ECF7; border-color: #C5D5EA; color: #2F4E73; }
+  .plan-chip.recipe { background: var(--green-light); border-color: #B9CFB3; color: var(--green); }
+  .plan-chip.passive { background: transparent; border-style: dashed; }
+  .plan-day { font-weight: 700; font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--brown); margin: 1rem 0 0.2rem; padding-bottom: 0.3rem; border-bottom: 2px solid var(--accent-light); }
+  .plan-day:first-child { margin-top: 0.2rem; }
+  .plan-alert { background: #FDF0E8; border: 1px solid #F0C9B0; border-radius: 10px; padding: 0.6rem 0.9rem; font-size: 0.82rem; color: #8B3A12; margin-bottom: 0.7rem; }
+  .plan-alert ul { margin: 0.3rem 0 0 1.1rem; padding: 0; }
+  .plan-ok { background: var(--green-light); border-radius: 10px; padding: 0.45rem 0.9rem; font-size: 0.8rem; color: var(--green); margin-bottom: 0.7rem; }
+  .plan-empty { color: var(--text-muted); font-size: 0.82rem; padding: 0.3rem 0; }
+  .plan-preview { font-size: 0.82rem; color: var(--green); font-weight: 600; margin-top: 0.2rem; }
+  .plan-hm { display: flex; gap: 0.3rem; align-items: center; }
+  .plan-hm input { width: 64px !important; text-align: center; }
+  #helper-view { display: none; position: fixed; inset: 0; z-index: 1000; background: var(--cream); overflow-y: auto; padding: 1rem; }
+  #helper-view.open { display: block; }
+  .helper-inner { max-width: 640px; margin: 0 auto; }
+  .helper-inner h2 { font-family: 'Playfair Display', serif; color: var(--brown); font-size: 1.4rem; }
   .item-qty {
     font-size: 0.68rem;
     font-weight: 600;
@@ -2235,6 +2273,15 @@
       </div>
       <div id="event-recipes-list" class="event-recipes-row"></div>
       <p class="event-empty" id="event-recipes-empty" style="padding:0.5rem 0 0;text-align:left;font-size:0.82rem">No recipes yet.</p>
+    </div>
+
+    <!-- Cooking plan / timeline -->
+    <div id="event-plan-container">
+      <div class="event-section-label">
+        <span>🗓️ Cooking Plan</span>
+        <span id="event-plan-count" style="font-size:0.8rem;font-weight:500;text-transform:none;letter-spacing:0;color:var(--brown)"></span>
+      </div>
+      <div id="event-plan-body"></div>
     </div>
 
     <!-- Shopping list -->
@@ -2790,6 +2837,85 @@
     </div>
   </div>
 </div>
+
+<!-- EVENT PLAN STEP MODAL -->
+<div class="item-modal-overlay" id="plan-task-modal" onclick="if(event.target===this) closePlanTaskModal()">
+  <div class="item-modal">
+    <div class="item-modal-header">
+      <button class="modal-close" onclick="closePlanTaskModal()" style="position:absolute;top:1rem;right:1rem">✕</button>
+      <h3 id="plan-task-title">Add Step</h3>
+      <p id="plan-task-subtitle">Plan backwards from dinner</p>
+    </div>
+    <div class="item-modal-body">
+      <input type="hidden" id="plan-task-id">
+      <div class="item-field">
+        <label>Recipe</label>
+        <select id="plan-task-recipe"></select>
+      </div>
+      <div class="item-field">
+        <label>Step <span style="color:var(--accent)">*</span></label>
+        <input type="text" id="plan-task-label" placeholder="e.g. Start smoker, Brine turkey, Pick up turkey">
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.8rem">
+        <div class="item-field">
+          <label>Day</label>
+          <select id="plan-task-day" onchange="updatePlanTaskForm()"></select>
+        </div>
+        <div class="item-field">
+          <label>When</label>
+          <select id="plan-task-anchor" onchange="updatePlanTaskForm()">
+            <option value="dinner">Before dinner</option>
+            <option value="clock">At a set time</option>
+            <option value="anytime">Anytime that day</option>
+          </select>
+        </div>
+      </div>
+      <div class="item-field" id="plan-task-before-wrap">
+        <label>Start how long before dinner?</label>
+        <div class="plan-hm">
+          <input type="number" id="plan-task-before-h" min="0" max="72" placeholder="0" oninput="updatePlanTaskForm()"> h
+          <input type="number" id="plan-task-before-m" min="0" max="59" step="5" placeholder="0" oninput="updatePlanTaskForm()"> m
+        </div>
+      </div>
+      <div class="item-field" id="plan-task-clock-wrap">
+        <label>Start time</label>
+        <input type="time" id="plan-task-clock" oninput="updatePlanTaskForm()">
+      </div>
+      <div class="item-field">
+        <label>How long does it take? <span style="color:var(--text-muted);font-weight:400;text-transform:none;letter-spacing:0">(optional)</span></label>
+        <div class="plan-hm">
+          <input type="number" id="plan-task-dur-h" min="0" max="72" placeholder="0" oninput="updatePlanTaskForm()"> h
+          <input type="number" id="plan-task-dur-m" min="0" max="59" step="5" placeholder="0" oninput="updatePlanTaskForm()"> m
+        </div>
+        <div class="plan-preview" id="plan-task-preview"></div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.8rem">
+        <div class="item-field">
+          <label>Equipment</label>
+          <input type="text" id="plan-task-equipment" list="plan-equipment-list" placeholder="e.g. Large Oven">
+          <datalist id="plan-equipment-list"></datalist>
+        </div>
+        <div class="item-field">
+          <label>Who</label>
+          <input type="text" id="plan-task-assignee" list="plan-assignee-list" placeholder="blank = you">
+          <datalist id="plan-assignee-list"></datalist>
+        </div>
+      </div>
+      <label style="display:flex;gap:0.5rem;align-items:flex-start;font-size:0.84rem;color:var(--brown);cursor:pointer">
+        <input type="checkbox" id="plan-task-passive" style="margin-top:3px">
+        <span><strong>Hands-off</strong> — the oven/smoker/fridge does the work, so whoever is assigned is free to do other things meanwhile. (Equipment is still reserved.)</span>
+      </label>
+    </div>
+    <div class="item-modal-footer">
+      <button class="item-cancel-btn" id="plan-task-delete" onclick="deletePlanTaskFromModal()" style="margin-right:auto;color:#8B2500">Delete</button>
+      <button class="item-cancel-btn" onclick="closePlanTaskModal()">Cancel</button>
+      <button class="item-save-btn" onclick="savePlanTask()">Save Step</button>
+    </div>
+  </div>
+</div>
+
+<!-- HELPER VIEW (opened via ?plan=<eventId>&who=<name>) -->
+<div id="helper-view"><div class="helper-inner" id="helper-inner"></div></div>
 
 <!-- ITEM EDIT MODAL -->
 <div class="item-modal-overlay" id="item-modal" onclick="closeItemModalOverlay(event)">
@@ -4420,6 +4546,19 @@ window.updateEventRecipeServings = updateEventRecipeServings;
 window.removeEventRecipe = removeEventRecipe;
 window.removeEventItem = removeEventItem;
 window.toggleEventItem = toggleEventItem;
+window.setEventDinnerTime = setEventDinnerTime;
+window.setPlanView = setPlanView;
+window.setPlanPerson = setPlanPerson;
+window.togglePlanTask = togglePlanTask;
+window.openPlanTaskModal = openPlanTaskModal;
+window.closePlanTaskModal = closePlanTaskModal;
+window.updatePlanTaskForm = updatePlanTaskForm;
+window.savePlanTask = savePlanTask;
+window.deletePlanTaskFromModal = deletePlanTaskFromModal;
+window.loadRecipePlan = loadRecipePlan;
+window.saveRecipePlan = saveRecipePlan;
+window.copyHelperLink = copyHelperLink;
+window.toggleHelperShowAll = toggleHelperShowAll;
 window.toggleEventSection = toggleEventSection;
 window.addNoteToEventItem = addNoteToEventItem;
 window.addEventGuest = addEventGuest;
@@ -5569,6 +5708,7 @@ function createNewEvent() {
   document.getElementById('event-name-input').value = '';
   document.getElementById('event-date-input').value = '';
   renderEventRecipes();
+  renderEventPlan();
   renderEventItems();
   renderEventGuests();
 }
@@ -5582,6 +5722,7 @@ function openEvent(id) {
   document.getElementById('event-name-input').value = evt.name || '';
   document.getElementById('event-date-input').value = evt.date || '';
   renderEventRecipes();
+  renderEventPlan();
   renderEventItems();
   renderEventGuests();
 }
@@ -5753,7 +5894,14 @@ function removeEventRecipe(index) {
   const evt = eventsCache[_currentEventId];
   if (!evt || !evt.recipes) return;
   const removed = evt.recipes[index];
+  const planSteps = removed ? (evt.tasks || []).filter(t => String(t.recipeId) === String(removed.recipeId)) : [];
+  if (planSteps.length && !confirm(`Remove "${removed.title}"? Its ${planSteps.length} cooking-plan step${planSteps.length !== 1 ? 's' : ''} will be removed too.\n\n(Tip: tap "Save as recipe's plan" first if you want to keep them for next time.)`)) return;
   evt.recipes.splice(index, 1);
+  if (planSteps.length) {
+    evt.tasks = evt.tasks.filter(t => String(t.recipeId) !== String(removed.recipeId));
+    savePlanTasks(_currentEventId);
+  }
+  renderEventPlan();
   set(ref(db, _eventsBasePath + '/' + _currentEventId + '/recipes'), evt.recipes.length ? evt.recipes : []);
   // Drop this recipe's contribution from shopping list items; remove items left with nothing else behind them
   if (removed && evt.items && evt.items.length) {
@@ -5833,6 +5981,7 @@ function assignRecipeToEvent(recipeId) {
     evt.recipes.push({ id: 'rec_' + Date.now(), recipeId: String(recipeId), title: recipe.title, servings });
     set(ref(db, _eventsBasePath + '/' + _currentEventId + '/recipes'), evt.recipes);
     renderEventRecipes();
+    renderEventPlan();
   }
   // Open ingredient checklist
   const baseServings = recipe.servings || 4;
@@ -5979,6 +6128,455 @@ function removeEventGuest(index) {
   set(ref(db, _eventsBasePath + '/' + _currentEventId + '/guests'), evt.guests.length ? evt.guests : []);
   renderEventGuests();
 }
+
+// ─── EVENT COOKING PLAN (multi-day timeline) ─────────────────────
+// evt.dinnerTime: "HH:MM" (default 16:30). evt.tasks: [{ id, recipeId|null, recipeTitle,
+//   label, daysBefore, anchor: 'dinner'|'clock'|'anytime', minsBefore, clock, durationMin,
+//   equipment, assignee, passive, done }]
+// recipe.prepPlan: same shape minus id/recipeId/assignee/done — a reusable template.
+let _planView = 'recipes';      // 'recipes' | 'master'
+let _planPerson = '';           // master-plan filter ('' = everyone)
+let _planTaskRecipeId = null;   // recipe preselected when the modal opens
+const PLAN_DEFAULT_DINNER = '16:30';
+const PLAN_EQUIPMENT = ['Large Oven', 'Small Oven', 'Smoker', 'Grill', 'Stove', 'Microwave', 'Crock Pot', 'Instant Pot', 'Air Fryer', 'Mixer', 'Popcorn Maker', 'Refrigerator', 'Counter', 'Car'];
+// Equipment that several things can use at once — never flagged as an overlap
+const PLAN_SHARED_EQUIPMENT = ['', 'none', 'counter', 'stove', 'refrigerator', 'fridge', 'table', 'car'];
+const PLAN_ME = 'Me';
+
+function planEsc(s) {
+  return String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+function planParseClock(hhmm) {
+  const m = /^(\d{1,2}):(\d{2})/.exec(hhmm || '');
+  return m ? parseInt(m[1]) * 60 + parseInt(m[2]) : null;
+}
+function planFmtClock(mins) {
+  if (mins == null) return '';
+  const m = ((Math.round(mins) % 1440) + 1440) % 1440;
+  const h = Math.floor(m / 60), mm = m % 60;
+  return `${((h + 11) % 12) + 1}:${String(mm).padStart(2, '0')} ${h < 12 ? 'AM' : 'PM'}`;
+}
+function planFmtDur(mins) {
+  if (!mins) return '';
+  const h = Math.floor(mins / 60), m = mins % 60;
+  return h && m ? `${h}h ${m}m` : h ? `${h}h` : `${m}m`;
+}
+function planDinnerMin(evt) {
+  return planParseClock((evt && evt.dinnerTime) || PLAN_DEFAULT_DINNER);
+}
+
+// Resolve a task to { day (days before event), start, end } — start/end are minutes-of-day or null.
+// "Before dinner" offsets that reach past midnight roll back into earlier days.
+function planTaskTimes(task, evt) {
+  let day = parseInt(task.daysBefore) || 0;
+  let start = null;
+  if (task.anchor === 'dinner') {
+    start = planDinnerMin(evt) - (parseInt(task.minsBefore) || 0);
+    while (start < 0) { start += 1440; day += 1; }
+  } else if (task.anchor === 'clock') {
+    start = planParseClock(task.clock);
+  }
+  const dur = parseInt(task.durationMin) || 0;
+  return { day, start, end: start != null ? start + dur : null };
+}
+
+function planDayLabel(daysBefore, evt, short) {
+  if (evt && evt.date) {
+    const d = new Date(evt.date + 'T12:00:00');
+    d.setDate(d.getDate() - daysBefore);
+    const opts = short ? { weekday: 'short' } : { weekday: 'long', month: 'short', day: 'numeric' };
+    const s = d.toLocaleDateString('en-US', opts);
+    if (short) return s;
+    return daysBefore === 0 ? `${s} · ${evt.name || 'Event day'}` : s;
+  }
+  if (daysBefore === 0) return short ? 'Day of' : 'Event day';
+  return daysBefore === 1 ? (short ? '1 day before' : 'Day before') : `${daysBefore} days before`;
+}
+
+function planRecipeTitle(task, evt) {
+  if (!task.recipeId) return '';
+  const r = (evt.recipes || []).find(x => String(x.recipeId) === String(task.recipeId));
+  return r ? r.title : (task.recipeTitle || '');
+}
+
+// Sort chronologically: earliest day first, "anytime" tasks at the top of their day
+function planSortTasks(tasks, evt) {
+  return tasks.map(t => ({ t, tm: planTaskTimes(t, evt) }))
+    .sort((a, b) => (b.tm.day - a.tm.day) || ((a.tm.start ?? -1) - (b.tm.start ?? -1)) || ((a.tm.end ?? 0) - (b.tm.end ?? 0)));
+}
+
+// Find overlapping tasks on the same day: same exclusive equipment, or the same person
+// doing two hands-on things at once.
+function findPlanConflicts(evt) {
+  const timed = (evt.tasks || []).map(t => ({ t, tm: planTaskTimes(t, evt) }))
+    .filter(x => x.tm.start != null && x.tm.end > x.tm.start && !x.t.done);
+  const conflicts = [];
+  for (let i = 0; i < timed.length; i++) {
+    for (let j = i + 1; j < timed.length; j++) {
+      const a = timed[i], b = timed[j];
+      if (a.tm.day !== b.tm.day) continue;
+      if (!(a.tm.start < b.tm.end && b.tm.start < a.tm.end)) continue;
+      const eqA = (a.t.equipment || '').trim().toLowerCase();
+      const eqB = (b.t.equipment || '').trim().toLowerCase();
+      if (eqA && eqA === eqB && !PLAN_SHARED_EQUIPMENT.includes(eqA)) {
+        conflicts.push({ a, b, why: `${a.t.equipment} is double-booked` });
+        continue;
+      }
+      const whoA = (a.t.assignee || '').trim().toLowerCase() || PLAN_ME.toLowerCase();
+      const whoB = (b.t.assignee || '').trim().toLowerCase() || PLAN_ME.toLowerCase();
+      if (whoA === whoB && !a.t.passive && !b.t.passive) {
+        conflicts.push({ a, b, why: `${a.t.assignee || 'You'} can't do both at once` });
+      }
+    }
+  }
+  return conflicts;
+}
+
+function planWhenHtml(tm, task, evt, showDay) {
+  const day = showDay ? planDayLabel(tm.day, evt, true) + ' ' : '';
+  const dur = task.durationMin ? planFmtDur(task.durationMin) : '';
+  if (tm.start == null) return `${day || 'Anytime'}<small>${day ? 'anytime' : ''}${day && dur ? ' · ' : ''}${dur}</small>`;
+  return `${day}${planFmtClock(tm.start)}${tm.end > tm.start ? `<small>until ${planFmtClock(tm.end)} · ${dur}</small>` : ''}`;
+}
+
+function planRowHtml(x, evt, opts) {
+  const { t, tm } = x;
+  const chips = [];
+  if (opts.showRecipe) { const rt = planRecipeTitle(t, evt); if (rt) chips.push(`<span class="plan-chip recipe">${planEsc(rt)}</span>`); }
+  if (t.equipment) chips.push(`<span class="plan-chip">🔥 ${planEsc(t.equipment)}</span>`);
+  chips.push(`<span class="plan-chip who">👤 ${planEsc(t.assignee || 'You')}</span>`);
+  if (t.passive) chips.push(`<span class="plan-chip passive">⏳ hands-off</span>`);
+  const check = opts.checkbox
+    ? `<div class="grocery-checkbox" style="flex-shrink:0;${t.done ? 'background:var(--green);border-color:var(--green);color:white' : ''}" onclick="togglePlanTask('${opts.evtId}','${t.id}')">${t.done ? '✓' : ''}</div>`
+    : '';
+  const click = opts.editable ? `onclick="openPlanTaskModal('${t.id}')"` : '';
+  return `<div class="plan-row ${opts.conflictIds && opts.conflictIds.has(t.id) ? 'conflict' : ''} ${t.done ? 'done' : ''}">
+    ${check}
+    <div class="plan-when">${planWhenHtml(tm, t, evt, opts.showDay)}</div>
+    <div class="plan-main" ${click}>
+      <div class="plan-label">${planEsc(t.label)}</div>
+      <div class="plan-chips">${chips.join('')}</div>
+    </div>
+  </div>`;
+}
+
+function planConflictHtml(conflicts, evt) {
+  const timed = (evt.tasks || []).some(t => t.anchor !== 'anytime');
+  if (!conflicts.length) return timed ? `<div class="plan-ok">✓ No overlaps — ovens, smoker and people are all clear.</div>` : '';
+  const lines = conflicts.map(c => {
+    const at = `${planDayLabel(c.a.tm.day, evt, true)} ${planFmtClock(Math.max(c.a.tm.start, c.b.tm.start))}`;
+    return `<li><strong>${planEsc(c.why)}</strong> — ${planEsc(c.a.t.label)} &amp; ${planEsc(c.b.t.label)} (${at})</li>`;
+  });
+  return `<div class="plan-alert">⚠️ ${conflicts.length} overlap${conflicts.length !== 1 ? 's' : ''} to sort out:<ul>${lines.join('')}</ul></div>`;
+}
+
+function planPeople(evt) {
+  const set_ = new Set();
+  (evt.tasks || []).forEach(t => { if ((t.assignee || '').trim()) set_.add(t.assignee.trim()); });
+  return [...set_].sort();
+}
+
+function renderEventPlan() {
+  const body = document.getElementById('event-plan-body');
+  const evt = eventsCache[_currentEventId];
+  if (!body || !evt) return;
+  const tasks = evt.tasks || [];
+  const conflicts = findPlanConflicts(evt);
+  const conflictIds = new Set();
+  conflicts.forEach(c => { conflictIds.add(c.a.t.id); conflictIds.add(c.b.t.id); });
+
+  const countEl = document.getElementById('event-plan-count');
+  if (countEl) countEl.textContent = tasks.length ? `${tasks.filter(t => t.done).length}/${tasks.length} done${conflicts.length ? ` · ⚠️ ${conflicts.length}` : ''}` : '';
+
+  let html = `<div class="plan-toolbar">
+    <label>🍽️ Dinner at</label>
+    <input type="time" class="add-input" style="flex:0 0 130px;width:130px;padding:0.3rem 0.5rem" value="${planEsc(evt.dinnerTime || PLAN_DEFAULT_DINNER)}" onchange="setEventDinnerTime(this.value)">
+    <div class="plan-tabs">
+      <button class="${_planView === 'recipes' ? 'active' : ''}" onclick="setPlanView('recipes')">By Recipe</button>
+      <button class="${_planView === 'master' ? 'active' : ''}" onclick="setPlanView('master')">Master Plan</button>
+    </div>
+  </div>`;
+  html += planConflictHtml(conflicts, evt);
+
+  if (_planView === 'recipes') {
+    const groups = (evt.recipes || []).map(r => ({ recipeId: String(r.recipeId), title: r.title }));
+    // Tasks whose recipe was removed still need a home
+    tasks.forEach(t => {
+      if (t.recipeId && !groups.some(g => g.recipeId === String(t.recipeId))) groups.push({ recipeId: String(t.recipeId), title: t.recipeTitle || 'Removed recipe' });
+    });
+    groups.push({ recipeId: '', title: '📋 Other tasks (errands, setup, pick-ups)' });
+    groups.forEach(g => {
+      const mine = tasks.filter(t => String(t.recipeId || '') === g.recipeId);
+      const recipe = g.recipeId ? userRecipes.find(r => String(r.id) === g.recipeId) : null;
+      const saved = recipe && Array.isArray(recipe.prepPlan) ? recipe.prepPlan.length : 0;
+      const btns = [`<button class="plan-small-btn" onclick="openPlanTaskModal(null,'${g.recipeId}')">+ Step</button>`];
+      if (saved && !mine.length) btns.push(`<button class="plan-small-btn" onclick="loadRecipePlan('${g.recipeId}')">📥 Use saved plan (${saved} steps)</button>`);
+      if (recipe && mine.length) btns.push(`<button class="plan-small-btn" onclick="saveRecipePlan('${g.recipeId}')" title="Save these steps on the recipe so next time it starts pre-filled">💾 Save as recipe's plan</button>`);
+      html += `<div class="plan-card">
+        <div class="plan-card-head"><span class="plan-card-title">${planEsc(g.title)}</span>${btns.join('')}</div>
+        ${mine.length
+          ? planSortTasks(mine, evt).map(x => planRowHtml(x, evt, { editable: true, showDay: true, conflictIds })).join('')
+          : `<div class="plan-empty">${saved ? 'This recipe has a saved plan — tap “Use saved plan” to start from it.' : 'No steps yet — work backwards from dinner.'}</div>`}
+      </div>`;
+    });
+  } else {
+    const people = planPeople(evt);
+    if (_planPerson && _planPerson !== PLAN_ME && !people.includes(_planPerson)) _planPerson = '';
+    html += `<div class="plan-toolbar" style="margin-top:0">
+      <label>Show</label>
+      <select class="add-input" style="flex:0 0 auto;width:auto;padding:0.3rem 0.5rem" onchange="setPlanPerson(this.value)">
+        <option value="">Everyone</option>
+        <option value="${PLAN_ME}" ${_planPerson === PLAN_ME ? 'selected' : ''}>You (unassigned)</option>
+        ${people.map(p => `<option value="${planEsc(p)}" ${_planPerson === p ? 'selected' : ''}>${planEsc(p)}</option>`).join('')}
+      </select>
+      ${_planPerson && _planPerson !== PLAN_ME ? `<button class="plan-small-btn" onclick="copyHelperLink()">🔗 Copy ${planEsc(_planPerson)}'s link</button>` : ''}
+    </div>`;
+    const shown = tasks.filter(t => !_planPerson || (_planPerson === PLAN_ME ? !(t.assignee || '').trim() : (t.assignee || '').trim() === _planPerson));
+    if (!shown.length) {
+      html += `<div class="plan-empty">${tasks.length ? 'Nothing assigned here.' : 'No steps yet — add them under “By Recipe”.'}</div>`;
+    } else {
+      let lastDay = null;
+      planSortTasks(shown, evt).forEach(x => {
+        if (x.tm.day !== lastDay) { html += `<div class="plan-day">${planEsc(planDayLabel(x.tm.day, evt))}</div>`; lastDay = x.tm.day; }
+        html += planRowHtml(x, evt, { editable: true, checkbox: true, evtId: evt.id, showRecipe: true, conflictIds });
+      });
+      if (!evt.date) html += `<div class="plan-empty" style="margin-top:0.5rem">Tip: set the event date at the top to see real dates instead of “day before”.</div>`;
+    }
+  }
+  body.innerHTML = html;
+}
+
+function savePlanTasks(evtId) {
+  const evt = eventsCache[evtId];
+  if (!evt) return;
+  set(ref(db, _eventsBasePath + '/' + evtId + '/tasks'), (evt.tasks && evt.tasks.length) ? evt.tasks : []);
+}
+
+function setEventDinnerTime(value) {
+  const evt = eventsCache[_currentEventId];
+  if (!evt || !value) return;
+  evt.dinnerTime = value;
+  set(ref(db, _eventsBasePath + '/' + _currentEventId + '/dinnerTime'), value);
+  renderEventPlan();
+}
+
+function setPlanView(view) { _planView = view; renderEventPlan(); }
+function setPlanPerson(p) { _planPerson = p; renderEventPlan(); }
+
+function togglePlanTask(evtId, taskId) {
+  const evt = eventsCache[evtId];
+  if (!evt || !evt.tasks) return;
+  const t = evt.tasks.find(x => x.id === taskId);
+  if (!t) return;
+  t.done = !t.done;
+  set(ref(db, _eventsBasePath + '/' + evtId + '/tasks'), evt.tasks);
+  if (_helperMode) renderHelperView(); else renderEventPlan();
+}
+
+function planFillDatalists(evt) {
+  const eq = new Set(PLAN_EQUIPMENT);
+  (evt.tasks || []).forEach(t => t.equipment && eq.add(t.equipment));
+  document.getElementById('plan-equipment-list').innerHTML = [...eq].map(e => `<option value="${planEsc(e)}">`).join('');
+  const who = new Set(['Chrissy', 'Chad']);
+  (evt.guests || []).forEach(g => g.name && who.add(g.name));
+  Object.values(eventsCache).forEach(e => (e.tasks || []).forEach(t => t.assignee && who.add(t.assignee)));
+  document.getElementById('plan-assignee-list').innerHTML = [...who].map(w => `<option value="${planEsc(w)}">`).join('');
+}
+
+function openPlanTaskModal(taskId, recipeId) {
+  const evt = eventsCache[_currentEventId];
+  if (!evt) return;
+  const task = taskId ? (evt.tasks || []).find(t => t.id === taskId) : null;
+  const recipeSel = document.getElementById('plan-task-recipe');
+  const opts = (evt.recipes || []).map(r => `<option value="${planEsc(r.recipeId)}">${planEsc(r.title)}</option>`);
+  if (task && task.recipeId && !(evt.recipes || []).some(r => String(r.recipeId) === String(task.recipeId))) {
+    opts.push(`<option value="${planEsc(task.recipeId)}">${planEsc(task.recipeTitle || 'Removed recipe')}</option>`);
+  }
+  opts.push(`<option value="">Other (errand / setup)</option>`);
+  recipeSel.innerHTML = opts.join('');
+  recipeSel.value = task ? String(task.recipeId || '') : String(recipeId ?? '');
+
+  const daySel = document.getElementById('plan-task-day');
+  daySel.innerHTML = [0, 1, 2, 3, 4, 5, 6].map(d => `<option value="${d}">${planEsc(planDayLabel(d, evt, false).split(' · ')[0])}${evt.date ? (d === 0 ? ' (day of)' : ` (${d} day${d > 1 ? 's' : ''} before)`) : ''}</option>`).join('');
+  daySel.value = String(task ? (task.daysBefore || 0) : 0);
+
+  document.getElementById('plan-task-id').value = task ? task.id : '';
+  document.getElementById('plan-task-label').value = task ? task.label : '';
+  document.getElementById('plan-task-anchor').value = task ? (task.anchor || 'dinner') : 'dinner';
+  const before = task ? (parseInt(task.minsBefore) || 0) : 0;
+  document.getElementById('plan-task-before-h').value = before ? Math.floor(before / 60) : '';
+  document.getElementById('plan-task-before-m').value = before ? before % 60 : '';
+  document.getElementById('plan-task-clock').value = task ? (task.clock || '') : '';
+  const dur = task ? (parseInt(task.durationMin) || 0) : 0;
+  document.getElementById('plan-task-dur-h').value = dur ? Math.floor(dur / 60) : '';
+  document.getElementById('plan-task-dur-m').value = dur ? dur % 60 : '';
+  document.getElementById('plan-task-equipment').value = task ? (task.equipment || '') : '';
+  document.getElementById('plan-task-assignee').value = task ? (task.assignee || '') : '';
+  document.getElementById('plan-task-passive').checked = !!(task && task.passive);
+  document.getElementById('plan-task-title').textContent = task ? 'Edit Step' : 'Add Step';
+  document.getElementById('plan-task-delete').style.display = task ? '' : 'none';
+  planFillDatalists(evt);
+  updatePlanTaskForm();
+  document.getElementById('plan-task-modal').classList.add('open');
+  document.body.style.overflow = 'hidden';
+  setTimeout(() => document.getElementById('plan-task-label').focus(), 50);
+}
+
+function closePlanTaskModal() {
+  document.getElementById('plan-task-modal').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+function readPlanTaskForm() {
+  const anchor = document.getElementById('plan-task-anchor').value;
+  const num = id => parseInt(document.getElementById(id).value) || 0;
+  return {
+    label: (document.getElementById('plan-task-label').value || '').trim(),
+    daysBefore: parseInt(document.getElementById('plan-task-day').value) || 0,
+    anchor,
+    minsBefore: anchor === 'dinner' ? num('plan-task-before-h') * 60 + num('plan-task-before-m') : 0,
+    clock: anchor === 'clock' ? (document.getElementById('plan-task-clock').value || '') : '',
+    durationMin: num('plan-task-dur-h') * 60 + num('plan-task-dur-m'),
+    equipment: (document.getElementById('plan-task-equipment').value || '').trim(),
+    assignee: (document.getElementById('plan-task-assignee').value || '').trim(),
+    passive: document.getElementById('plan-task-passive').checked
+  };
+}
+
+function updatePlanTaskForm() {
+  const anchor = document.getElementById('plan-task-anchor').value;
+  document.getElementById('plan-task-before-wrap').style.display = anchor === 'dinner' ? '' : 'none';
+  document.getElementById('plan-task-clock-wrap').style.display = anchor === 'clock' ? '' : 'none';
+  const evt = eventsCache[_currentEventId];
+  const preview = document.getElementById('plan-task-preview');
+  if (!evt || !preview) return;
+  const f = readPlanTaskForm();
+  const tm = planTaskTimes(f, evt);
+  if (tm.start == null) {
+    preview.textContent = anchor === 'clock' ? '' : `→ ${planDayLabel(tm.day, evt, false).split(' · ')[0]}, anytime`;
+  } else {
+    preview.textContent = `→ ${planDayLabel(tm.day, evt, false).split(' · ')[0]}, ${planFmtClock(tm.start)}${tm.end > tm.start ? ' – ' + planFmtClock(tm.end) : ''}`;
+  }
+}
+
+function savePlanTask() {
+  const evt = eventsCache[_currentEventId];
+  if (!evt) return;
+  const f = readPlanTaskForm();
+  if (!f.label) { alert('Give the step a name (e.g. "Start smoker").'); return; }
+  if (f.anchor === 'clock' && !f.clock) { alert('Pick a start time, or choose "Anytime that day".'); return; }
+  const recipeId = document.getElementById('plan-task-recipe').value || null;
+  const recipeTitle = recipeId ? (((evt.recipes || []).find(r => String(r.recipeId) === String(recipeId)) || {}).title || '') : '';
+  if (!evt.tasks) evt.tasks = [];
+  const id = document.getElementById('plan-task-id').value;
+  const existing = id ? evt.tasks.find(t => t.id === id) : null;
+  if (existing) {
+    Object.assign(existing, f, { recipeId, recipeTitle: recipeTitle || existing.recipeTitle || '' });
+  } else {
+    evt.tasks.push({ id: 'task_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6), recipeId, recipeTitle, done: false, ...f });
+  }
+  savePlanTasks(_currentEventId);
+  closePlanTaskModal();
+  renderEventPlan();
+}
+
+function deletePlanTaskFromModal() {
+  const evt = eventsCache[_currentEventId];
+  const id = document.getElementById('plan-task-id').value;
+  if (!evt || !id) return;
+  const t = (evt.tasks || []).find(x => x.id === id);
+  if (!t || !confirm(`Delete "${t.label}"?`)) return;
+  evt.tasks = evt.tasks.filter(x => x.id !== id);
+  savePlanTasks(_currentEventId);
+  closePlanTaskModal();
+  renderEventPlan();
+}
+
+// Copy a recipe's saved template steps into this event
+function loadRecipePlan(recipeId) {
+  const evt = eventsCache[_currentEventId];
+  const recipe = userRecipes.find(r => String(r.id) === String(recipeId));
+  if (!evt || !recipe || !Array.isArray(recipe.prepPlan)) return;
+  if (!evt.tasks) evt.tasks = [];
+  recipe.prepPlan.forEach((s, i) => {
+    evt.tasks.push({
+      id: 'task_' + Date.now() + '_' + i + '_' + Math.random().toString(36).slice(2, 5),
+      recipeId: String(recipeId), recipeTitle: recipe.title,
+      label: s.label || '', daysBefore: s.daysBefore || 0, anchor: s.anchor || 'anytime',
+      minsBefore: s.minsBefore || 0, clock: s.clock || '', durationMin: s.durationMin || 0,
+      equipment: s.equipment || '', assignee: '', passive: !!s.passive, done: false
+    });
+  });
+  savePlanTasks(_currentEventId);
+  renderEventPlan();
+}
+
+// Save this event's steps for a recipe back onto the recipe as its reusable plan
+function saveRecipePlan(recipeId) {
+  const evt = eventsCache[_currentEventId];
+  const recipe = userRecipes.find(r => String(r.id) === String(recipeId));
+  if (!evt || !recipe) return;
+  const mine = planSortTasks((evt.tasks || []).filter(t => String(t.recipeId) === String(recipeId)), evt).map(x => x.t);
+  const had = Array.isArray(recipe.prepPlan) && recipe.prepPlan.length;
+  if (!confirm(`${had ? 'Replace' : 'Save'} the plan on "${recipe.title}" with these ${mine.length} steps?\n\nNext time you add this recipe to an event, it can start from these steps. (Who's assigned isn't saved.)`)) return;
+  recipe.prepPlan = mine.map(t => ({
+    label: t.label, daysBefore: t.daysBefore || 0, anchor: t.anchor || 'anytime', minsBefore: t.minsBefore || 0,
+    clock: t.clock || '', durationMin: t.durationMin || 0, equipment: t.equipment || '', passive: !!t.passive
+  }));
+  set(ref(db, 'userRecipes/' + recipe.id + '/prepPlan'), recipe.prepPlan);
+  renderEventPlan();
+}
+
+function planHelperUrl(evtId, who) {
+  const base = window.location.protocol === 'file:' ? 'https://cphelps85.github.io/recipes/' : window.location.origin + window.location.pathname;
+  return `${base}?plan=${encodeURIComponent(evtId)}&who=${encodeURIComponent(who)}`;
+}
+
+function copyHelperLink() {
+  if (!_currentEventId || !_planPerson) return;
+  const url = planHelperUrl(_currentEventId, _planPerson);
+  const done = () => alert(`Link copied! Send it to ${_planPerson} — it shows just their tasks and they can check them off:\n\n${url}`);
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(url).then(done).catch(() => prompt('Copy this link:', url));
+  } else {
+    prompt('Copy this link:', url);
+  }
+}
+
+// ── Helper view: a stripped-down page for someone helping (?plan=<eventId>&who=<name>) ──
+const _helperParams = new URLSearchParams(window.location.search);
+const _helperMode = !!_helperParams.get('plan');
+let _helperShowAll = false;
+
+function renderHelperView() {
+  const wrap = document.getElementById('helper-view');
+  const inner = document.getElementById('helper-inner');
+  if (!wrap || !inner) return;
+  wrap.classList.add('open');
+  const evtId = _helperParams.get('plan');
+  const who = (_helperParams.get('who') || '').trim();
+  const evt = eventsCache[evtId];
+  if (!evt) { inner.innerHTML = '<p class="event-empty">Loading plan… (if this doesn\'t load, the link may be old)</p>'; return; }
+  const mineOnly = who && !_helperShowAll;
+  const tasks = (evt.tasks || []).filter(t => !mineOnly || (t.assignee || '').trim().toLowerCase() === who.toLowerCase());
+  const doneN = tasks.filter(t => t.done).length;
+  let html = `<p class="week-label" style="margin-top:0.5rem">🦃 ${planEsc(evt.name || 'Event')}</p>
+    <h2>${mineOnly ? `${planEsc(who)}'s tasks` : 'Full plan'}</h2>
+    <p class="week-meta" style="margin-bottom:0.8rem">Dinner at ${planFmtClock(planDinnerMin(evt))} · ${doneN}/${tasks.length} done · tap the box when finished</p>`;
+  if (!tasks.length) {
+    html += `<p class="plan-empty">Nothing assigned to ${planEsc(who)} yet.</p>`;
+  } else {
+    let lastDay = null;
+    planSortTasks(tasks, evt).forEach(x => {
+      if (x.tm.day !== lastDay) { html += `<div class="plan-day">${planEsc(planDayLabel(x.tm.day, evt))}</div>`; lastDay = x.tm.day; }
+      html += planRowHtml(x, evt, { checkbox: true, evtId, showRecipe: true });
+    });
+  }
+  if (who) html += `<p style="margin-top:1.2rem;text-align:center"><button class="plan-small-btn" onclick="toggleHelperShowAll()">${_helperShowAll ? `Show only ${planEsc(who)}'s tasks` : 'Show the whole plan'}</button></p>`;
+  inner.innerHTML = html;
+}
+
+function toggleHelperShowAll() { _helperShowAll = !_helperShowAll; renderHelperView(); }
 
 function sectionFromLibrary(name) {
   const lib = window._itemLibrary;
@@ -6184,7 +6782,14 @@ onValue(eventsRef, (snapshot) => {
   eventsCache = snapshot.val() || {};
   const eventsSection = document.getElementById('section-events');
   if (eventsSection && eventsSection.classList.contains('active') && !_currentEventId) renderEvents();
+  // Live-refresh the cooking plan (e.g. a helper checked something off) unless the step editor is open
+  if (_currentEventId && eventsCache[_currentEventId] && !document.getElementById('plan-task-modal').classList.contains('open')) {
+    const active = document.activeElement;
+    if (!active || !document.getElementById('event-plan-body').contains(active)) renderEventPlan();
+  }
+  if (_helperMode) renderHelperView();
 });
+if (_helperMode) renderHelperView();
 
 // ─── ITEM LIBRARY FIREBASE ───────────────────────────────────────
 onValue(itemLibRef, (snapshot) => {

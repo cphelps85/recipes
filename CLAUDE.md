@@ -29,6 +29,15 @@
 - The event shopping list (`renderEventItems`) now mirrors the main grocery list: grouped/sorted by `SECTION_ORDER`, collapsible per section (tracked in its own `_collapsedEventSections` Set — separate from the main list's `_collapsedSections` so collapse state doesn't leak between the two), and supports per-item notes via `addNoteToEventItem` (same `.item-note`/`.note-btn` pattern as `addNoteToItem`).
 - Event items also gained `checked` (bool), toggled via `toggleEventItem` — same visual pattern as the main grocery list's `.grocery-item.checked`, but on `.event-shop-row.checked` since event items don't share the `.grocery-item` class.
 
+## Event Planner — Cooking Plan / Timeline (as of Nov 2026)
+- Recipe-first, backwards planning: pick event recipes → plan each recipe's steps ("By Recipe" view) → the "Master Plan" view merges every step by day and flags overlaps.
+- `evt.dinnerTime` ("HH:MM", default 16:30) and `evt.tasks[]`: `{ id, recipeId|null, recipeTitle, label, daysBefore, anchor: 'dinner'|'clock'|'anytime', minsBefore, clock, durationMin, equipment, assignee, passive, done }`. `recipeId: null` = "Other tasks" (errands, pick-ups).
+- `planTaskTimes(task, evt)` is the single source of truth for when a task happens — 'dinner' tasks are stored as minutes-before-dinner so changing dinner time shifts them; offsets past midnight roll into earlier days. Never store computed clock times.
+- `findPlanConflicts(evt)` flags (a) the same exclusive equipment overlapping (anything not in `PLAN_SHARED_EQUIPMENT` — counter/stove/fridge/car are shareable) and (b) the same person on two overlapping hands-on tasks (`passive` = hands-off, still reserves equipment). Blank assignee = the planner ("You").
+- `recipe.prepPlan[]` is a reusable template (same shape minus id/recipeId/assignee/done). "Use saved plan" copies it into the event; "Save as recipe's plan" writes the event's steps back. Event edits do NOT auto-update the recipe — intentional.
+- Helper links: `?plan=<eventId>&who=<Name>` opens `#helper-view` (full-screen overlay) showing only that person's tasks with checkboxes; live via the `eventsRef` listener. No auth — anyone with the link can view/check.
+- `removeEventRecipe` confirms and removes that recipe's plan steps.
+
 ## Verification
 - After multi-step changes (migrations, refactors, bulk edits), always run a verification step that checks the actual end state, not just that code executed without errors
 
