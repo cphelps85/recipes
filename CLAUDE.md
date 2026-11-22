@@ -38,6 +38,7 @@
 - `findPlanConflicts(evt)` flags (a) the same exclusive equipment overlapping (anything not in `PLAN_SHARED_EQUIPMENT` — counter/stove/fridge/car are shareable) and (b) the same person on two overlapping hands-on tasks (`passive` = hands-off, still reserves equipment). Blank assignee = the planner ("You").
 - `recipe.prepPlan[]` is a reusable template (same shape minus id/recipeId/assignee/done). "Use saved plan" copies it into the event; "Save as recipe's plan" writes the event's steps back. Event edits do NOT auto-update the recipe — intentional.
 - Helper links: `?plan=<eventId>&who=<Name>` opens `#helper-view` (full-screen overlay) showing only that person's tasks with checkboxes; live via the `eventsRef` listener. No auth — anyone with the link can view/check.
+- "By Recipe" cards have a 📖 Recipe toggle (`togglePlanRecipe`, open ids in `_planRecipeOpen`) that shows `planRecipePanelHtml` beside the steps: ingredients scaled to the event servings, directions, notes. Each direction has "+ step" (`addPlanStepFromRecipe`) which opens the step editor pre-filled from that direction.
 - `removeEventRecipe` confirms and removes that recipe's plan steps.
 - `deleteCurrentEvent` must NOT call `backToEventList()` — that re-saves name/date and recreates a ghost event node (no id). This caused an orphan "Labor Day Weekend" in prod.
 

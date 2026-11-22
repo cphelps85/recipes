@@ -1953,6 +1953,23 @@
   .plan-alert ul { margin: 0.3rem 0 0 1.1rem; padding: 0; }
   .plan-ok { background: var(--green-light); border-radius: 10px; padding: 0.45rem 0.9rem; font-size: 0.8rem; color: var(--green); margin-bottom: 0.7rem; }
   .plan-empty { color: var(--text-muted); font-size: 0.82rem; padding: 0.3rem 0; }
+  .plan-split { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 1rem; align-items: start; margin-top: 0.4rem; }
+  .plan-recipe-panel { background: var(--cream); border: 1px solid var(--border); border-radius: 10px; padding: 0.7rem 0.9rem; max-height: 70vh; overflow-y: auto; position: sticky; top: 0.5rem; }
+  .plan-recipe-panel h4 { font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); margin: 0.2rem 0 0.4rem; }
+  .plan-recipe-panel h4:not(:first-child) { margin-top: 0.9rem; }
+  .plan-recipe-ings { list-style: none; margin: 0; padding: 0; font-size: 0.82rem; color: var(--brown); columns: 2; column-gap: 1rem; }
+  .plan-recipe-ings li { break-inside: avoid; padding: 0.12rem 0; }
+  .plan-recipe-ings strong { color: var(--brown-mid); font-weight: 600; }
+  .plan-recipe-dir { display: flex; gap: 0.5rem; align-items: flex-start; padding: 0.45rem 0; border-bottom: 1px dashed var(--border); font-size: 0.83rem; color: var(--brown); line-height: 1.4; }
+  .plan-recipe-dir:last-child { border-bottom: none; }
+  .plan-recipe-dir .num { flex-shrink: 0; width: 1.3rem; height: 1.3rem; border-radius: 50%; background: var(--accent); color: white; font-size: 0.7rem; font-weight: 700; display: flex; align-items: center; justify-content: center; margin-top: 1px; }
+  .plan-recipe-dir .plan-small-btn { flex-shrink: 0; white-space: nowrap; }
+  .plan-recipe-notes { font-size: 0.8rem; color: var(--brown-mid); font-style: italic; line-height: 1.4; }
+  @media (max-width: 720px) {
+    .plan-split { grid-template-columns: minmax(0, 1fr); }
+    .plan-recipe-panel { position: static; max-height: none; }
+    .plan-recipe-ings { columns: 1; }
+  }
   .plan-preview { font-size: 0.82rem; color: var(--green); font-weight: 600; margin-top: 0.2rem; }
   .plan-hm { display: flex; gap: 0.3rem; align-items: center; }
   .plan-hm input { width: 64px !important; text-align: center; }
@@ -4559,6 +4576,8 @@ window.updateEventRecipeServings = updateEventRecipeServings;
 window.removeEventRecipe = removeEventRecipe;
 window.removeEventItem = removeEventItem;
 window.toggleEventItem = toggleEventItem;
+window.togglePlanRecipe = togglePlanRecipe;
+window.addPlanStepFromRecipe = addPlanStepFromRecipe;
 window.openEventRecipeChecklist = openEventRecipeChecklist;
 window.setReviewServings = setReviewServings;
 window.changeReviewServings = changeReviewServings;
@@ -6200,6 +6219,7 @@ function removeEventGuest(index) {
 let _planView = 'recipes';      // 'recipes' | 'master'
 let _planPerson = '';           // master-plan filter ('' = everyone)
 let _planTaskRecipeId = null;   // recipe preselected when the modal opens
+const _planRecipeOpen = new Set(); // recipe ids whose recipe panel is showing in "By Recipe"
 const PLAN_DEFAULT_DINNER = '16:30';
 const PLAN_EQUIPMENT = ['Large Oven', 'Small Oven', 'Smoker', 'Grill', 'Stove', 'Microwave', 'Crock Pot', 'Instant Pot', 'Air Fryer', 'Mixer', 'Popcorn Maker', 'Refrigerator', 'Counter', 'Car'];
 // Equipment that several things can use at once — never flagged as an overlap
@@ -6386,6 +6406,48 @@ function planPeople(evt) {
   return [...set_].sort();
 }
 
+// Read-only recipe view shown beside a recipe's plan steps. Ingredients scale to the event's servings.
+function planRecipePanelHtml(recipe, evt) {
+  const evtRecipe = (evt.recipes || []).find(r => String(r.recipeId) === String(recipe.id));
+  const base = recipe.servings || 4;
+  const serves = (evtRecipe && evtRecipe.servings) || base;
+  const ings = (recipe.ingredients || []).map(i =>
+    `<li>${i.amount ? `<strong>${formatAmount(i.amount, base, serves)}${i.unit ? ' ' + planEsc(i.unit) : ''}</strong> ` : ''}${planEsc(i.name)}</li>`).join('');
+  const dirs = (recipe.steps || []).map((st, i) => `<div class="plan-recipe-dir">
+      <span class="num">${i + 1}</span>
+      <div style="flex:1;min-width:0">${st.title ? `<strong>${planEsc(st.title)}.</strong> ` : ''}${planEsc(st.text)}</div>
+      <button class="plan-small-btn" onclick="addPlanStepFromRecipe('${recipe.id}', ${i})" title="Add this as a timed step in the plan">+ step</button>
+    </div>`).join('');
+  return `<div class="plan-recipe-panel">
+    <h4>Ingredients · serves ${serves}${serves !== base ? ` (recipe makes ${base})` : ''}</h4>
+    <ul class="plan-recipe-ings">${ings || '<li>—</li>'}</ul>
+    <h4>Directions</h4>
+    ${dirs || '<div class="plan-empty">No directions saved for this recipe.</div>'}
+    ${recipe.notes ? `<h4>Notes</h4><div class="plan-recipe-notes">${planEsc(recipe.notes)}</div>` : ''}
+  </div>`;
+}
+
+function togglePlanRecipe(recipeId) {
+  const id = String(recipeId);
+  if (_planRecipeOpen.has(id)) _planRecipeOpen.delete(id); else _planRecipeOpen.add(id);
+  renderEventPlan();
+}
+
+// Start a new plan step pre-filled from one of the recipe's directions
+function addPlanStepFromRecipe(recipeId, stepIdx) {
+  const recipe = userRecipes.find(r => String(r.id) === String(recipeId));
+  const st = recipe && (recipe.steps || [])[stepIdx];
+  if (!st) return;
+  let label = (st.title || '').trim();
+  if (!label) {
+    const firstSentence = (st.text || '').split(/(?<=[.!?])\s/)[0].trim();
+    label = firstSentence.length > 70 ? firstSentence.slice(0, 67).trim() + '…' : firstSentence;
+  }
+  openPlanTaskModal(null, String(recipeId));
+  document.getElementById('plan-task-label').value = label;
+  document.getElementById('plan-task-subtitle').textContent = `Step ${stepIdx + 1}: ${st.text}`;
+}
+
 function renderEventPlan() {
   const body = document.getElementById('event-plan-body');
   const evt = eventsCache[_currentEventId];
@@ -6422,11 +6484,14 @@ function renderEventPlan() {
       const btns = [`<button class="plan-small-btn" onclick="openPlanTaskModal(null,'${g.recipeId}')">+ Step</button>`];
       if (saved && !mine.length) btns.push(`<button class="plan-small-btn" onclick="loadRecipePlan('${g.recipeId}')">📥 Use saved plan (${saved} steps)</button>`);
       if (recipe && mine.length) btns.push(`<button class="plan-small-btn" onclick="saveRecipePlan('${g.recipeId}')" title="Save these steps on the recipe so next time it starts pre-filled">💾 Save as recipe's plan</button>`);
+      const showRecipe = recipe && _planRecipeOpen.has(g.recipeId);
+      if (recipe) btns.unshift(`<button class="plan-small-btn" onclick="togglePlanRecipe('${g.recipeId}')" style="${showRecipe ? 'background:var(--brown);color:var(--cream);border-color:var(--brown)' : ''}">📖 ${showRecipe ? 'Hide recipe' : 'Recipe'}</button>`);
+      const stepsHtml = mine.length
+        ? planSortTasks(mine, evt).map(x => planRowHtml(x, evt, { editable: true, showDay: true, conflictIds })).join('')
+        : `<div class="plan-empty">${saved ? 'This recipe has a saved plan — tap “Use saved plan” to start from it.' : (recipe ? 'No steps yet — open 📖 Recipe and tap “+ step” next to each direction, or work backwards from dinner.' : 'No steps yet — work backwards from dinner.')}</div>`;
       html += `<div class="plan-card">
         <div class="plan-card-head"><span class="plan-card-title">${planEsc(g.title)}</span>${btns.join('')}</div>
-        ${mine.length
-          ? planSortTasks(mine, evt).map(x => planRowHtml(x, evt, { editable: true, showDay: true, conflictIds })).join('')
-          : `<div class="plan-empty">${saved ? 'This recipe has a saved plan — tap “Use saved plan” to start from it.' : 'No steps yet — work backwards from dinner.'}</div>`}
+        ${showRecipe ? `<div class="plan-split">${planRecipePanelHtml(recipe, evt)}<div>${stepsHtml}</div></div>` : stepsHtml}
       </div>`;
     });
   } else {
@@ -6536,6 +6601,7 @@ function openPlanTaskModal(taskId, recipeId) {
   document.getElementById('plan-task-assignee').value = task ? (task.assignee || '') : '';
   document.getElementById('plan-task-passive').checked = !!(task && task.passive);
   document.getElementById('plan-task-title').textContent = task ? 'Edit Step' : 'Add Step';
+  document.getElementById('plan-task-subtitle').textContent = 'Plan backwards from dinner';
   document.getElementById('plan-task-delete').style.display = task ? '' : 'none';
   planFillDatalists(evt);
   updatePlanTaskForm();
