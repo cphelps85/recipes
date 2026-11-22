@@ -2891,6 +2891,7 @@
             <option value="dinner">Before dinner</option>
             <option value="clock">At a set time</option>
             <option value="anytime">Anytime that day</option>
+            <option value="window">Sometime between…</option>
             <option value="before">Right before another step</option>
           </select>
         </div>
@@ -2911,11 +2912,21 @@
         <label>Start time</label>
         <input type="time" id="plan-task-clock" oninput="updatePlanTaskForm()">
       </div>
+      <div class="item-field" id="plan-task-window-wrap">
+        <label>Sometime between</label>
+        <div class="plan-hm">
+          <input type="time" id="plan-task-win-start" style="width:130px !important" oninput="updatePlanTaskForm()"> and
+          <input type="time" id="plan-task-win-end" style="width:130px !important" oninput="updatePlanTaskForm()">
+        </div>
+        <div class="field-hint">e.g. store or farm hours. Window steps don't trigger overlap warnings — they can happen any time in the window.</div>
+      </div>
       <div class="item-field">
+        <div id="plan-task-dur-inputs">
         <label>How long does it take? <span style="color:var(--text-muted);font-weight:400;text-transform:none;letter-spacing:0">(optional)</span></label>
         <div class="plan-hm">
           <input type="number" id="plan-task-dur-h" min="0" max="72" placeholder="0" oninput="updatePlanTaskForm()"> h
           <input type="number" id="plan-task-dur-m" min="0" max="59" step="5" placeholder="0" oninput="updatePlanTaskForm()"> m
+        </div>
         </div>
         <div class="plan-preview" id="plan-task-preview"></div>
       </div>
@@ -6274,6 +6285,11 @@ function planTaskTimes(task, evt, _seen) {
     while (start < 0) { start += 1440; day += 1; }
   } else if (task.anchor === 'clock') {
     start = planParseClock(task.clock);
+  } else if (task.anchor === 'window') {
+    // Flexible window (e.g. pick up between 8:30 and 4): start/end are the window edges
+    start = planParseClock(task.clock);
+    const winEnd = planParseClock(task.windowEnd);
+    if (start != null) return { day, start, end: winEnd != null && winEnd > start ? winEnd : start, window: true };
   }
   return { day, start, end: start != null ? start + dur : null };
 }
@@ -6335,7 +6351,7 @@ function planSortTasks(tasks, evt) {
 // doing two hands-on things at once.
 function findPlanConflicts(evt) {
   const timed = (evt.tasks || []).map(t => ({ t, tm: planTaskTimes(t, evt) }))
-    .filter(x => x.tm.start != null && x.tm.end > x.tm.start && !x.t.done);
+    .filter(x => x.tm.start != null && x.tm.end > x.tm.start && !x.t.done && !x.tm.window);
   const conflicts = [];
   for (let i = 0; i < timed.length; i++) {
     for (let j = i + 1; j < timed.length; j++) {
@@ -6362,6 +6378,7 @@ function planWhenHtml(tm, task, evt, showDay) {
   const day = showDay ? planDayLabel(tm.day, evt, true) + ' ' : '';
   const dur = task.durationMin ? planFmtDur(task.durationMin) : '';
   if (tm.start == null) return `${day || 'Anytime'}<small>${day ? 'anytime' : ''}${day && dur ? ' · ' : ''}${dur}</small>`;
+  if (tm.window) return `${day}${planFmtClock(tm.start)}<small>– ${planFmtClock(tm.end)} · anytime in window</small>`;
   return `${day}${planFmtClock(tm.start)}${tm.end > tm.start ? `<small>until ${planFmtClock(tm.end)} · ${dur}</small>` : ''}`;
 }
 
@@ -6593,7 +6610,9 @@ function openPlanTaskModal(taskId, recipeId) {
   const before = task ? (parseInt(task.minsBefore) || 0) : 0;
   document.getElementById('plan-task-before-h').value = before ? Math.floor(before / 60) : '';
   document.getElementById('plan-task-before-m').value = before ? before % 60 : '';
-  document.getElementById('plan-task-clock').value = task ? (task.clock || '') : '';
+  document.getElementById('plan-task-clock').value = task && task.anchor === 'clock' ? (task.clock || '') : '';
+  document.getElementById('plan-task-win-start').value = task && task.anchor === 'window' ? (task.clock || '') : '';
+  document.getElementById('plan-task-win-end').value = task && task.anchor === 'window' ? (task.windowEnd || '') : '';
   const dur = task ? (parseInt(task.durationMin) || 0) : 0;
   document.getElementById('plan-task-dur-h').value = dur ? Math.floor(dur / 60) : '';
   document.getElementById('plan-task-dur-m').value = dur ? dur % 60 : '';
@@ -6623,9 +6642,10 @@ function readPlanTaskForm() {
     daysBefore: parseInt(document.getElementById('plan-task-day').value) || 0,
     anchor,
     minsBefore: anchor === 'dinner' ? num('plan-task-before-h') * 60 + num('plan-task-before-m') : 0,
-    clock: anchor === 'clock' ? (document.getElementById('plan-task-clock').value || '') : '',
+    clock: anchor === 'clock' ? (document.getElementById('plan-task-clock').value || '') : anchor === 'window' ? (document.getElementById('plan-task-win-start').value || '') : '',
+    windowEnd: anchor === 'window' ? (document.getElementById('plan-task-win-end').value || '') : '',
     beforeTaskId: anchor === 'before' ? (document.getElementById('plan-task-link').value || '') : '',
-    durationMin: num('plan-task-dur-h') * 60 + num('plan-task-dur-m'),
+    durationMin: anchor === 'window' ? 0 : num('plan-task-dur-h') * 60 + num('plan-task-dur-m'),
     equipment: (document.getElementById('plan-task-equipment').value || '').trim(),
     assignee: (document.getElementById('plan-task-assignee').value || '').trim(),
     passive: document.getElementById('plan-task-passive').checked
@@ -6638,15 +6658,19 @@ function updatePlanTaskForm() {
   document.getElementById('plan-task-clock-wrap').style.display = anchor === 'clock' ? '' : 'none';
   document.getElementById('plan-task-link-wrap').style.display = anchor === 'before' ? '' : 'none';
   document.getElementById('plan-task-day-wrap').style.display = anchor === 'before' ? 'none' : '';
+  document.getElementById('plan-task-window-wrap').style.display = anchor === 'window' ? '' : 'none';
+  document.getElementById('plan-task-dur-inputs').style.display = anchor === 'window' ? 'none' : '';
   const evt = eventsCache[_currentEventId];
   const preview = document.getElementById('plan-task-preview');
   if (!evt || !preview) return;
   const f = readPlanTaskForm();
   const tm = planTaskTimes({ ...f, id: document.getElementById('plan-task-id').value || '__new__' }, evt);
-  if (anchor === 'before' && tm.start == null) {
+  if (tm.window) {
+    preview.textContent = `→ ${planDayLabel(tm.day, evt, false).split(' · ')[0]}, sometime between ${planFmtClock(tm.start)} and ${planFmtClock(tm.end)}`;
+  } else if (anchor === 'before' && tm.start == null) {
     preview.textContent = f.beforeTaskId ? '→ the linked step has no set time yet, so this one is “anytime” too' : '';
   } else if (tm.start == null) {
-    preview.textContent = anchor === 'clock' ? '' : `→ ${planDayLabel(tm.day, evt, false).split(' · ')[0]}, anytime`;
+    preview.textContent = (anchor === 'clock' || anchor === 'window') ? '' : `→ ${planDayLabel(tm.day, evt, false).split(' · ')[0]}, anytime`;
   } else {
     preview.textContent = `→ ${planDayLabel(tm.day, evt, false).split(' · ')[0]}, ${planFmtClock(tm.start)}${tm.end > tm.start ? ' – ' + planFmtClock(tm.end) : ''}`;
   }
@@ -6658,6 +6682,8 @@ function savePlanTask() {
   const f = readPlanTaskForm();
   if (!f.label) { alert('Give the step a name (e.g. "Start smoker").'); return; }
   if (f.anchor === 'clock' && !f.clock) { alert('Pick a start time, or choose "Anytime that day".'); return; }
+  if (f.anchor === 'window' && (!f.clock || !f.windowEnd)) { alert('Pick both times for the window (e.g. 8:30 AM and 4:00 PM).'); return; }
+  if (f.anchor === 'window' && planParseClock(f.windowEnd) <= planParseClock(f.clock)) { alert('The window has to end after it starts.'); return; }
   if (f.anchor === 'before' && !f.beforeTaskId) { alert('Pick which step this one comes right before.'); return; }
   if (f.anchor === 'before') f.daysBefore = planTaskTimes({ ...f, id: document.getElementById('plan-task-id').value || '__new__' }, evt).day;
   const recipeId = document.getElementById('plan-task-recipe').value || null;
@@ -6703,7 +6729,7 @@ function loadRecipePlan(recipeId) {
       label: s.label || '', daysBefore: s.daysBefore || 0,
       anchor: linked ? 'before' : (s.anchor === 'before' ? 'anytime' : (s.anchor || 'anytime')),
       beforeTaskId: linked ? newIds[s.beforeIndex] : '',
-      minsBefore: s.minsBefore || 0, clock: s.clock || '', durationMin: s.durationMin || 0,
+      minsBefore: s.minsBefore || 0, clock: s.clock || '', windowEnd: s.windowEnd || '', durationMin: s.durationMin || 0,
       equipment: s.equipment || '', assignee: '', passive: !!s.passive, done: false
     });
   });
@@ -6724,7 +6750,7 @@ function saveRecipePlan(recipeId) {
     const idx = t.anchor === 'before' ? mine.findIndex(x => x.id === t.beforeTaskId) : -1;
     const timing = t.anchor === 'before'
       ? (idx >= 0 ? { anchor: 'before', beforeIndex: idx, daysBefore: t.daysBefore || 0, minsBefore: 0, clock: '' } : planFreezeTiming(t, evt))
-      : { anchor: t.anchor || 'anytime', daysBefore: t.daysBefore || 0, minsBefore: t.minsBefore || 0, clock: t.clock || '' };
+      : { anchor: t.anchor || 'anytime', daysBefore: t.daysBefore || 0, minsBefore: t.minsBefore || 0, clock: t.clock || '', ...(t.anchor === 'window' ? { windowEnd: t.windowEnd || '' } : {}) };
     const step = { label: t.label, durationMin: t.durationMin || 0, equipment: t.equipment || '', passive: !!t.passive, ...timing };
     delete step.beforeTaskId;
     return step;
