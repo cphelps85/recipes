@@ -1931,6 +1931,11 @@
   .plan-tabs button.active { background: var(--brown); color: var(--cream); }
   .plan-card { background: var(--warm-white); border: 1px solid var(--border); border-radius: 12px; padding: 0.7rem 0.9rem; margin-bottom: 0.6rem; }
   .plan-card-head { display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap; margin-bottom: 0.2rem; }
+  .plan-card-toggle { cursor: pointer; display: flex; align-items: center; gap: 0.4rem; flex: 1; min-width: 160px; user-select: none; }
+  .plan-card-toggle .chev { font-size: 0.7rem; color: var(--text-muted); width: 0.8rem; transition: transform 0.15s; }
+  .plan-card.collapsed .chev { transform: rotate(-90deg); }
+  .plan-card-summary { font-size: 0.78rem; color: var(--text-muted); padding: 0.15rem 0 0 1.2rem; }
+  .plan-card-summary .warn { color: #8B3A12; font-weight: 600; }
   .plan-card-title { font-family: 'Playfair Display', serif; color: var(--brown); font-size: 0.98rem; flex: 1; min-width: 140px; }
   .plan-small-btn { background: var(--cream); border: 1px solid var(--border); border-radius: 8px; padding: 0.25rem 0.6rem; font-size: 0.74rem; color: var(--brown-mid); cursor: pointer; font-family: inherit; }
   .plan-small-btn:hover { border-color: var(--accent); color: var(--accent); }
@@ -4592,6 +4597,7 @@ window.updateEventRecipeServings = updateEventRecipeServings;
 window.removeEventRecipe = removeEventRecipe;
 window.removeEventItem = removeEventItem;
 window.toggleEventItem = toggleEventItem;
+window.togglePlanCard = togglePlanCard;
 window.togglePlanRecipe = togglePlanRecipe;
 window.addPlanStepFromRecipe = addPlanStepFromRecipe;
 window.openEventRecipeChecklist = openEventRecipeChecklist;
@@ -6236,6 +6242,17 @@ let _planView = 'recipes';      // 'recipes' | 'master'
 let _planPerson = '';           // master-plan filter ('' = everyone)
 let _planTaskRecipeId = null;   // recipe preselected when the modal opens
 const _planRecipeOpen = new Set(); // recipe ids whose recipe panel is showing in "By Recipe"
+// Collapsed "By Recipe" cards, remembered per event on this device (key 'other' = Other tasks)
+function planCollapsedSet(evtId) {
+  try { return new Set(JSON.parse(localStorage.getItem('planCollapsed:' + evtId) || '[]')); } catch { return new Set(); }
+}
+function togglePlanCard(key) {
+  if (!_currentEventId) return;
+  const set_ = planCollapsedSet(_currentEventId);
+  if (set_.has(key)) set_.delete(key); else set_.add(key);
+  try { localStorage.setItem('planCollapsed:' + _currentEventId, JSON.stringify([...set_])); } catch {}
+  renderEventPlan();
+}
 const PLAN_DEFAULT_DINNER = '16:30';
 const PLAN_EQUIPMENT = ['Large Oven', 'Small Oven', 'Smoker', 'Grill', 'Stove', 'Microwave', 'Crock Pot', 'Instant Pot', 'Air Fryer', 'Mixer', 'Popcorn Maker', 'Refrigerator', 'Counter', 'Car'];
 // Equipment that several things can use at once — never flagged as an overlap
@@ -6522,8 +6539,11 @@ function renderEventPlan() {
       if (t.recipeId && !groups.some(g => g.recipeId === String(t.recipeId))) groups.push({ recipeId: String(t.recipeId), title: t.recipeTitle || 'Removed recipe' });
     });
     groups.push({ recipeId: '', title: '📋 Other tasks (errands, setup, pick-ups)' });
+    const collapsedCards = planCollapsedSet(evt.id);
     groups.forEach(g => {
       const mine = tasks.filter(t => String(t.recipeId || '') === g.recipeId);
+      const cardKey = g.recipeId || 'other';
+      const collapsed = collapsedCards.has(cardKey);
       const recipe = g.recipeId ? userRecipes.find(r => String(r.id) === g.recipeId) : null;
       const saved = recipe && Array.isArray(recipe.prepPlan) ? recipe.prepPlan.length : 0;
       const btns = [`<button class="plan-small-btn" onclick="openPlanTaskModal(null,'${g.recipeId}')">+ Step</button>`];
@@ -6534,9 +6554,22 @@ function renderEventPlan() {
       const stepsHtml = mine.length
         ? planSortTasks(mine, evt).map(x => planRowHtml(x, evt, { editable: true, showDay: true, conflictIds })).join('')
         : `<div class="plan-empty">${saved ? 'This recipe has a saved plan — tap “Use saved plan” to start from it.' : (recipe ? 'No steps yet — open 📖 Recipe and tap “+ step” next to each direction, or work backwards from dinner.' : 'No steps yet — work backwards from dinner.')}</div>`;
-      html += `<div class="plan-card">
-        <div class="plan-card-head"><span class="plan-card-title">${planEsc(g.title)}</span>${btns.join('')}</div>
-        ${showRecipe ? `<div class="plan-split">${planRecipePanelHtml(recipe, evt)}<div>${stepsHtml}</div></div>` : stepsHtml}
+      let summary = '';
+      if (collapsed) {
+        const sorted = planSortTasks(mine, evt);
+        const days = [...new Set(sorted.map(x => planDayLabel(x.tm.day, evt, true)))];
+        const doneN = mine.filter(t => t.done).length;
+        const warnN = mine.filter(t => conflictIds.has(t.id)).length;
+        summary = mine.length
+          ? `${mine.length} step${mine.length !== 1 ? 's' : ''} · ${days.length > 1 ? days[0] + ' – ' + days[days.length - 1] : days[0]}${doneN ? ` · ${doneN}/${mine.length} done` : ''}${warnN ? ` · <span class="warn">⚠️ ${warnN} step${warnN !== 1 ? 's' : ''} overlap</span>` : ''}`
+          : 'No steps yet';
+      }
+      html += `<div class="plan-card ${collapsed ? 'collapsed' : ''}">
+        <div class="plan-card-head">
+          <span class="plan-card-toggle" onclick="togglePlanCard('${cardKey}')" title="${collapsed ? 'Show steps' : 'Hide steps'}"><span class="chev">▼</span><span class="plan-card-title" style="min-width:0">${planEsc(g.title)}</span></span>
+          ${collapsed ? '' : btns.join('')}
+        </div>
+        ${collapsed ? `<div class="plan-card-summary">${summary}</div>` : (showRecipe ? `<div class="plan-split">${planRecipePanelHtml(recipe, evt)}<div>${stepsHtml}</div></div>` : stepsHtml)}
       </div>`;
     });
   } else {
