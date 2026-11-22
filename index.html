@@ -1931,6 +1931,9 @@
   .plan-tabs button.active { background: var(--brown); color: var(--cream); }
   .plan-card { background: var(--warm-white); border: 1px solid var(--border); border-radius: 12px; padding: 0.7rem 0.9rem; margin-bottom: 0.6rem; }
   .plan-card-head { display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap; margin-bottom: 0.2rem; }
+  #event-items-container.collapsed > :not(.event-section-label) { display: none !important; }
+  #event-items-container .event-section-label .chev { display: inline-block; font-size: 0.65rem; margin-right: 0.35rem; transition: transform 0.15s; }
+  #event-items-container.collapsed .event-section-label .chev { transform: rotate(-90deg); }
   .plan-card-toggle { cursor: pointer; display: flex; align-items: center; gap: 0.4rem; flex: 1; min-width: 160px; user-select: none; }
   .plan-card-toggle .chev { font-size: 0.7rem; color: var(--text-muted); width: 0.8rem; transition: transform 0.15s; }
   .plan-card.collapsed .chev { transform: rotate(-90deg); }
@@ -2315,8 +2318,8 @@
 
     <!-- Shopping list -->
     <div id="event-items-container">
-      <div class="event-section-label">
-        <span>🛒 Shopping List</span>
+      <div class="event-section-label" style="cursor:pointer;user-select:none" onclick="toggleEventShoppingList()" title="Show / hide the shopping list">
+        <span><span class="chev">▼</span>🛒 Shopping List</span>
         <span id="event-items-count" style="font-size:0.8rem;font-weight:500;text-transform:none;letter-spacing:0;color:var(--brown)"></span>
       </div>
       <div id="event-items-list"></div>
@@ -4598,6 +4601,7 @@ window.removeEventRecipe = removeEventRecipe;
 window.removeEventItem = removeEventItem;
 window.toggleEventItem = toggleEventItem;
 window.togglePlanCard = togglePlanCard;
+window.toggleEventShoppingList = toggleEventShoppingList;
 window.togglePlanRecipe = togglePlanRecipe;
 window.addPlanStepFromRecipe = addPlanStepFromRecipe;
 window.openEventRecipeChecklist = openEventRecipeChecklist;
@@ -5867,6 +5871,8 @@ function renderEventItems() {
   empty.style.display = items.length === 0 ? 'block' : 'none';
   const doneCount = items.filter(i => i.checked).length;
   if (countEl) countEl.textContent = items.length > 0 ? `${doneCount}/${items.length} checked` : '';
+  const container = document.getElementById('event-items-container');
+  if (container) container.classList.toggle('collapsed', planCollapsedSet(_currentEventId).has('__shopping'));
 
   // Group by section (same aisle-ordered sections as the main grocery list)
   const grouped = {};
@@ -6246,6 +6252,7 @@ const _planRecipeOpen = new Set(); // recipe ids whose recipe panel is showing i
 function planCollapsedSet(evtId) {
   try { return new Set(JSON.parse(localStorage.getItem('planCollapsed:' + evtId) || '[]')); } catch { return new Set(); }
 }
+function toggleEventShoppingList() { togglePlanCard('__shopping'); renderEventItems(); }
 function togglePlanCard(key) {
   if (!_currentEventId) return;
   const set_ = planCollapsedSet(_currentEventId);
