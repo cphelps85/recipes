@@ -2198,6 +2198,13 @@
       <button class="modal-close" onclick="closeReviewDirect()">✕</button>
     </div>
     <div class="modal-body">
+      <div id="review-servings-row" style="display:none;align-items:center;gap:0.6rem;background:var(--cream);border-radius:10px;padding:0.6rem 0.9rem;margin-bottom:0.8rem">
+        <span style="font-size:0.88rem;color:var(--brown);font-weight:600;flex:1">🍽️ Making it for how many?</span>
+        <button class="plan-small-btn" style="font-size:1rem;padding:0.15rem 0.7rem" onclick="changeReviewServings(-1)">−</button>
+        <input type="number" id="review-servings-input" class="add-input" min="1" max="200" style="flex:0 0 64px;width:64px;text-align:center;padding:0.3rem"
+          oninput="setReviewServings(this.value)">
+        <button class="plan-small-btn" style="font-size:1rem;padding:0.15rem 0.7rem" onclick="changeReviewServings(1)">+</button>
+      </div>
       <div id="review-list"></div>
       <button class="print-btn" id="review-add-btn" onclick="addReviewedItems()" style="width:100%;margin-top:1rem;">Add Checked Items to Grocery List</button>
     </div>
@@ -4546,6 +4553,9 @@ window.updateEventRecipeServings = updateEventRecipeServings;
 window.removeEventRecipe = removeEventRecipe;
 window.removeEventItem = removeEventItem;
 window.toggleEventItem = toggleEventItem;
+window.openEventRecipeChecklist = openEventRecipeChecklist;
+window.setReviewServings = setReviewServings;
+window.changeReviewServings = changeReviewServings;
 window.setEventDinnerTime = setEventDinnerTime;
 window.setPlanView = setPlanView;
 window.setPlanPerson = setPlanPerson;
@@ -5618,6 +5628,13 @@ function addReviewedItems() {
     _reviewingEventIngredients = false;
     const evt = eventsCache[_currentEventId];
     if (evt) {
+      // Save the servings chosen in the checklist so the shopping list scales to it
+      const evtRecipe = (evt.recipes || []).find(r => String(r.recipeId) === String(_reviewEventRecipeId));
+      if (evtRecipe && evtRecipe.servings !== _reviewEventServings) {
+        evtRecipe.servings = _reviewEventServings;
+        set(ref(db, _eventsBasePath + '/' + _currentEventId + '/recipes'), evt.recipes);
+        renderEventRecipes();
+      }
       if (!evt.items) evt.items = [];
       toAdd.forEach(ing => {
         const key = ing.name.toLowerCase().trim();
@@ -5758,6 +5775,7 @@ function renderEventRecipes() {
       <label style="font-size:0.72rem;color:var(--text-muted)">serves</label>
       <input type="number" class="add-input" style="width:50px;text-align:center;padding:0.2rem 0.3rem;font-size:0.82rem"
         value="${r.servings || 4}" min="1" max="200" onchange="updateEventRecipeServings(${i}, this.value)">
+      <button class="note-btn" onclick="openEventRecipeChecklist('${r.recipeId}')" title="Add ingredients to shopping list">🛒</button>
       <button class="delete-item" onclick="removeEventRecipe(${i})">✕</button>
     </div>`).join('');
 }
@@ -5983,14 +6001,27 @@ function assignRecipeToEvent(recipeId) {
     renderEventRecipes();
     renderEventPlan();
   }
-  // Open ingredient checklist
+  openEventRecipeChecklist(recipeId);
+}
+
+// Ingredient checklist for one event recipe, with a servings control at the top.
+// Changing servings rescales the list live; tapping Add saves the servings to evt.recipes.
+let _reviewEventRecipeId = null;
+let _reviewEventServings = 4;
+
+function openEventRecipeChecklist(recipeId) {
+  const recipe = userRecipes.find(r => String(r.id) === String(recipeId));
+  const evt = eventsCache[_currentEventId];
+  if (!recipe || !evt) return;
+  const evtRecipe = (evt.recipes || []).find(r => String(r.recipeId) === String(recipeId));
   const baseServings = recipe.servings || 4;
-  const scale = servings / baseServings;
-  reviewIngredients = recipe.ingredients
+  _reviewEventRecipeId = String(recipeId);
+  _reviewEventServings = (evtRecipe && evtRecipe.servings) || baseServings;
+  reviewIngredients = (recipe.ingredients || [])
     .filter(ing => !PANTRY_STAPLES.some(p => ing.name.toLowerCase().includes(p)))
     .map(ing => ({
       ...ing,
-      amount: (ing.amount || 0) * scale,
+      amount: 0,
       baseAmount: ing.amount || 0,
       baseServings,
       unit: ing.unit || '',
@@ -5998,21 +6029,44 @@ function assignRecipeToEvent(recipeId) {
       fromRecipe: recipe.title,
       recipeId: String(recipeId)
     }));
-  const listHTML = reviewIngredients.length === 0
-    ? '<p style="color:var(--text-muted)">All ingredients are pantry staples!</p>'
-    : reviewIngredients.map((ing, i) => `
-      <div class="review-item">
-        <input type="checkbox" id="ri${i}" checked>
-        <label for="ri${i}" style="flex:1;cursor:pointer">${ing.name}${ing.amount ? ` — <strong>${formatAmount(ing.amount, 1, 1)} ${ing.unit || ''}</strong>` : ''}</label>
-      </div>`).join('');
-  document.getElementById('review-list').innerHTML = listHTML;
+  document.getElementById('review-list').innerHTML = '';
+  renderEventReviewList();
+  document.getElementById('review-servings-row').style.display = 'flex';
+  document.getElementById('review-servings-input').value = _reviewEventServings;
   document.querySelector('#review-content .modal-title').textContent = recipe.title;
-  document.querySelector('#review-content .modal-desc').textContent = 'Check ingredients to add to your shopping list';
+  document.querySelector('#review-content .modal-desc').textContent = `Recipe makes ${baseServings} — set how many you're feeding, then check what to buy`;
   const btn = document.getElementById('review-add-btn');
   if (btn) btn.textContent = 'Add Checked Items to Shopping List';
   _reviewingEventIngredients = true;
   document.getElementById('review-modal').classList.add('open');
   document.body.style.overflow = 'hidden';
+}
+
+function renderEventReviewList() {
+  const list = document.getElementById('review-list');
+  // keep whatever the user already checked/unchecked when rescaling
+  const prev = [...list.querySelectorAll('input[type="checkbox"]')].map(c => c.checked);
+  reviewIngredients.forEach(ing => { ing.amount = ing.baseAmount * _reviewEventServings / (ing.baseServings || 1); });
+  list.innerHTML = reviewIngredients.length === 0
+    ? '<p style="color:var(--text-muted)">All ingredients are pantry staples!</p>'
+    : reviewIngredients.map((ing, i) => `
+      <div class="review-item">
+        <input type="checkbox" id="ri${i}" ${prev.length ? (prev[i] ? 'checked' : '') : 'checked'}>
+        <label for="ri${i}" style="flex:1;cursor:pointer">${ing.name}${ing.amount ? ` — <strong>${formatAmount(ing.amount, 1, 1)} ${ing.unit || ''}</strong>` : ''}</label>
+      </div>`).join('');
+}
+
+function setReviewServings(value) {
+  const n = parseInt(value);
+  if (!n || n < 1) return;
+  _reviewEventServings = Math.min(n, 200);
+  renderEventReviewList();
+}
+
+function changeReviewServings(delta) {
+  const n = Math.max(1, Math.min(200, _reviewEventServings + delta));
+  document.getElementById('review-servings-input').value = n;
+  setReviewServings(n);
 }
 
 function portEventToGrocery() {
@@ -6649,6 +6703,8 @@ function closeReviewDirect() {
   document.getElementById('review-modal').classList.remove('open');
   document.body.style.overflow = '';
   _reviewingEventIngredients = false;
+  const servRow = document.getElementById('review-servings-row');
+  if (servRow) servRow.style.display = 'none';
   const btn = document.getElementById('review-add-btn');
   if (btn) btn.textContent = 'Add Checked Items to Grocery List';
 }
