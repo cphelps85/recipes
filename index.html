@@ -1957,6 +1957,11 @@
   .plan-chip.passive { background: transparent; border-style: dashed; }
   .plan-day { font-weight: 700; font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--brown); margin: 1rem 0 0.2rem; padding-bottom: 0.3rem; border-bottom: 2px solid var(--accent-light); }
   .plan-day:first-child { margin-top: 0.2rem; }
+  .plan-day-toggle { cursor: pointer; user-select: none; display: flex; align-items: center; gap: 0.4rem; }
+  .plan-day-toggle .chev { font-size: 0.65rem; transition: transform 0.15s; }
+  .plan-day-toggle.collapsed .chev { transform: rotate(-90deg); }
+  .plan-day-summary { font-weight: 500; text-transform: none; letter-spacing: 0; font-size: 0.74rem; color: var(--text-muted); }
+  .plan-day-summary .warn { color: #8B3A12; font-weight: 600; }
   .plan-alert { background: #FDF0E8; border: 1px solid #F0C9B0; border-radius: 10px; padding: 0.6rem 0.9rem; font-size: 0.82rem; color: #8B3A12; margin-bottom: 0.7rem; }
   .plan-alert ul { margin: 0.3rem 0 0 1.1rem; padding: 0; }
   .plan-ok { background: var(--green-light); border-radius: 10px; padding: 0.45rem 0.9rem; font-size: 0.8rem; color: var(--green); margin-bottom: 0.7rem; }
@@ -6593,10 +6598,24 @@ function renderEventPlan() {
     if (!shown.length) {
       html += `<div class="plan-empty">${tasks.length ? 'Nothing assigned here.' : 'No steps yet — add them under “By Recipe”.'}</div>`;
     } else {
-      let lastDay = null;
+      // Group by day; each day header collapses (key 'day:<daysBefore>' in the per-event collapsed set)
+      const collapsedSet = planCollapsedSet(evt.id);
+      const groups = [];
       planSortTasks(shown, evt).forEach(x => {
-        if (x.tm.day !== lastDay) { html += `<div class="plan-day">${planEsc(planDayLabel(x.tm.day, evt))}</div>`; lastDay = x.tm.day; }
-        html += planRowHtml(x, evt, { editable: true, checkbox: true, evtId: evt.id, showRecipe: true, conflictIds });
+        const g = groups[groups.length - 1];
+        if (g && g.day === x.tm.day) g.rows.push(x); else groups.push({ day: x.tm.day, rows: [x] });
+      });
+      groups.forEach(g => {
+        const key = 'day:' + g.day;
+        const isCollapsed = collapsedSet.has(key);
+        const n = g.rows.length, doneN = g.rows.filter(x => x.t.done).length;
+        const warnN = g.rows.filter(x => conflictIds.has(x.t.id)).length;
+        const summary = `${n} step${n !== 1 ? 's' : ''}${doneN ? ` · ${doneN}/${n} done` : ''}${warnN ? ` · <span class="warn">⚠️ ${warnN} overlap</span>` : ''}`;
+        html += `<div class="plan-day plan-day-toggle ${isCollapsed ? 'collapsed' : ''}" onclick="togglePlanCard('${key}')" title="Show / hide this day">
+          <span class="chev">▼</span><span style="flex:1">${planEsc(planDayLabel(g.day, evt))}</span><span class="plan-day-summary">${summary}</span></div>`;
+        if (!isCollapsed) g.rows.forEach(x => {
+          html += planRowHtml(x, evt, { editable: true, checkbox: true, evtId: evt.id, showRecipe: true, conflictIds });
+        });
       });
       if (!evt.date) html += `<div class="plan-empty" style="margin-top:0.5rem">Tip: set the event date at the top to see real dates instead of “day before”.</div>`;
     }
